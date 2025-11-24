@@ -44,4 +44,6 @@ class BaseAppContext:
     """
 
     product_instance: Optional[Any] = None
+    python_executable: Optional[str] = None
+    python_session: Optional[Any] = None  # PersistentPythonSession instance
     metadata: dict = field(default_factory=dict)

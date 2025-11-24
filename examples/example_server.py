@@ -5,6 +5,7 @@ a simple MCP server for a PyAnsys product.
 """
 
 from ansys.common.mcp import BaseMCPServer, BaseAppContext
+from ansys.common.mcp.helpers import PersistentPythonSession
 from dataclasses import dataclass
 from typing import Optional, Any
 from contextlib import asynccontextmanager
@@ -40,8 +41,17 @@ class ExampleProductServer(BaseMCPServer):
     product-specific MCP server.
     """
     
-    def __init__(self):
-        """Initialize the example product server."""
+    def __init__(self, python_executable: Optional[str] = None):
+        """Initialize the example product server.
+        
+        Parameters
+        ----------
+        python_executable : Optional[str]
+            Path to the Python executable to use for running LLM-generated code.
+            If None, uses the current Python interpreter (sys.executable).
+        """
+        self.python_executable = python_executable
+        
         # Initialize with custom lifespan
         super().__init__(
             product_name="ExampleProduct",
@@ -56,19 +66,46 @@ class ExampleProductServer(BaseMCPServer):
         """Manage the product lifecycle.
         
         This is where you handle initialization and cleanup of
-        product-specific resources.
+        product-specific resources, including the persistent Python session.
         """
         context = ExampleProductContext()
+        # Store the Python executable in context for tools to use
+        context.python_executable = self.python_executable
+        
+        # Initialize persistent Python session
+        context.python_session = PersistentPythonSession(
+            python_executable=self.python_executable,
+            startup_code=None,  # Optional: Add common imports here
+        )
+        
         try:
             logger.info("Example Product MCP Server initialized")
+            if self.python_executable:
+                logger.info(f"Using Python executable: {self.python_executable}")
+            
+            # Start the persistent session
+            start_result = context.python_session.start()
+            if start_result["success"]:
+                logger.info("Persistent Python session started")
+            else:
+                logger.warning(f"Failed to start Python session: {start_result.get('error')}")
+            
             yield context
         finally:
-            # Cleanup
-            if context.connection is not None:
+            # Cleanup persistent session
+            if context.python_session and context.python_session.is_running():
+                try:
+                    logger.info("Stopping persistent Python session...")
+                    context.python_session.stop()
+                except Exception as e:
+                    logger.error(f"Error stopping Python session: {e}")
+            
+            # Cleanup product connection
+            if context.product_instance is not None:
                 try:
                     logger.info("Cleaning up connection...")
                     # Add your cleanup logic here
-                    # context.connection.close()
+                    # context.product_instance.close()
                 except Exception as e:
                     logger.error(f"Error during cleanup: {e}")
     
@@ -209,12 +246,164 @@ class ExampleProductServer(BaseMCPServer):
                 error_msg = f"Error executing command: {str(e)}"
                 logger.error(error_msg)
                 return error_msg
+        
+
+        @self.mcp.tool()
+        def execute_in_persistent_session(ctx, code: str, timeout: int = 30) -> str:
+            """Execute Python code in the persistent session, preserving state.
+            
+            This tool executes code in a single persistent Python process,
+            allowing variables, imports, and state to be maintained across
+            multiple executions. Perfect for multi-step workflows where each
+            step builds on the previous one.
+            
+            Parameters
+            ----------
+            ctx : Context
+                MCP context
+            code : str
+                Python code to execute
+            timeout : int
+                Maximum execution time in seconds (default: 30)
+                
+            Returns
+            -------
+            str
+                Formatted execution result with stdout, stderr, and status
+                
+            Examples
+            --------
+            Step 1: Define variables
+            >>> execute_in_persistent_session("x = 10\\ny = 20")
+            
+            Step 2: Use those variables
+            >>> execute_in_persistent_session("print(x + y)")  # Outputs: 30
+            """
+            session = ctx.request_context.lifespan_context.python_session
+            
+            if not session:
+                return "✗ No persistent Python session available"
+            
+            if not session.is_running():
+                # Try to start the session
+                start_result = session.start()
+                if not start_result["success"]:
+                    return f"✗ Failed to start session: {start_result.get('error')}"
+            
+            try:
+                logger.info("Executing code in persistent session")
+                
+                # Execute the code in the persistent session
+                result = session.execute(code, timeout=timeout)
+                
+                # Format the result for the LLM
+                if result["success"]:
+                    output = f"✓ Execution successful\n\n"
+                    if result["stdout"]:
+                        output += f"Output:\n{result['stdout']}\n"
+                    else:
+                        output += "(No output)\n"
+                else:
+                    output = f"✗ Execution failed\n\n"
+                    if result["stderr"]:
+                        output += f"Error:\n{result['stderr']}\n"
+                    if result["error"]:
+                        output += f"Details: {result['error']}\n"
+                
+                return output
+            
+            except Exception as e:
+                error_msg = f"Error executing code in session: {str(e)}"
+                logger.error(error_msg)
+                return f"✗ {error_msg}"
+        
+        @self.mcp.tool()
+        def reset_python_session(ctx, startup_code: str = "") -> str:
+            """Reset the persistent Python session.
+            
+            This stops the current Python session and starts a new one,
+            clearing all variables and state. Optionally run startup code
+            to initialize the new session.
+            
+            Parameters
+            ----------
+            ctx : Context
+                MCP context
+            startup_code : str
+                Optional Python code to run after resetting (default: "")
+                
+            Returns
+            -------
+            str
+                Status message indicating success or failure
+            """
+            session = ctx.request_context.lifespan_context.python_session
+            
+            if not session:
+                return "✗ No persistent Python session available"
+            
+            try:
+                logger.info("Resetting persistent Python session")
+                
+                # Stop the current session
+                if session.is_running():
+                    stop_result = session.stop()
+                    if not stop_result["success"]:
+                        return f"✗ Failed to stop session: {stop_result.get('error')}"
+                
+                # Update startup code if provided
+                if startup_code:
+                    session.startup_code = startup_code
+                
+                # Start a new session
+                start_result = session.start()
+                if start_result["success"]:
+                    return "✓ Python session reset successfully"
+                else:
+                    return f"✗ Failed to start new session: {start_result.get('error')}"
+            
+            except Exception as e:
+                error_msg = f"Error resetting session: {str(e)}"
+                logger.error(error_msg)
+                return f"✗ {error_msg}"
+        
+        @self.mcp.tool()
+        def check_python_session_status(ctx) -> str:
+            """Check the status of the persistent Python session.
+            
+            Parameters
+            ----------
+            ctx : Context
+                MCP context
+                
+            Returns
+            -------
+            str
+                Status information about the session
+            """
+            session = ctx.request_context.lifespan_context.python_session
+            
+            if not session:
+                return "No persistent Python session configured"
+            
+            if session.is_running():
+                return f"✓ Session is running\nPython: {session.python_executable}"
+            else:
+                return f"✗ Session is not running\nPython: {session.python_executable}"
 
 
 # Step 3: Create the main entry point
 def main():
     """Main entry point for the MCP server."""
-    server = ExampleProductServer()
+    import sys
+    
+    # Optional: Parse command line arguments for python_executable
+    python_exec = None
+    if len(sys.argv) > 1:
+        python_exec = sys.argv[1]
+        logger.info(f"Using Python executable from command line: {python_exec}")
+    
+    server = ExampleProductServer(python_executable=python_exec)
     server.run()
 
 
