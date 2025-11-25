@@ -13,8 +13,6 @@ from ansys.common.mcp.server import PyAnsysBaseMCP
 __all__ = [
     "PyAnsysBaseAppContext",
     "PyAnsysBaseMCP",
-    "check_package_version",
-    "get_python_environment_info",
     "PersistentPythonSession",
     "__version__",
 ]
