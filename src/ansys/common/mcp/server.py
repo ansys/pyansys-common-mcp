@@ -6,7 +6,7 @@ servers can extend to create their own MCP implementations.
 
 from abc import ABC, abstractmethod
 from fastmcp import FastMCP
-from typing import Optional
+from typing import Callable, Optional, AsyncIterator
 from contextlib import asynccontextmanager
 from ansys.common.mcp.context import PyAnsysBaseAppContext
 import logging
@@ -16,7 +16,13 @@ from ansys.common.mcp.helpers import PersistentPythonSession
 logger = logging.getLogger(__name__)
 
 class PyAnsysBaseMCP(FastMCP, ABC):
-    def __init__(self, python_executable: Optional[str] = None, working_directory: Optional[str] = None, *args, **kwargs):
+    def __init__(self, 
+                 python_executable: Optional[str] = None,
+                 working_directory: Optional[str] = None,
+                 lifespan_func: Optional[Callable[..., AsyncIterator[PyAnsysBaseAppContext]]] = None,
+                 *args, 
+                 **kwargs
+    ):
         """
         PyAnsys Base MCP server for PyAnsys libraries.
 
@@ -31,15 +37,10 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         # Store parameters before calling super().__init__
         self.python_executable = python_executable
         self.working_directory = working_directory
+        if lifespan_func is None:
+            lifespan_func = self.product_lifespan
         
-        super().__init__(*args, **kwargs)
-        
-        # Connect the lifespan after FastMCP initialization
-        async def _lifespan_wrapper(mcp_instance):
-            async with self.product_lifespan() as context:
-                yield context
-        
-        self.mcp.lifespan = _lifespan_wrapper
+        super().__init__(*args, lifespan=lifespan_func, **kwargs)
 
     @abstractmethod
     def product_cleanup(self):
@@ -119,7 +120,7 @@ class PyAnsysBaseMCP(FastMCP, ABC):
                 logger.info("Persistent Python session stopped")
             except Exception as e:
                 logger.error(f"Error stopping Python session: {e}")
-    
+
     @asynccontextmanager
     async def product_lifespan(self):
         """Manage the server's lifecycle with startup and cleanup.
@@ -133,13 +134,12 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         """
         # Use factory method to create context (subclasses can override)
         context = self.create_context()
-        self.context = context
         
         try:
             self.start_python_session()
             self.product_startup()
 
-            yield self.context
+            yield context
 
         finally:
             self.cleanup_python_session()
