@@ -4,6 +4,7 @@ This module provides the BaseMCPServer class that product-specific MCP
 servers can extend to create their own MCP implementations.
 """
 
+from abc import ABC, abstractmethod
 from mcp import FastMCP
 from typing import Optional
 from contextlib import asynccontextmanager
@@ -14,7 +15,7 @@ from ansys.common.mcp.helpers import PersistentPythonSession
 
 logger = logging.getLogger(__name__)
 
-class PyAnsysBaseMCP(FastMCP):
+class PyAnsysBaseMCP(FastMCP, ABC):
     def __init__(self, python_executable: Optional[str] = None, *args, **kwargs):
         """
         Base MCP server for PyAnsys libraries.
@@ -30,17 +31,55 @@ class PyAnsysBaseMCP(FastMCP):
         self.python_executable = python_executable
         super().__init__(*args, **kwargs)
 
+    @abstractmethod
     def product_cleanup(self):
         """
         Cleanup routine before shutting down the server.
+        
+        Must be implemented by subclasses to handle product-specific cleanup.
         """
-        raise NotImplementedError("``product_cleanup`` method must be implemented by subclass")
+        pass
 
+    @abstractmethod
     def product_startup(self):
         """
         Startup routine to initialize resources when the server starts.
+        
+        Must be implemented by subclasses to handle product-specific initialization.
         """
-        raise NotImplementedError("``product_startup`` method must be implemented by subclass")
+        pass
+    
+    def create_context(self) -> PyAnsysBaseAppContext:
+        """Factory method for creating product-specific context.
+        
+        Override this method in subclasses to return custom context types
+        (e.g., PyMAPDLContext with a mapdl field).
+        
+        Returns
+        -------
+        PyAnsysBaseAppContext
+            The context instance for this server. Default implementation
+            creates a base context with Python session support.
+            
+        Examples
+        --------
+        Override in a product-specific server:
+        
+        >>> class PyMAPDLMCP(PyAnsysBaseMCP):
+        ...     def create_context(self) -> PyMAPDLContext:
+        ...         return PyMAPDLContext(
+        ...             python_executable=self.python_executable,
+        ...             python_session=PersistentPythonSession(self.python_executable),
+        ...             command_history=[],
+        ...         )
+        """
+        return PyAnsysBaseAppContext(
+            python_executable=self.python_executable,
+            python_session=PersistentPythonSession(
+                python_executable=self.python_executable
+            ),
+            command_history=[],
+        )
 
     def start_python_session(self):
         """
@@ -72,16 +111,19 @@ class PyAnsysBaseMCP(FastMCP):
     
     @asynccontextmanager
     async def product_lifespan(self):
-        """Manage the server's lifecycle with startup and cleanup."""
-
-        context = PyAnsysBaseAppContext(
-            python_executable=self.python_executable,
-            python_session = PersistentPythonSession(
-                python_executable=self.python_executable
-            ),
-            command_history = [],
-        )
+        """Manage the server's lifecycle with startup and cleanup.
+        
+        This method orchestrates the complete lifecycle:
+        1. Creates context (via factory method - extensible by subclasses)
+        2. Initializes Python session (managed by base class)
+        3. Calls product-specific startup
+        4. Yields context to the application
+        5. Cleans up in reverse order on shutdown
+        """
+        # Use factory method to create context (subclasses can override)
+        context = self.create_context()
         self.context = context
+        
         try:
             self.start_python_session()
             self.product_startup()
