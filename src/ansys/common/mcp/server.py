@@ -5,7 +5,7 @@ servers can extend to create their own MCP implementations.
 """
 
 from abc import ABC, abstractmethod
-from mcp import FastMCP
+from fastmcp import FastMCP
 from typing import Optional
 from contextlib import asynccontextmanager
 from ansys.common.mcp.context import PyAnsysBaseAppContext
