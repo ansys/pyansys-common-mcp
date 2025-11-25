@@ -25,11 +25,11 @@ class PyAnsysBaseAppContext:
         different product types without strict type coupling.
     metadata : dict
         Additional context data that products may need to store.
-    python_executable : Optional[str]
-        Path to the Python executable used for running generated code.
     python_session : Optional[Any]
         An instance of PersistentPythonSession for managing a persistent
         Python session.
+    command_history : list
+        A list to keep track of executed commands in the session.
 
     Examples
     --------
@@ -49,7 +49,6 @@ class PyAnsysBaseAppContext:
     """
 
     product_instance: Optional[Any] = None
-    python_executable: Optional[str] = None
     python_session: Optional[Any] = None  # PersistentPythonSession instance
     metadata: dict = field(default_factory=dict)
     command_history: list = field(default_factory=list)

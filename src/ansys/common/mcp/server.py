@@ -16,19 +16,20 @@ from ansys.common.mcp.helpers import PersistentPythonSession
 logger = logging.getLogger(__name__)
 
 class PyAnsysBaseMCP(FastMCP, ABC):
-    def __init__(self, python_executable: Optional[str] = None, *args, **kwargs):
+    def __init__(self, python_executable: Optional[str] = None, working_directory: Optional[str] = None, *args, **kwargs):
         """
         Base MCP server for PyAnsys libraries.
 
         Parameters
         ----------
-        product_name : str
-            Name of the PyAnsys library.
         python_executable : Optional[str]
             Path to the Python executable to use for running the generated code.
             If None, uses the current Python interpreter (sys.executable).
+        working_directory : Optional[str]
+            The working directory to use for the Python session.
         """
         self.python_executable = python_executable
+        self.working_directory = working_directory
         super().__init__(*args, **kwargs)
 
     @abstractmethod
@@ -76,7 +77,8 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         return PyAnsysBaseAppContext(
             python_executable=self.python_executable,
             python_session=PersistentPythonSession(
-                python_executable=self.python_executable
+                python_executable=self.python_executable,
+                working_directory=self.working_directory,
             ),
             command_history=[],
         )
