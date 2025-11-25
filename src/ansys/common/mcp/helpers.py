@@ -38,7 +38,7 @@ class PersistentPythonSession:
     startup_code : Optional[str]
         Python code to execute when the session starts (e.g., imports).
     working_directory : Optional[str]
-        Working directory for the Python process.
+        Working directory for the Python process. If None, uses the current directory.
 
     Examples
     --------
