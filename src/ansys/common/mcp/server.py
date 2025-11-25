@@ -28,12 +28,15 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         working_directory : Optional[str]
             The working directory to use for the Python session.
         """
+        # Store parameters before calling super().__init__
         self.python_executable = python_executable
         self.working_directory = working_directory
-        super().__init__(*args, **kwargs)
         
-        # Connect the lifespan to FastMCP - this ensures context is injected into tools
-        self.mcp.lifespan = self.product_lifespan
+        # Pass lifespan directly to FastMCP during initialization
+        if 'lifespan' not in kwargs:
+            kwargs['lifespan'] = self.product_lifespan
+        
+        super().__init__(*args, **kwargs)
 
     @abstractmethod
     def product_cleanup(self):
