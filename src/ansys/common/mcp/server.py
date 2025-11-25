@@ -1,6 +1,6 @@
 """Base MCP server infrastructure for PyAnsys libraries.
 
-This module provides the BaseMCPServer class that product-specific MCP
+This module provides the PyAnsysBaseMCP class that product-specific MCP
 servers can extend to create their own MCP implementations.
 """
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class PyAnsysBaseMCP(FastMCP, ABC):
     def __init__(self, python_executable: Optional[str] = None, working_directory: Optional[str] = None, *args, **kwargs):
         """
-        Base MCP server for PyAnsys libraries.
+        PyAnsys Base MCP server for PyAnsys libraries.
 
         Parameters
         ----------
