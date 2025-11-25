@@ -35,12 +35,12 @@ class PyAnsysBaseAppContext:
     --------
     Extend the base context for a specific product:
 
-    >>> from ansys.common.mcp import BaseAppContext
+    >>> from ansys.common.mcp import PyAnsysBaseAppContext
     >>> from dataclasses import dataclass
-    >>> from typing import Optional
+    >>> from typing import Optional, Any
     >>> 
     >>> @dataclass
-    >>> class MAPDLAppContext(BaseAppContext):
+    >>> class MAPDLAppContext(PyAnsysBaseAppContext):
     ...     mapdl: Optional[Any] = None
     ...     
     ...     @property
