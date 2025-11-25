@@ -31,6 +31,9 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         self.python_executable = python_executable
         self.working_directory = working_directory
         super().__init__(*args, **kwargs)
+        
+        # Connect the lifespan to FastMCP - this ensures context is injected into tools
+        self.mcp.lifespan = self.product_lifespan
 
     @abstractmethod
     def product_cleanup(self):
