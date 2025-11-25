@@ -32,11 +32,14 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         self.python_executable = python_executable
         self.working_directory = working_directory
         
-        # Pass lifespan directly to FastMCP during initialization
-        if 'lifespan' not in kwargs:
-            kwargs['lifespan'] = self.product_lifespan
-        
         super().__init__(*args, **kwargs)
+        
+        # Connect the lifespan after FastMCP initialization
+        async def _lifespan_wrapper(mcp_instance):
+            async with self.product_lifespan() as context:
+                yield context
+        
+        self.mcp.lifespan = _lifespan_wrapper
 
     @abstractmethod
     def product_cleanup(self):
