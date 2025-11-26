@@ -19,7 +19,6 @@ class PyAnsysBaseMCP(FastMCP, ABC):
     def __init__(self, 
                  python_executable: Optional[str] = None,
                  working_directory: Optional[str] = None,
-                 lifespan_func: Optional[Callable[..., AsyncIterator[PyAnsysBaseAppContext]]] = None,
                  *args, 
                  **kwargs
     ):
@@ -37,10 +36,8 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         # Store parameters before calling super().__init__
         self.python_executable = python_executable
         self.working_directory = working_directory
-        if lifespan_func is None:
-            lifespan_func = self.product_lifespan
         
-        super().__init__(*args, lifespan=lifespan_func, **kwargs)
+        super().__init__(*args, lifespan=self.product_lifespan, **kwargs)
 
     @abstractmethod
     def product_cleanup(self):
