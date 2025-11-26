@@ -21,13 +21,14 @@ class PyAnsysBaseAppContext:
     Attributes
     ----------
     product_instance : Optional[Any]
-        The connected Ansys product instance. Using Any to support
-        different product types without strict type coupling.
-    metadata : dict
-        Additional context data that products may need to store.
+        The main product instance (e.g., MAPDL, Fluent) associated with the context.
+    python_executable : Optional[Any]
+        The Python executable used for the session.
     python_session : Optional[Any]
         An instance of PersistentPythonSession for managing a persistent
         Python session.
+    metadata : dict
+        A dictionary for storing arbitrary metadata related to the context.
     command_history : list
         A list to keep track of executed commands in the session.
 
@@ -49,6 +50,7 @@ class PyAnsysBaseAppContext:
     """
 
     product_instance: Optional[Any] = None
+    python_executable: Optional[Any] = None
     python_session: Optional[Any] = None  # PersistentPythonSession instance
     metadata: dict = field(default_factory=dict)
     command_history: list = field(default_factory=list)
