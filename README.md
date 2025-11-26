@@ -115,23 +115,21 @@ Create `tools.py` with your product-specific MCP tools:
 
 ```python
 # src/pymapdl_mcp/tools.py
-from mcp.server import Server
+from pymapdl_mcp.server import PyMAPDLMCP
 from pymapdl_mcp.context import PyMAPDLContext
+from fastmcp.server.dependencies import get_context
 
-def register_tools(mcp: Server):
+def register_tools(mcp: PyMAPDLMCP):
     """Register all MAPDL-specific MCP tools."""
     
     @mcp.tool()
     def run_mapdl_command(
-        ctx: PyMAPDLContext,
         command: str
     ) -> str:
         """Execute a MAPDL command.
         
         Parameters
         ----------
-        ctx : PyMAPDLContext
-            The MAPDL context containing the mapdl instance
         command : str
             MAPDL command to execute
             
@@ -140,16 +138,19 @@ def register_tools(mcp: Server):
         str
             Command output
         """
-        if not ctx.mapdl:
+        # Get context via dependency injection
+        ctx = get_context()
+        app_context = ctx.fastmcp._lifespan_result
+        
+        if not app_context.mapdl:
             return "Error: MAPDL not connected"
         
-        result = ctx.mapdl.run(command)
-        ctx.command_history.append(command)
+        result = app_context.mapdl.run(command)
+        app_context.command_history.append(command)
         return result
     
     @mcp.tool()
     def create_geometry(
-        ctx: PyMAPDLContext,
         geometry_type: str,
         dimensions: dict
     ) -> str:
@@ -157,8 +158,6 @@ def register_tools(mcp: Server):
         
         Parameters
         ----------
-        ctx : PyMAPDLContext
-            The MAPDL context
         geometry_type : str
             Type of geometry (box, cylinder, sphere)
         dimensions : dict
@@ -169,16 +168,22 @@ def register_tools(mcp: Server):
         str
             Result message
         """
+        # Get context via dependency injection
+        ctx = get_context()
+        app_context = ctx.fastmcp._lifespan_result
+        
         # Your implementation here
         pass
 ```
 
 **Tool Guidelines:**
-- First parameter must be `ctx: YourContext` for accessing product instance
-- Use type hints for all parameters
+- **Do NOT include `ctx` as a function parameter** - it's automatically injected
+- Use `get_context()` from `fastmcp.server.dependencies` to access the context
+- Access your app context via `ctx.fastmcp._lifespan_result`
+- Use type hints for all parameters (except ctx which is internal)
 - Write clear docstrings (AI assistants read these!)
-- Access product instance via `ctx.mapdl` (or your field name)
-- Store relevant info in `ctx.command_history` or `ctx.metadata`
+- Access product instance via `app_context.mapdl` (or your field name)
+- Store relevant info in `app_context.command_history` or `app_context.metadata`
 
 ### Step 5: Wire Everything Together
 
@@ -278,10 +283,16 @@ pymapdl-mcp
 ### Accessing Python Session in Tools
 
 ```python
+from fastmcp.server.dependencies import get_context
+
 @mcp.tool()
-def execute_python_code(ctx: YourContext, code: str) -> str:
+def execute_python_code(code: str) -> str:
     """Execute Python code in the persistent session."""
-    result = ctx.python_session.execute(code)
+    # Get context via dependency injection
+    ctx = get_context()
+    app_context = ctx.fastmcp._lifespan_result
+    
+    result = app_context.python_session.execute(code)
     if result["success"]:
         return result["stdout"]
     return f"Error: {result['error']}"
@@ -290,17 +301,24 @@ def execute_python_code(ctx: YourContext, code: str) -> str:
 ### Using Command History
 
 ```python
-@mcp.tool()
-def get_command_history(ctx: YourContext) -> list:
-    """Get all executed commands."""
-    return ctx.command_history
+from fastmcp.server.dependencies import get_context
 
 @mcp.tool()
-def undo_last_command(ctx: YourContext) -> str:
+def get_command_history() -> list:
+    """Get all executed commands."""
+    ctx = get_context()
+    app_context = ctx.fastmcp._lifespan_result
+    return app_context.command_history
+
+@mcp.tool()
+def undo_last_command() -> str:
     """Undo the last command."""
-    if not ctx.command_history:
+    ctx = get_context()
+    app_context = ctx.fastmcp._lifespan_result
+    
+    if not app_context.command_history:
         return "No commands to undo"
-    last_cmd = ctx.command_history.pop()
+    last_cmd = app_context.command_history.pop()
     # Implement undo logic
     return f"Undone: {last_cmd}"
 ```
@@ -379,7 +397,10 @@ def test_tool_execution(mcp_server):
 - **Solution**: Ensure you've implemented `product_startup()`, `product_cleanup()`, and optionally `create_context()`
 
 **Issue**: Tools can't access product instance
-- **Solution**: Make sure first parameter is `ctx: YourContext` and you're accessing the right field (e.g., `ctx.mapdl`)
+- **Solution**: Use `get_context()` from `fastmcp.server.dependencies` and access via `ctx.fastmcp._lifespan_result.mapdl`
+
+**Issue**: `ctx parameter is required` error when calling tools
+- **Solution**: Remove `ctx` from function parameters - it should be obtained via `get_context()` inside the function, not passed as a parameter
 
 **Issue**: Python session fails to start
 - **Solution**: Check `python_executable` path, verify permissions, check logs
