@@ -76,7 +76,6 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         >>> class PyMAPDLMCP(PyAnsysBaseMCP):
         ...     def create_context(self) -> PyMAPDLContext:
         ...         return PyMAPDLContext(
-        ...             python_executable=self.python_executable,
         ...             python_session=PersistentPythonSession(self.python_executable),
         ...             command_history=[],
         ...         )
@@ -143,13 +142,13 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         5. Cleans up in reverse order on shutdown
         """
         # Use factory method to create context (subclasses can override)
-        context = self.create_context()
+        self.context = self.create_context()
         
         try:
             self.start_python_session()
             self.product_startup()
 
-            yield context
+            yield self.context
 
         finally:
             self.cleanup_python_session()
