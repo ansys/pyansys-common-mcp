@@ -82,7 +82,6 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         ...         )
         """
         return PyAnsysBaseAppContext(
-            python_executable=self.python_executable,
             python_session=PersistentPythonSession(
                 python_executable=self.python_executable,
                 working_directory=self.working_directory,
