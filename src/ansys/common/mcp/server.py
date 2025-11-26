@@ -119,9 +119,23 @@ class PyAnsysBaseMCP(FastMCP, ABC):
                 logger.error(f"Error stopping Python session: {e}")
 
     @asynccontextmanager
-    async def product_lifespan(self):
-        """Manage the server's lifecycle with startup and cleanup.
+    async def product_lifespan(self, server: FastMCP) -> AsyncIterator[PyAnsysBaseAppContext]:
+        """Default lifespan for PyAnsys MCP servers.
+
+        Product-specific servers can override this method if needed.
+
+        Parameters
+        ----------
+        server : FastMCP
+            The MCP server instance.
         
+        Yields
+        ------
+        AsyncIterator[PyAnsysBaseAppContext]
+            The application context for the MCP server.
+        
+        Notes
+        -----
         This method orchestrates the complete lifecycle:
         1. Creates context (via factory method - extensible by subclasses)
         2. Initializes Python session (managed by base class)
