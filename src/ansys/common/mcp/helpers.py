@@ -329,6 +329,36 @@ class PersistentPythonSession:
         """
         return self._is_running and self.process is not None and self.process.poll() is None
 
+    def restart(self) -> dict[str, Any]:
+        """Restart the Python session.
+        
+        Stops the current session (if running) and starts a new one.
+        All session state (variables, imports) will be lost except
+        what's recreated by startup_code.
+        
+        Returns
+        -------
+        dict[str, Any]
+            Dictionary with success status and restart messages.
+        """
+        logger.info("Restarting Python session...")
+        
+        # Stop existing session
+        if self._is_running:
+            stop_result = self.stop()
+            if not stop_result["success"]:
+                logger.warning(f"Error during stop: {stop_result.get('error')}")
+        
+        # Start new session
+        start_result = self.start()
+        
+        if start_result["success"]:
+            logger.info("Python session restarted successfully")
+        else:
+            logger.error(f"Failed to restart session: {start_result.get('error')}")
+        
+        return start_result
+
     def _read_stream(self, stream, output_queue: queue.Queue):
         """Read from a stream and put lines into a queue.
 
