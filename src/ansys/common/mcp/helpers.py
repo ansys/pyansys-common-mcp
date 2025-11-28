@@ -5,8 +5,9 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 import threading
 import queue
+from ansys.common.mcp.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def exception_wrapper(func: Callable[[], Any]) -> Any | str:
@@ -319,6 +320,84 @@ class PersistentPythonSession:
                 "error": error_msg,
             }
 
+    def restart(self) -> dict[str, Any]:
+        """Restart the persistent Python session.
+        
+        Stops the current session (if running) and starts a new one.
+        All session state (variables, imports) will be lost except
+        what's recreated by startup_code.
+        
+        This method is intended for manual restarts only, for example when
+        the session becomes unresponsive or when you want to reset the state.
+        Command history and other application state should be managed at the
+        application context level, not in the session itself.
+        
+        Returns
+        -------
+        dict[str, Any]
+            Dictionary with success status and restart messages.
+            
+        Examples
+        --------
+        Basic restart:
+        
+        >>> session = PersistentPythonSession()
+        >>> session.start()
+        >>> # ... do some work ...
+        >>> result = session.restart()
+        >>> if result["success"]:
+        ...     print("Session restarted")
+        
+        In an MCP tool with command replay:
+        
+        >>> # Get context
+        >>> ctx = get_context()
+        >>> app_context = ctx.fastmcp._lifespan_result
+        >>> 
+        >>> # Restart session
+        >>> restart_result = app_context.python_session.restart()
+        >>> 
+        >>> # Optionally replay command history
+        >>> if restart_result["success"] and app_context.command_history:
+        ...     for cmd in app_context.command_history:
+        ...         app_context.python_session.execute(cmd)
+        
+        Notes
+        -----
+        - This is a manual operation - automatic restart on crashes is NOT implemented
+        - Session state is lost (variables, non-startup imports, etc.)
+        - The startup_code is re-executed on restart
+        - Consider managing command_history at the context level for replay capability
+        """
+        logger.info("Restarting persistent Python session...")
+        
+        # Stop existing session if running
+        if self._is_running:
+            logger.debug("Stopping existing session before restart")
+            stop_result = self.stop()
+            if not stop_result["success"]:
+                logger.warning(f"Error during stop phase of restart: {stop_result.get('error')}")
+                # Continue anyway - we'll try to start fresh
+        
+        # Start new session
+        logger.debug("Starting new session")
+        start_result = self.start()
+        
+        if start_result["success"]:
+            logger.info("Persistent Python session restarted successfully")
+            return {
+                "success": True,
+                "message": "Session restarted successfully",
+                "python_executable": self.python_executable,
+            }
+        else:
+            error_msg = f"Failed to restart session: {start_result.get('error')}"
+            logger.error(error_msg)
+            return {
+                "success": False,
+                "error": error_msg,
+            }
+
     def is_running(self) -> bool:
         """Check if the session is currently running.
 
@@ -328,36 +407,6 @@ class PersistentPythonSession:
             True if session is running, False otherwise.
         """
         return self._is_running and self.process is not None and self.process.poll() is None
-
-    def restart(self) -> dict[str, Any]:
-        """Restart the Python session.
-        
-        Stops the current session (if running) and starts a new one.
-        All session state (variables, imports) will be lost except
-        what's recreated by startup_code.
-        
-        Returns
-        -------
-        dict[str, Any]
-            Dictionary with success status and restart messages.
-        """
-        logger.info("Restarting Python session...")
-        
-        # Stop existing session
-        if self._is_running:
-            stop_result = self.stop()
-            if not stop_result["success"]:
-                logger.warning(f"Error during stop: {stop_result.get('error')}")
-        
-        # Start new session
-        start_result = self.start()
-        
-        if start_result["success"]:
-            logger.info("Python session restarted successfully")
-        else:
-            logger.error(f"Failed to restart session: {start_result.get('error')}")
-        
-        return start_result
 
     def _read_stream(self, stream, output_queue: queue.Queue):
         """Read from a stream and put lines into a queue.

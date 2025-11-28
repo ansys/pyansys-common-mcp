@@ -278,6 +278,67 @@ pymapdl-mcp
 - ✅ Product-specific MCP tools
 - ✅ Cleanup logic for your product
 
+## Logging
+
+The framework automatically configures logging to output to **stderr** (not stdout, which is reserved for MCP protocol). This ensures log messages don't interfere with the MCP communication.
+
+### Basic Logging
+
+```python
+from ansys.common.mcp import setup_logging, get_logger
+
+# Setup logging (done automatically by the framework)
+setup_logging(level="INFO")
+
+# Get a logger in your module
+logger = get_logger(__name__)
+
+logger.debug("Debug message")
+logger.info("Info message")
+logger.warning("Warning message")
+logger.error("Error message")
+```
+
+### Configuring Log Level
+
+You can control the log level via environment variable:
+
+```bash
+# Windows PowerShell
+$env:LOGLEVEL="DEBUG"
+python -m pymapdl_mcp
+
+# Linux/Mac
+LOGLEVEL=DEBUG python -m pymapdl_mcp
+```
+
+Or programmatically in your `__main__.py`:
+
+```python
+from ansys.common.mcp import setup_logging
+
+def main():
+    # Configure logging before creating server
+    setup_logging(
+        level="DEBUG",              # Log level
+        log_file="server.log"       # Optional: also log to file
+    )
+    
+    # ... rest of your code
+```
+
+### Viewing Logs
+
+Logs are output to stderr, so you'll see them in your terminal when running the server. You can redirect them to a file:
+
+```bash
+# Windows PowerShell
+python -m pymapdl_mcp 2> server.log
+
+# Linux/Mac
+python -m pymapdl_mcp 2> server.log
+```
+
 ## Common Patterns
 
 ### Accessing Python Session in Tools
@@ -334,6 +395,57 @@ class PyMAPDLMCP(PyAnsysBaseMCP):
     def product_startup(self):
         self.context.mapdl = launch_mapdl(mode=self.mapdl_mode)
 ```
+
+### Restarting Python Session
+
+The Python session can be manually restarted if it becomes unresponsive or if you want to reset the state. Command history is preserved in the context, allowing you to replay commands after restart.
+
+```python
+from fastmcp.server.dependencies import get_context
+
+@mcp.tool()
+def restart_python_session(replay_history: bool = True) -> str:
+    """Restart the Python session and optionally replay command history.
+    
+    Parameters
+    ----------
+    replay_history : bool
+        If True, replay all previous commands from history after restart
+    
+    Returns
+    -------
+    str
+        Restart status message
+    """
+    ctx = get_context()
+    app_context = ctx.fastmcp._lifespan_result
+    
+    # Restart the session (this clears variables/imports except startup_code)
+    result = app_context.python_session.restart()
+    
+    if not result["success"]:
+        return f"Failed to restart: {result.get('error')}"
+    
+    # Optionally replay command history to restore state
+    if replay_history and app_context.command_history:
+        from ansys.common.mcp.logging_config import get_logger
+        logger = get_logger(__name__)
+        logger.info(f"Replaying {len(app_context.command_history)} commands...")
+        
+        for i, cmd in enumerate(app_context.command_history, 1):
+            replay_result = app_context.python_session.execute(cmd)
+            if not replay_result["success"]:
+                return (
+                    f"Session restarted but replay failed at command {i}/{len(app_context.command_history)}: "
+                    f"{replay_result.get('error')}"
+                )
+        
+        return f"Session restarted and {len(app_context.command_history)} commands replayed successfully"
+    
+    return "Session restarted successfully"
+```
+
+**Note:** The `command_history` is stored in the application context (not in the Python session), so it survives restarts. You can choose whether to replay the history to restore the session state.
 
 ## Best Practices
 
@@ -403,7 +515,13 @@ def test_tool_execution(mcp_server):
 - **Solution**: Remove `ctx` from function parameters - it should be obtained via `get_context()` inside the function, not passed as a parameter
 
 **Issue**: Python session fails to start
-- **Solution**: Check `python_executable` path, verify permissions, check logs
+- **Solution**: Check `python_executable` path, verify permissions, check logs in stderr
+
+**Issue**: Not seeing log messages
+- **Solution**: Logs go to stderr by default. Set `LOGLEVEL=DEBUG` environment variable for more detail, or redirect stderr to a file: `python -m your_mcp 2> server.log`
+
+**Issue**: Python session becomes unresponsive
+- **Solution**: Use the `restart()` method on the Python session, optionally replaying command history from the context
 
 ## Examples
 

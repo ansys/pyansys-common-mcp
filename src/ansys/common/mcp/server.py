@@ -10,10 +10,9 @@ from typing import Callable, Optional, AsyncIterator
 from contextlib import asynccontextmanager
 from ansys.common.mcp.context import PyAnsysBaseAppContext
 import logging
-from ansys.common.mcp.helpers import PersistentPythonSession
+from ansys.common.mcp.helpers import PersistentPythonSession, logger
+from ansys.common.mcp.logging_config import setup_logging
 
-
-logger = logging.getLogger(__name__)
 
 class PyAnsysBaseMCP(FastMCP, ABC):
     def __init__(self, 
