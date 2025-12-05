@@ -230,6 +230,7 @@ print("PyVista configured for off-screen rendering")
         5. Cleans up in reverse order on shutdown
         """
         # Use factory method to create context (subclasses can override)
+        self.server = server
         self.context = self.create_context()
         
         try:
