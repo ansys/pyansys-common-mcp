@@ -7,11 +7,11 @@ product-specific MCP implementations.
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-__all__ = ["BaseAppContext"]
+__all__ = ["PyAnsysBaseAppContext"]
 
 
 @dataclass
-class BaseAppContext:
+class PyAnsysBaseAppContext:
     """Base application context for PyAnsys MCP servers.
 
     This provides a common structure that product-specific contexts
@@ -21,21 +21,27 @@ class BaseAppContext:
     Attributes
     ----------
     product_instance : Optional[Any]
-        The connected Ansys product instance. Using Any to support
-        different product types without strict type coupling.
+        The main product instance (e.g., MAPDL, Fluent) associated with the context.
+    python_executable : Optional[Any]
+        The Python executable used for the session.
+    python_session : Optional[Any]
+        An instance of PersistentPythonSession for managing a persistent
+        Python session.
     metadata : dict
-        Additional context data that products may need to store.
+        A dictionary for storing arbitrary metadata related to the context.
+    command_history : list
+        A list to keep track of executed commands in the session.
 
     Examples
     --------
     Extend the base context for a specific product:
 
-    >>> from ansys.common.mcp import BaseAppContext
+    >>> from ansys.common.mcp import PyAnsysBaseAppContext
     >>> from dataclasses import dataclass
-    >>> from typing import Optional
+    >>> from typing import Optional, Any
     >>> 
     >>> @dataclass
-    >>> class MAPDLAppContext(BaseAppContext):
+    >>> class MAPDLAppContext(PyAnsysBaseAppContext):
     ...     mapdl: Optional[Any] = None
     ...     
     ...     @property
@@ -44,6 +50,7 @@ class BaseAppContext:
     """
 
     product_instance: Optional[Any] = None
-    python_executable: Optional[str] = None
+    python_executable: Optional[Any] = None
     python_session: Optional[Any] = None  # PersistentPythonSession instance
     metadata: dict = field(default_factory=dict)
+    command_history: list = field(default_factory=list)

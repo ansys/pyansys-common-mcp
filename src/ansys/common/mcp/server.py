@@ -1,189 +1,245 @@
 """Base MCP server infrastructure for PyAnsys libraries.
 
-This module provides the BaseMCPServer class that product-specific MCP
+This module provides the PyAnsysBaseMCP class that product-specific MCP
 servers can extend to create their own MCP implementations.
 """
 
-import logging
-from collections.abc import AsyncIterator
+from abc import ABC, abstractmethod
+from fastmcp import FastMCP
+from typing import Callable, Optional, AsyncIterator
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
-from typing import Any, Callable, Optional
-
-from mcp.server.fastmcp import FastMCP
-
-logger = logging.getLogger(__name__)
+from ansys.common.mcp.context import PyAnsysBaseAppContext
+import logging
+from ansys.common.mcp.helpers import PersistentPythonSession, logger
+from ansys.common.mcp.logging_config import setup_logging
 
 
-@dataclass
-class BaseAppContext:
-    """Base application context for PyAnsys MCP servers.
-
-    This provides a common structure that product-specific contexts
-    can extend. The product_instance field can hold any Ansys product
-    connection (MAPDL, Fluent, Maxwell, etc.).
-
-    Attributes
-    ----------
-    product_instance : Optional[Any]
-        The connected Ansys product instance. Using Any to support
-        different product types without strict type coupling.
-    metadata : dict
-        Additional context data that products may need to store.
-    """
-
-    product_instance: Optional[Any] = None
-    metadata: dict = None
-
-    def __post_init__(self):
-        """Initialize metadata dict if not provided."""
-        if self.metadata is None:
-            self.metadata = {}
-
-
-class BaseMCPServer:
-    """Base class for PyAnsys MCP servers.
-
-    This class provides common infrastructure for MCP servers across
-    PyAnsys libraries. Product-specific servers should inherit from
-    this class and implement their own tools and lifecycle management.
-
-    Parameters
-    ----------
-    product_name : str
-        Name of the Ansys product (e.g., "PyMAPDL", "PyFluent").
-    lifespan_func : Optional[Callable]
-        Optional custom lifespan context manager. If not provided,
-        a default lifespan will be used.
-
-    Attributes
-    ----------
-    mcp : FastMCP
-        The FastMCP server instance that handles the MCP protocol.
-    product_name : str
-        Name of the Ansys product this server supports.
-
-    Examples
-    --------
-    Create a product-specific MCP server:
-
-    >>> from ansys.common.mcp import BaseMCPServer, BaseAppContext
-    >>> 
-    >>> class MAPDLServer(BaseMCPServer):
-    ...     def __init__(self):
-    ...         super().__init__("PyMAPDL")
-    ...         self._register_mapdl_tools()
-    ...     
-    ...     def _register_mapdl_tools(self):
-    ...         @self.mcp.tool()
-    ...         def launch_mapdl(ctx):
-    ...             # MAPDL-specific implementation
-    ...             pass
-    """
-
-    def __init__(
-        self,
-        product_name: str,
-        lifespan_func: Optional[Callable[..., AsyncIterator[BaseAppContext]]] = None,
+class PyAnsysBaseMCP(FastMCP, ABC):
+    def __init__(self, 
+                 python_executable: Optional[str] = None,
+                 working_directory: Optional[str] = None,
+                 *args, 
+                 **kwargs
     ):
-        """Initialize the base MCP server.
+        """
+        PyAnsys Base MCP server for PyAnsys libraries.
 
         Parameters
         ----------
-        product_name : str
-            Name of the Ansys product.
-        lifespan_func : Optional[Callable]
-            Custom lifespan context manager for the server.
+        python_executable : Optional[str]
+            Path to the Python executable to use for running the generated code.
+            If None, uses the current Python interpreter (sys.executable).
+        working_directory : Optional[str]
+            The working directory to use for the Python session.
         """
-        self.product_name = product_name
+        # Store parameters before calling super().__init__
+        self.python_executable = python_executable
+        self.working_directory = working_directory
+        
+        super().__init__(*args, lifespan=self.product_lifespan, **kwargs)
 
-        # Use provided lifespan or create a default one
-        if lifespan_func is None:
-            lifespan_func = self._default_lifespan
+    @abstractmethod
+    def product_cleanup(self):
+        """
+        Cleanup routine before shutting down the server.
+        
+        Must be implemented by subclasses to handle product-specific cleanup.
+        """
+        pass
 
-        self.mcp = FastMCP(product_name, lifespan=lifespan_func)
-        logger.info(f"Initialized {product_name} MCP Server")
+    @abstractmethod
+    def product_startup(self):
+        """
+        Startup routine to initialize resources when the server starts.
+        
+        Must be implemented by subclasses to handle product-specific initialization.
+        """
+        pass
+    
+    def create_context(self) -> PyAnsysBaseAppContext:
+        """Factory method for creating product-specific context.
+        
+        Override this method in subclasses to return custom context types
+        (e.g., PyMAPDLContext with a mapdl field).
+        
+        Returns
+        -------
+        PyAnsysBaseAppContext
+            The context instance for this server. Default implementation
+            creates a base context with Python session support.
+            
+        Examples
+        --------
+        Override in a product-specific server:
+        
+        >>> class PyMAPDLMCP(PyAnsysBaseMCP):
+        ...     def create_context(self) -> PyMAPDLContext:
+        ...         return PyMAPDLContext(
+        ...             python_session=PersistentPythonSession(self.python_executable),
+        ...             command_history=[],
+        ...         )
+        """
+        startup_code = """
+import matplotlib
+# Use non-interactive backend to prevent blocking on plot displays
+matplotlib.use('Agg')
+
+import matplotlib.pyplot as plt
+import pyvista as pv
+import base64
+from io import BytesIO
+from PIL import Image
+
+# Enable off-screen rendering globally
+pv.OFF_SCREEN = True
+
+# Set a clean default theme
+pv.set_plot_theme('document')
+
+def save_plot(plotter, filename='plot.png', return_base64=False):
+    '''
+    Save PyVista plot to file and optionally return as base64.
+    
+    Parameters
+    ----------
+    plotter : pv.Plotter
+        The PyVista plotter to save
+    filename : str
+        Output filename
+    return_base64 : bool
+        If True, return base64-encoded image data
+    
+    Returns
+    -------
+    str
+        File path or base64 data URI
+    '''
+    if return_base64:
+        img_array = plotter.screenshot(return_img=True, transparent_background=False)
+        plotter.close()
+        
+        img = Image.fromarray(img_array)
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        buffer.seek(0)
+        
+        img_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+        return f"data:image/png;base64,{img_base64}"
+    else:
+        plotter.screenshot(filename, transparent_background=False)
+        plotter.close()
+        return f"Plot saved to {filename}"
+
+def save_matplotlib_plot(filename='plot.png', return_base64=False, dpi=150):
+    '''
+    Save matplotlib plot to file and optionally return as base64.
+    Uses the current matplotlib figure.
+    
+    Parameters
+    ----------
+    filename : str
+        Output filename
+    return_base64 : bool
+        If True, return base64-encoded image data
+    dpi : int
+        Resolution in dots per inch
+    
+    Returns
+    -------
+    str
+        File path or base64 data URI
+    '''
+    if return_base64:
+        buffer = BytesIO()
+        plt.savefig(buffer, format='png', dpi=dpi, bbox_inches='tight')
+        plt.close()
+        buffer.seek(0)
+        
+        img_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+        return f"data:image/png;base64,{img_base64}"
+    else:
+        plt.savefig(filename, dpi=dpi, bbox_inches='tight')
+        plt.close()
+        return f"Plot saved to {filename}"
+
+# Print confirmation
+print("Matplotlib configured with non-interactive backend (Agg)")
+print("PyVista configured for off-screen rendering")
+"""
+        python_session=PersistentPythonSession(
+            python_executable=self.python_executable,
+            working_directory=self.working_directory,
+            startup_code=startup_code
+        )
+        return PyAnsysBaseAppContext(
+            python_session=python_session,
+            command_history=[],
+        )
+
+    def start_python_session(self):
+        """
+        Start a persistent Python session for executing generated code.
+        """
+        logger.info("Server initialized")
+        if self.context.python_executable:
+            logger.info(f"Using Python executable: {self.context.python_executable}")
+        
+        # Start the persistent session
+        start_result = self.context.python_session.start()
+        if start_result["success"]:
+            logger.info("Persistent Python session started")
+            logger.info(f"Startup output: {start_result.get('stdout', '')}")
+        else:
+            logger.warning(f"Failed to start Python session: {start_result.get('error')}")
+         
+    def cleanup_python_session(self):
+        """
+        Cleanup the persistent Python session.
+        """
+        if self.context.python_session and self.context.python_session.is_running():
+            try:
+                logger.info("Stopping persistent Python session...")
+                self.context.python_session.stop()
+                logger.info("Persistent Python session stopped")
+            except Exception as e:
+                logger.error(f"Error stopping Python session: {e}")
 
     @asynccontextmanager
-    async def _default_lifespan(self, server: FastMCP) -> AsyncIterator[BaseAppContext]:
-        """Default lifespan context manager.
+    async def product_lifespan(self, server: FastMCP) -> AsyncIterator[PyAnsysBaseAppContext]:
+        """Default lifespan for PyAnsys MCP servers.
 
-        Products can override this by passing their own lifespan_func
-        during initialization.
+        Product-specific servers can override this method if needed.
 
         Parameters
         ----------
         server : FastMCP
-            The FastMCP server instance.
-
+            The MCP server instance.
+        
         Yields
         ------
-        BaseAppContext
-            Application context for the server lifecycle.
+        AsyncIterator[PyAnsysBaseAppContext]
+            The application context for the MCP server.
+        
+        Notes
+        -----
+        This method orchestrates the complete lifecycle:
+        1. Creates context (via factory method - extensible by subclasses)
+        2. Initializes Python session (managed by base class)
+        3. Calls product-specific startup
+        4. Yields context to the application
+        5. Cleans up in reverse order on shutdown
         """
-        context = BaseAppContext()
+        # Use factory method to create context (subclasses can override)
+        self.server = server
+        self.context = self.create_context()
+        
         try:
-            logger.info(
-                f"{self.product_name} MCP Server initialized. "
-                f"Ready to accept connections."
-            )
-            yield context
+            self.start_python_session()
+            self.product_startup()
+
+            yield self.context
+
         finally:
-            # Cleanup on shutdown
-            if context.product_instance is not None:
-                try:
-                    logger.info(f"Cleaning up {self.product_name} connection...")
-                    # Attempt graceful cleanup
-                    if hasattr(context.product_instance, "exit"):
-                        context.product_instance.exit()
-                    logger.info(f"{self.product_name} cleanup complete")
-                except Exception as e:
-                    logger.error(f"Error during {self.product_name} cleanup: {e}")
+            self.cleanup_python_session()
+            self.product_cleanup()
 
-    def run(self):
-        """Run the MCP server.
-
-        This is the main entry point that starts the server and listens
-        for MCP protocol messages via stdio.
-        """
-        import asyncio
-
-        logger.info(f"Starting {self.product_name} MCP Server...")
-        asyncio.run(self.mcp.run_stdio_async())
-
-
-def create_mcp_server(
-    product_name: str,
-    lifespan_func: Optional[Callable[..., AsyncIterator[BaseAppContext]]] = None,
-) -> FastMCP:
-    """Factory function to create an MCP server instance.
-
-    This is a convenience function for products that prefer a functional
-    approach over class inheritance.
-
-    Parameters
-    ----------
-    product_name : str
-        Name of the Ansys product.
-    lifespan_func : Optional[Callable]
-        Custom lifespan context manager.
-
-    Returns
-    -------
-    FastMCP
-        Configured FastMCP server instance ready for tool registration.
-
-    Examples
-    --------
-    Create a server using the factory function:
-
-    >>> from ansys.common.mcp import create_mcp_server
-    >>> 
-    >>> mcp = create_mcp_server("PyFluent", lifespan=my_lifespan)
-    >>> 
-    >>> @mcp.tool()
-    >>> def my_tool():
-    ...     pass
-    """
-    server = BaseMCPServer(product_name, lifespan_func)
-    return server.mcp
