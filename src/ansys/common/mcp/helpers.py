@@ -82,7 +82,6 @@ class PersistentPythonSession:
         self._error_queue: queue.Queue = queue.Queue()
         self._is_running = False
         self._execution_lock = threading.Lock()
-        self.metadata: dict[str, Any] = {}
 
     def start(self) -> dict[str, Any]:
         """Start the persistent Python session.
