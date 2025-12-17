@@ -1,0 +1,73 @@
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    tags:
+      - "v*"
+    branches:
+       - main
+  schedule:
+    - cron:  '30 4 * * *'  # Daily at 04:30 UTC
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+env:
+  MAIN_PYTHON_VERSION: "3.10"
+  PACKAGE_NAME: "ansys-common-mcp"
+
+jobs:
+  package:
+    name: "Package library"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
+
+      - name: "Build library source and wheel artifacts"
+        uses: ansys/actions/build-library@41f86da4c9ead510db9135e428e33df9cc6f92e1 #v10.2.3
+        with:
+          library-name: ${{ env.PACKAGE_NAME }}
+          python-version: ${{ env.MAIN_PYTHON_VERSION }}
+          checkout: false
+
+  release:
+    name: "Release project"
+    if: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags') }}
+    needs: [package]
+    runs-on: ubuntu-latest
+    # Specifying a GitHub environment is optional, but strongly encouraged
+    environment: release
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - name: "Download the library artifacts from build-library step"
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        with:
+          name: ${{ env.PACKAGE_NAME }}-artifacts
+          path: ${{ env.PACKAGE_NAME }}-artifacts
+
+      - name: "Display structure of downloaded files"
+        run: ls -Rla
+
+      - name: "Release to GitHub"
+        uses: ansys/actions/release-github@41f86da4c9ead510db9135e428e33df9cc6f92e1 #v10.2.3
+        with:
+          library-name: ${{ env.PACKAGE_NAME }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          only-code: true
+
+      - name: "Release to private PyPI"
+        uses: ansys/actions/release-pypi-private@41f86da4c9ead510db9135e428e33df9cc6f92e1 #v10.2.3
+        with:
+          library-name: ${{ env.PACKAGE_NAME }}
+          twine-username: "__token__"
+          twine-token: ${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}
+          use-trusted-publisher: true
