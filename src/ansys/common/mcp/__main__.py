@@ -11,7 +11,7 @@ import sys
 
 
 def main():
-    """Main entry point - provides usage information."""
+    """Provide usage information as the entry point."""
     print(
         "ansys-common-mcp is a library for building PyAnsys MCP servers.\n"
         "It is not meant to be run directly.\n\n"

@@ -39,11 +39,11 @@ class PyAnsysBaseAppContext:
     >>> from ansys.common.mcp import PyAnsysBaseAppContext
     >>> from dataclasses import dataclass
     >>> from typing import Optional, Any
-    >>> 
+    >>>
     >>> @dataclass
     >>> class MAPDLAppContext(PyAnsysBaseAppContext):
     ...     mapdl: Optional[Any] = None
-    ...     
+    ...
     ...     @property
     ...     def product_instance(self):
     ...         return self.mapdl

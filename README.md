@@ -71,12 +71,12 @@ from pymapdl import launch_mapdl
 
 class PyMAPDLMCP(PyAnsysBaseMCP):
     """MCP Server for PyMAPDL."""
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Set up product-specific lifespan
         self.mcp.lifespan = self.product_lifespan
-    
+
     # REQUIRED: Create your custom context
     def create_context(self) -> PyMAPDLContext:
         """Factory method for creating MAPDL-specific context."""
@@ -88,13 +88,13 @@ class PyMAPDLMCP(PyAnsysBaseMCP):
             ),
             command_history=[],
         )
-    
+
     # REQUIRED: Initialize your product
     def product_startup(self):
         """Launch MAPDL when server starts."""
         self.context.mapdl = launch_mapdl()
         print(f"MAPDL launched: {self.context.mapdl}")
-    
+
     # REQUIRED: Clean up your product
     def product_cleanup(self):
         """Exit MAPDL when server stops."""
@@ -121,18 +121,18 @@ from fastmcp.server.dependencies import get_context
 
 def register_tools(mcp: PyMAPDLMCP):
     """Register all MAPDL-specific MCP tools."""
-    
+
     @mcp.tool()
     def run_mapdl_command(
         command: str
     ) -> str:
         """Execute a MAPDL command.
-        
+
         Parameters
         ----------
         command : str
             MAPDL command to execute
-            
+
         Returns
         -------
         str
@@ -141,28 +141,28 @@ def register_tools(mcp: PyMAPDLMCP):
         # Get context via dependency injection
         ctx = get_context()
         app_context = ctx.fastmcp._lifespan_result
-        
+
         if not app_context.mapdl:
             return "Error: MAPDL not connected"
-        
+
         result = app_context.mapdl.run(command)
         app_context.command_history.append(command)
         return result
-    
+
     @mcp.tool()
     def create_geometry(
         geometry_type: str,
         dimensions: dict
     ) -> str:
         """Create geometric entities in MAPDL.
-        
+
         Parameters
         ----------
         geometry_type : str
             Type of geometry (box, cylinder, sphere)
         dimensions : dict
             Dimensions for the geometry
-            
+
         Returns
         -------
         str
@@ -171,7 +171,7 @@ def register_tools(mcp: PyMAPDLMCP):
         # Get context via dependency injection
         ctx = get_context()
         app_context = ctx.fastmcp._lifespan_result
-        
+
         # Your implementation here
         pass
 ```
@@ -208,10 +208,10 @@ from pymapdl_mcp import PyMAPDLMCP, register_tools
 def main():
     # Initialize your MCP server
     mcp = PyMAPDLMCP(name="pymapdl-mcp")
-    
+
     # Register your tools
     register_tools(mcp)
-    
+
     # Run the server
     mcp.run()
     return 0
@@ -323,7 +323,7 @@ def main():
         level="DEBUG",              # Log level
         log_file="server.log"       # Optional: also log to file
     )
-    
+
     # ... rest of your code
 ```
 
@@ -352,7 +352,7 @@ def execute_python_code(code: str) -> str:
     # Get context via dependency injection
     ctx = get_context()
     app_context = ctx.fastmcp._lifespan_result
-    
+
     result = app_context.python_session.execute(code)
     if result["success"]:
         return result["stdout"]
@@ -376,7 +376,7 @@ def undo_last_command() -> str:
     """Undo the last command."""
     ctx = get_context()
     app_context = ctx.fastmcp._lifespan_result
-    
+
     if not app_context.command_history:
         return "No commands to undo"
     last_cmd = app_context.command_history.pop()
@@ -391,7 +391,7 @@ class PyMAPDLMCP(PyAnsysBaseMCP):
     def __init__(self, mapdl_mode="grpc", *args, **kwargs):
         self.mapdl_mode = mapdl_mode
         super().__init__(*args, **kwargs)
-    
+
     def product_startup(self):
         self.context.mapdl = launch_mapdl(mode=self.mapdl_mode)
 ```
@@ -406,12 +406,12 @@ from fastmcp.server.dependencies import get_context
 @mcp.tool()
 def restart_python_session(replay_history: bool = True) -> str:
     """Restart the Python session and optionally replay command history.
-    
+
     Parameters
     ----------
     replay_history : bool
         If True, replay all previous commands from history after restart
-    
+
     Returns
     -------
     str
@@ -419,19 +419,19 @@ def restart_python_session(replay_history: bool = True) -> str:
     """
     ctx = get_context()
     app_context = ctx.fastmcp._lifespan_result
-    
+
     # Restart the session (this clears variables/imports except startup_code)
     result = app_context.python_session.restart()
-    
+
     if not result["success"]:
         return f"Failed to restart: {result.get('error')}"
-    
+
     # Optionally replay command history to restore state
     if replay_history and app_context.command_history:
         from ansys.common.mcp.logging_config import get_logger
         logger = get_logger(__name__)
         logger.info(f"Replaying {len(app_context.command_history)} commands...")
-        
+
         for i, cmd in enumerate(app_context.command_history, 1):
             replay_result = app_context.python_session.execute(cmd)
             if not replay_result["success"]:
@@ -439,9 +439,9 @@ def restart_python_session(replay_history: bool = True) -> str:
                     f"Session restarted but replay failed at command {i}/{len(app_context.command_history)}: "
                     f"{replay_result.get('error')}"
                 )
-        
+
         return f"Session restarted and {len(app_context.command_history)} commands replayed successfully"
-    
+
     return "Session restarted successfully"
 ```
 

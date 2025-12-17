@@ -5,24 +5,27 @@ servers can extend to create their own MCP implementations.
 """
 
 from abc import ABC, abstractmethod
-from fastmcp import FastMCP
-from typing import Callable, Optional, AsyncIterator
 from contextlib import asynccontextmanager
+from typing import AsyncIterator, Optional
+
+from fastmcp import FastMCP
+
 from ansys.common.mcp.context import PyAnsysBaseAppContext
-import logging
 from ansys.common.mcp.helpers import PersistentPythonSession, logger
-from ansys.common.mcp.logging_config import setup_logging
 
 
 class PyAnsysBaseMCP(FastMCP, ABC):
-    def __init__(self, 
-                 python_executable: Optional[str] = None,
-                 working_directory: Optional[str] = None,
-                 *args, 
-                 **kwargs
+    """Base MCP server class for building PyAnsys MCP servers."""
+
+    def __init__(
+        self,
+        python_executable: Optional[str] = None,
+        working_directory: Optional[str] = None,
+        *args,
+        **kwargs,
     ):
         """
-        PyAnsys Base MCP server for PyAnsys libraries.
+        Initialize base MCP server for PyAnsys libraries.
 
         Parameters
         ----------
@@ -35,14 +38,14 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         # Store parameters before calling super().__init__
         self.python_executable = python_executable
         self.working_directory = working_directory
-        
+
         super().__init__(*args, lifespan=self.product_lifespan, **kwargs)
 
     @abstractmethod
     def product_cleanup(self):
         """
         Cleanup routine before shutting down the server.
-        
+
         Must be implemented by subclasses to handle product-specific cleanup.
         """
         pass
@@ -51,27 +54,27 @@ class PyAnsysBaseMCP(FastMCP, ABC):
     def product_startup(self):
         """
         Startup routine to initialize resources when the server starts.
-        
+
         Must be implemented by subclasses to handle product-specific initialization.
         """
         pass
-    
+
     def create_context(self) -> PyAnsysBaseAppContext:
-        """Factory method for creating product-specific context.
-        
+        """Create product-specific context for this server.
+
         Override this method in subclasses to return custom context types
         (e.g., PyMAPDLContext with a mapdl field).
-        
+
         Returns
         -------
         PyAnsysBaseAppContext
             The context instance for this server. Default implementation
             creates a base context with Python session support.
-            
+
         Examples
         --------
         Override in a product-specific server:
-        
+
         >>> class PyMAPDLMCP(PyAnsysBaseMCP):
         ...     def create_context(self) -> PyMAPDLContext:
         ...         return PyMAPDLContext(
@@ -99,7 +102,7 @@ pv.set_plot_theme('document')
 def save_plot(plotter, filename='plot.png', return_base64=False):
     '''
     Save PyVista plot to file and optionally return as base64.
-    
+
     Parameters
     ----------
     plotter : pv.Plotter
@@ -108,7 +111,7 @@ def save_plot(plotter, filename='plot.png', return_base64=False):
         Output filename
     return_base64 : bool
         If True, return base64-encoded image data
-    
+
     Returns
     -------
     str
@@ -117,12 +120,12 @@ def save_plot(plotter, filename='plot.png', return_base64=False):
     if return_base64:
         img_array = plotter.screenshot(return_img=True, transparent_background=False)
         plotter.close()
-        
+
         img = Image.fromarray(img_array)
         buffer = BytesIO()
         img.save(buffer, format='PNG')
         buffer.seek(0)
-        
+
         img_base64 = base64.b64encode(buffer.read()).decode('utf-8')
         return f"data:image/png;base64,{img_base64}"
     else:
@@ -134,7 +137,7 @@ def save_matplotlib_plot(filename='plot.png', return_base64=False, dpi=150):
     '''
     Save matplotlib plot to file and optionally return as base64.
     Uses the current matplotlib figure.
-    
+
     Parameters
     ----------
     filename : str
@@ -143,7 +146,7 @@ def save_matplotlib_plot(filename='plot.png', return_base64=False, dpi=150):
         If True, return base64-encoded image data
     dpi : int
         Resolution in dots per inch
-    
+
     Returns
     -------
     str
@@ -154,7 +157,7 @@ def save_matplotlib_plot(filename='plot.png', return_base64=False, dpi=150):
         plt.savefig(buffer, format='png', dpi=dpi, bbox_inches='tight')
         plt.close()
         buffer.seek(0)
-        
+
         img_base64 = base64.b64encode(buffer.read()).decode('utf-8')
         return f"data:image/png;base64,{img_base64}"
     else:
@@ -166,10 +169,10 @@ def save_matplotlib_plot(filename='plot.png', return_base64=False, dpi=150):
 print("Matplotlib configured with non-interactive backend (Agg)")
 print("PyVista configured for off-screen rendering")
 """
-        python_session=PersistentPythonSession(
+        python_session = PersistentPythonSession(
             python_executable=self.python_executable,
             working_directory=self.working_directory,
-            startup_code=startup_code
+            startup_code=startup_code,
         )
         return PyAnsysBaseAppContext(
             python_session=python_session,
@@ -177,13 +180,11 @@ print("PyVista configured for off-screen rendering")
         )
 
     def start_python_session(self):
-        """
-        Start a persistent Python session for executing generated code.
-        """
+        """Start a persistent Python session for executing generated code."""
         logger.info("Server initialized")
         if self.context.python_executable:
             logger.info(f"Using Python executable: {self.context.python_executable}")
-        
+
         # Start the persistent session
         start_result = self.context.python_session.start()
         if start_result["success"]:
@@ -191,11 +192,9 @@ print("PyVista configured for off-screen rendering")
             logger.info(f"Startup output: {start_result.get('stdout', '')}")
         else:
             logger.warning(f"Failed to start Python session: {start_result.get('error')}")
-         
+
     def cleanup_python_session(self):
-        """
-        Cleanup the persistent Python session.
-        """
+        """Clean up the persistent Python session."""
         if self.context.python_session and self.context.python_session.is_running():
             try:
                 logger.info("Stopping persistent Python session...")
@@ -206,7 +205,7 @@ print("PyVista configured for off-screen rendering")
 
     @asynccontextmanager
     async def product_lifespan(self, server: FastMCP) -> AsyncIterator[PyAnsysBaseAppContext]:
-        """Default lifespan for PyAnsys MCP servers.
+        """Define default lifespan for PyAnsys MCP servers.
 
         Product-specific servers can override this method if needed.
 
@@ -214,12 +213,12 @@ print("PyVista configured for off-screen rendering")
         ----------
         server : FastMCP
             The MCP server instance.
-        
+
         Yields
         ------
         AsyncIterator[PyAnsysBaseAppContext]
             The application context for the MCP server.
-        
+
         Notes
         -----
         This method orchestrates the complete lifecycle:
@@ -232,7 +231,7 @@ print("PyVista configured for off-screen rendering")
         # Use factory method to create context (subclasses can override)
         self.server = server
         self.context = self.create_context()
-        
+
         try:
             self.start_python_session()
             self.product_startup()
@@ -242,4 +241,3 @@ print("PyVista configured for off-screen rendering")
         finally:
             self.cleanup_python_session()
             self.product_cleanup()
-

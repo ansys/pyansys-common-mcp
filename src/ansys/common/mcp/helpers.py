@@ -1,10 +1,10 @@
-import logging
+import queue
 import subprocess
 import sys
+import threading
 from pathlib import Path
 from typing import Any, Callable, Optional
-import threading
-import queue
+
 from ansys.common.mcp.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -25,7 +25,7 @@ def exception_wrapper(func: Callable[[], Any]) -> Any | str:
 
 
 class PersistentPythonSession:
-    """Maintains a persistent Python subprocess for stateful code execution.
+    r"""Maintains a persistent Python subprocess for stateful code execution.
 
     This class allows multiple code snippets to be executed in the same
     Python session, preserving variables, imports, and state between
@@ -47,14 +47,14 @@ class PersistentPythonSession:
 
     >>> session = PersistentPythonSession()
     >>> session.start()
-    >>> 
+    >>>
     >>> # Step 1: Define variables
     >>> result = session.execute("x = 10; y = 20")
-    >>> 
+    >>>
     >>> # Step 2: Use those variables
     >>> result = session.execute("z = x + y; print(z)")
     >>> print(result['stdout'])  # 30
-    >>> 
+    >>>
     >>> session.stop()
 
     Use with custom Python executable:
@@ -202,16 +202,17 @@ class PersistentPythonSession:
                 code_with_marker = f"{code}\nprint('{marker}')\n"
 
                 logger.debug(f"Executing code: {code[:100]}...")
+                assert self.process.stdin is not None
                 self.process.stdin.write(code_with_marker)
                 self.process.stdin.flush()
 
                 # Collect output until we see the marker or timeout
-                stdout_lines = []
-                stderr_lines = []
-                start_time = __import__('time').time()
+                stdout_lines: list[str] = []
+                stderr_lines: list[str] = []
+                start_time = __import__("time").time()
 
                 while True:
-                    elapsed = __import__('time').time() - start_time
+                    elapsed = __import__("time").time() - start_time
                     if elapsed > timeout:
                         error_msg = f"Code execution timed out after {timeout} seconds"
                         logger.error(error_msg)
@@ -294,7 +295,7 @@ class PersistentPythonSession:
                     self.process.stdin.write("exit()\n")
                     self.process.stdin.flush()
                 except Exception:
-                    pass
+                    logger.warning("Failed to send exit command to Python process")
 
             # Wait for process to terminate
             if self.process:
@@ -323,46 +324,46 @@ class PersistentPythonSession:
 
     def restart(self) -> dict[str, Any]:
         """Restart the persistent Python session.
-        
+
         Stops the current session (if running) and starts a new one.
         All session state (variables, imports) will be lost except
         what's recreated by startup_code.
-        
+
         This method is intended for manual restarts only, for example when
         the session becomes unresponsive or when you want to reset the state.
         Command history and other application state should be managed at the
         application context level, not in the session itself.
-        
+
         Returns
         -------
         dict[str, Any]
             Dictionary with success status and restart messages.
-            
+
         Examples
         --------
         Basic restart:
-        
+
         >>> session = PersistentPythonSession()
         >>> session.start()
         >>> # ... do some work ...
         >>> result = session.restart()
         >>> if result["success"]:
         ...     print("Session restarted")
-        
+
         In an MCP tool with command replay:
-        
+
         >>> # Get context
         >>> ctx = get_context()
         >>> app_context = ctx.fastmcp._lifespan_result
-        >>> 
+        >>>
         >>> # Restart session
         >>> restart_result = app_context.python_session.restart()
-        >>> 
+        >>>
         >>> # Optionally replay command history
         >>> if restart_result["success"] and app_context.command_history:
         ...     for cmd in app_context.command_history:
         ...         app_context.python_session.execute(cmd)
-        
+
         Notes
         -----
         - This is a manual operation - automatic restart on crashes is NOT implemented
@@ -371,7 +372,7 @@ class PersistentPythonSession:
         - Consider managing command_history at the context level for replay capability
         """
         logger.info("Restarting persistent Python session...")
-        
+
         # Stop existing session if running
         if self._is_running:
             logger.debug("Stopping existing session before restart")
@@ -379,11 +380,11 @@ class PersistentPythonSession:
             if not stop_result["success"]:
                 logger.warning(f"Error during stop phase of restart: {stop_result.get('error')}")
                 # Continue anyway - we'll try to start fresh
-        
+
         # Start new session
         logger.debug("Starting new session")
         start_result = self.start()
-        
+
         if start_result["success"]:
             logger.info("Persistent Python session restarted successfully")
             return {
@@ -420,7 +421,7 @@ class PersistentPythonSession:
             Queue to put the read lines into.
         """
         try:
-            for line in iter(stream.readline, ''):
+            for line in iter(stream.readline, ""):
                 if line:
                     output_queue.put(line)
                 if not self._is_running:
@@ -437,13 +438,14 @@ class PersistentPythonSession:
             Maximum time to spend draining queues.
         """
         import time
+
         start = time.time()
         while time.time() - start < timeout:
             try:
                 self._output_queue.get_nowait()
             except queue.Empty:
                 break
-        
+
         start = time.time()
         while time.time() - start < timeout:
             try:

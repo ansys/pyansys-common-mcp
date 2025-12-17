@@ -8,4 +8,4 @@ in the respective product MCP packages.
 # Common prompts can be added here in the future
 # For example: documentation search prompts, common workflow guidance, etc.
 
-__all__ = []
+__all__: list[str] = []
