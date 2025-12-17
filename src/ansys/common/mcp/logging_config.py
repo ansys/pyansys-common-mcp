@@ -6,8 +6,8 @@ interfering with the MCP protocol on stdio transport.
 """
 
 import logging
-import os
 import sys
+import os
 from typing import Optional
 
 
@@ -17,11 +17,11 @@ def setup_logging(
     format_string: Optional[str] = None,
 ) -> logging.Logger:
     """Configure logging for MCP servers.
-
+    
     Sets up logging to stderr (to avoid interfering with MCP protocol on stdout)
     and optionally to a file. The log level can be controlled via the LOGLEVEL
     environment variable or the level parameter.
-
+    
     Parameters
     ----------
     level : Optional[str]
@@ -32,29 +32,29 @@ def setup_logging(
         stderr and the file.
     format_string : Optional[str]
         Custom format string for log messages. If None, uses a default format.
-
+    
     Returns
     -------
     logging.Logger
         The root logger instance
-
+        
     Examples
     --------
     Basic setup (logs to stderr):
-
+    
     >>> from ansys.common.mcp.logging_config import setup_logging
     >>> logger = setup_logging()
     >>> logger.info("Server starting...")
-
+    
     With file output:
-
+    
     >>> logger = setup_logging(level="DEBUG", log_file="server.log")
-
+    
     Using environment variable:
-
+    
     >>> # Set LOGLEVEL=DEBUG before running
     >>> logger = setup_logging()
-
+    
     Notes
     -----
     - Logs are sent to stderr, NOT stdout (stdout is reserved for MCP protocol)
@@ -63,35 +63,35 @@ def setup_logging(
     """
     # Determine log level
     if level is None:
-        level = os.getenv("LOGLEVEL", "INFO").upper()
+        level = os.getenv('LOGLEVEL', 'INFO').upper()
     else:
         level = level.upper()
-
+    
     # Validate log level
     numeric_level = getattr(logging, level, None)
     if not isinstance(numeric_level, int):
-        raise ValueError(f"Invalid log level: {level}")
-
+        raise ValueError(f'Invalid log level: {level}')
+    
     # Default format string
     if format_string is None:
-        format_string = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-
+        format_string = '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+    
     # Get root logger
     root_logger = logging.getLogger()
     root_logger.setLevel(numeric_level)
-
+    
     # Remove any existing handlers to avoid duplicates
     root_logger.handlers.clear()
-
+    
     # Create formatter
     formatter = logging.Formatter(format_string)
-
+    
     # Stderr handler (always present)
     stderr_handler = logging.StreamHandler(sys.stderr)
     stderr_handler.setLevel(numeric_level)
     stderr_handler.setFormatter(formatter)
     root_logger.addHandler(stderr_handler)
-
+    
     # File handler (optional)
     if log_file:
         try:
@@ -102,29 +102,29 @@ def setup_logging(
             root_logger.info(f"Logging to file: {log_file}")
         except Exception as e:
             root_logger.warning(f"Failed to setup file logging to {log_file}: {e}")
-
+    
     root_logger.debug(f"Logging configured at level: {level}")
-
+    
     return root_logger
 
 
 def get_logger(name: str) -> logging.Logger:
     """Get a logger instance with the specified name.
-
+    
     This is a convenience wrapper around logging.getLogger() that ensures
     logging has been configured. If setup_logging() hasn't been called,
     it will be called with default settings.
-
+    
     Parameters
     ----------
     name : str
         Logger name (typically __name__ of the calling module)
-
+    
     Returns
     -------
     logging.Logger
         Logger instance
-
+        
     Examples
     --------
     >>> from ansys.common.mcp.logging_config import get_logger
@@ -136,5 +136,5 @@ def get_logger(name: str) -> logging.Logger:
     if not root_logger.handlers:
         # Setup with defaults if not already configured
         setup_logging()
-
+    
     return logging.getLogger(name)
