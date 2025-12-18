@@ -98,12 +98,11 @@ python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
 asyncio_mode = "auto"
+markers = [
+    "integration: mark test as an integration test (deselect with '-m \"not integration\"')",
+]
 addopts = [
     "--verbose",
-    "--cov=ansys.common.mcp",
-    "--cov-report=term-missing",
-    "--cov-report=html",
-    "--cov-report=xml",
 ]
 
 [tool.pydocstyle]
