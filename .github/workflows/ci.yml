@@ -24,6 +24,8 @@ jobs:
   smoke-tests:
     name: "Smoke tests ${{ matrix.python-version }} on ${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
