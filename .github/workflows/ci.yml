@@ -95,4 +95,3 @@ jobs:
           library-name: ${{ env.PACKAGE_NAME }}
           twine-username: "__token__"
           twine-token: ${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}
-          use-trusted-publisher: true
