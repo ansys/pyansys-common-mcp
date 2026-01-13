@@ -36,6 +36,17 @@ jobs:
         uses: ansys/actions/tests-pytest@21c9de9bee9692173780696d4a39964f20b9cfa3 #v10.1.5
         with:
           python-version: ${{ matrix.python-version }}
+          pytest-extra-args: "--cov=ansys.common.mcp --cov-report=term --cov-report=html --cov-report=xml"
+      
+      - name: "Upload coverage reports"
+        if: matrix.python-version == env.MAIN_PYTHON_VERSION && matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: coverage-reports
+          path: |
+            htmlcov/
+            coverage.xml
+          retention-days: 7
 
   package:
     name: "Package library"
