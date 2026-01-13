@@ -35,7 +35,6 @@ jobs:
       - name: "Run tests with pytest"
         uses: ansys/actions/tests-pytest@21c9de9bee9692173780696d4a39964f20b9cfa3 #v10.1.5
         with:
-          operating-system: ${{ matrix.os }}
           python-version: ${{ matrix.python-version }}
 
   package:
