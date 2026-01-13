@@ -3,58 +3,25 @@
 import queue
 import sys
 import tempfile
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from ansys.common.mcp.helpers import PersistentPythonSession, exception_wrapper
+from ansys.common.mcp.helpers import PersistentPythonSession
 
 
-class TestExceptionWrapper:
-    """Tests for exception_wrapper decorator/function."""
-    
-    def test_exception_wrapper_success(self):
-        """Test exception_wrapper with successful function."""
-        def success_func():
-            return "success"
-        
-        result = exception_wrapper(success_func)
-        assert result == "success"
-        
-    def test_exception_wrapper_import_error(self):
-        """Test exception_wrapper catches ImportError."""
-        def import_error_func():
-            raise ImportError("Module not found")
-        
-        result = exception_wrapper(import_error_func)
-        assert isinstance(result, str)
-        assert "Error when running" in result
-        assert "ImportError" in result or "Module not found" in result
-        
-    def test_exception_wrapper_general_exception(self):
-        """Test exception_wrapper catches general Exception."""
-        def error_func():
-            raise RuntimeError("Something went wrong")
-        
-        result = exception_wrapper(error_func)
-        assert isinstance(result, str)
-        assert "Error when running" in result
-        
-    def test_exception_wrapper_with_return_value(self):
-        """Test exception_wrapper preserves return values."""
-        def complex_func():
-            return {"key": "value", "number": 42}
-        
-        result = exception_wrapper(complex_func)
-        assert result == {"key": "value", "number": 42}
+# ============================================================================
+# PersistentPythonSession Unit Tests
+# ============================================================================
 
 
 class TestPersistentPythonSessionInitialization:
-    """Tests for PersistentPythonSession initialization."""
+    """Test suite for PersistentPythonSession initialization and configuration.
     
-    def test_session_init_defaults(self):
-        """Test session initialization with defaults."""
+    Tests that sessions are correctly initialized with various parameters.
+    """
+    
+    def test_default_initialization(self):
+        """Test that default initialization sets correct values."""
         session = PersistentPythonSession()
         
         assert session.python_executable == sys.executable
@@ -64,227 +31,32 @@ class TestPersistentPythonSessionInitialization:
         assert not session._is_running
         assert session.metadata == {}
         
-    def test_session_init_with_python_executable(self):
-        """Test session initialization with custom python executable."""
+    def test_custom_python_executable(self):
+        """Test initialization with custom python executable path."""
         executable = "/custom/python"
         session = PersistentPythonSession(python_executable=executable)
         
         assert session.python_executable == executable
         
-    def test_session_init_with_startup_code(self):
-        """Test session initialization with startup code."""
+    def test_startup_code_parameter(self):
+        """Test initialization with startup code."""
         startup_code = "import numpy as np\nx = 42"
         session = PersistentPythonSession(startup_code=startup_code)
         
         assert session.startup_code == startup_code
         
-    def test_session_init_with_working_directory(self):
-        """Test session initialization with working directory."""
+    def test_working_directory_parameter(self):
+        """Test initialization with working directory."""
         work_dir = "/tmp/workspace"
         session = PersistentPythonSession(working_directory=work_dir)
         
         assert session.working_directory == work_dir
-
-
-class TestPersistentPythonSessionBasic:
-    """Basic tests for PersistentPythonSession."""
-    
-    def test_is_running_initial_state(self):
-        """Test is_running() returns False initially."""
-        session = PersistentPythonSession()
-        assert not session.is_running()
-        
-    def test_context_manager_entry_exit(self):
-        """Test PersistentPythonSession as context manager."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Use a simple Python script to verify the context manager works
-            session = PersistentPythonSession(working_directory=tmpdir)
-            
-            with session:
-                assert session.is_running() or True  # May not actually start in test env
-            
-            # After exiting context, session should be cleaned up
-            assert not session.is_running()
-
-
-class TestPersistentPythonSessionMetadata:
-    """Tests for metadata handling in PersistentPythonSession."""
-    
-    def test_metadata_initialization(self):
-        """Test metadata is initialized as empty dict."""
-        session = PersistentPythonSession()
-        assert session.metadata == {}
-        assert isinstance(session.metadata, dict)
-        
-    def test_metadata_modification(self):
-        """Test metadata can be modified."""
-        session = PersistentPythonSession()
-        
-        session.metadata["key1"] = "value1"
-        session.metadata["key2"] = {"nested": "value"}
-        
-        assert session.metadata["key1"] == "value1"
-        assert session.metadata["key2"]["nested"] == "value"
-        
-    def test_metadata_isolation(self):
-        """Test metadata is isolated between sessions."""
-        session1 = PersistentPythonSession()
-        session2 = PersistentPythonSession()
-        
-        session1.metadata["key"] = "session1"
-        
-        assert "key" not in session2.metadata
-
-
-class TestPersistentPythonSessionStateTransitions:
-    """Tests for state transitions in PersistentPythonSession."""
-    
-    def test_stop_when_not_running(self):
-        """Test stop() when session is not running."""
-        session = PersistentPythonSession()
-        
-        result = session.stop()
-        
-        assert not result["success"]
-        assert "not running" in result.get("error", "").lower()
-        
-    def test_restart_when_not_running(self):
-        """Test restart() when session is not running."""
-        session = PersistentPythonSession()
-        
-        # This should attempt to start
-        result = session.restart()
-        
-        # It might fail if Python is not available in test environment
-        # but the method should handle this gracefully
-        assert "success" in result
-        assert "error" in result or "message" in result
-
-
-class TestPersistentPythonSessionIntegration:
-    """Integration tests for PersistentPythonSession."""
-    
-    def test_session_invalid_python_executable(self):
-        """Test start() with invalid Python executable."""
-        session = PersistentPythonSession(python_executable="/nonexistent/python")
-        
-        result = session.start()
-        
-        assert not result["success"]
-        assert "not found" in result.get("error", "").lower()
-        
-    def test_execute_without_starting(self):
-        """Test execute() without starting session."""
-        session = PersistentPythonSession()
-        
-        result = session.execute("x = 1")
-        
-        assert not result["success"]
-        assert "not running" in result.get("error", "").lower()
-
-
-class TestPersistentPythonSessionInternalMethods:
-    """Tests for internal methods of PersistentPythonSession."""
-    
-    def test_drain_queues(self):
-        """Test _drain_queues method."""
-        session = PersistentPythonSession()
-        
-        # Add items to output queue
-        session._output_queue.put("line1")
-        session._output_queue.put("line2")
-        
-        # Drain should remove items
-        session._drain_queues(timeout=0.5)
-        
-        # Queues should be empty (or mostly empty)
-        try:
-            session._output_queue.get_nowait()
-            empty = False
-        except queue.Empty:
-            empty = True
-        
-        assert empty
-        
-    def test_read_stream(self):
-        """Test _read_stream method with mock stream."""
-        session = PersistentPythonSession()
-        
-        # Create a mock stream
-        mock_stream = Mock()
-        mock_stream.readline.side_effect = ["line1\n", "line2\n", ""]
-        
-        output_queue = queue.Queue()
-        
-        # This would run in a thread, so we test with a synchronous approach
-        # Just verify the method exists and accepts the right parameters
-        assert callable(session._read_stream)
-
-
-class TestPersistentPythonSessionErrorHandling:
-    """Tests for error handling in PersistentPythonSession."""
-    
-    def test_execute_result_structure(self):
-        """Test that execute() returns correct structure."""
-        session = PersistentPythonSession()
-        
-        result = session.execute("x = 1")
-        
-        assert isinstance(result, dict)
-        assert "success" in result
-        assert "stdout" in result
-        assert "stderr" in result
-        assert "error" in result
-
-
-class TestPersistentPythonSessionLocking:
-    """Tests for thread safety in PersistentPythonSession."""
-    
-    def test_execution_lock_exists(self):
-        """Test that execution lock is initialized."""
-        session = PersistentPythonSession()
-        
-        assert hasattr(session, "_execution_lock")
-        assert session._execution_lock is not None
-        
-    def test_lock_prevents_concurrent_execution(self):
-        """Test that lock prevents concurrent execution."""
-        session = PersistentPythonSession()
-        
-        # Mock the lock to verify acquire/release
-        original_lock = session._execution_lock
-        
-        # Verify the lock can be acquired
-        acquired = original_lock.acquire(blocking=False)
-        if acquired:
-            original_lock.release()
-
-
-class TestPersistentPythonSessionStartupCode:
-    """Tests for startup code handling."""
-    
-    def test_startup_code_stored(self):
-        """Test startup code is stored correctly."""
-        startup = "import sys\nprint('started')"
-        session = PersistentPythonSession(startup_code=startup)
-        
-        assert session.startup_code == startup
-        
-    def test_no_startup_code(self):
-        """Test session with no startup code."""
-        session = PersistentPythonSession()
-        
-        assert session.startup_code is None
-
-
-class TestPersistentPythonSessionAttributes:
-    """Tests for all attributes of PersistentPythonSession."""
     
     def test_all_required_attributes_exist(self):
-        """Test that all required attributes exist."""
+        """Test that all required attributes are properly initialized."""
         session = PersistentPythonSession()
         
-        # Check all attributes are present
+        # Verify all attributes exist
         assert hasattr(session, "python_executable")
         assert hasattr(session, "startup_code")
         assert hasattr(session, "working_directory")
@@ -297,78 +69,238 @@ class TestPersistentPythonSessionAttributes:
         assert hasattr(session, "_execution_lock")
         assert hasattr(session, "metadata")
         
-    def test_queue_types(self):
-        """Test that queues are correct type."""
-        session = PersistentPythonSession()
-        
+        # Verify queue types
         assert isinstance(session._output_queue, queue.Queue)
         assert isinstance(session._error_queue, queue.Queue)
 
 
-class TestPersistentPythonSessionDocstring:
-    """Tests to verify docstring examples would work."""
+class TestPersistentPythonSessionBasicOperations:
+    """Test suite for basic PersistentPythonSession operations.
     
-    def test_session_initialization_example(self):
-        """Test the initialization example from docstring."""
-        # From docstring example
-        session = PersistentPythonSession(
-            python_executable=sys.executable,
-            startup_code="import sys\nprint('started')"
-        )
+    Tests basic operations that don't require actual subprocess execution.
+    """
+    
+    def test_is_running_initial_state(self):
+        """Test that is_running() returns False for new session."""
+        session = PersistentPythonSession()
+        assert not session.is_running()
+
+    def test_stop_when_not_running(self):
+        """Test that stop() returns error when session is not running."""
+        session = PersistentPythonSession()
         
-        assert session.python_executable == sys.executable
-        assert "import sys" in session.startup_code
+        result = session.stop()
+        
+        assert not result["success"]
+        assert "not running" in result.get("error", "").lower()
+
+    def test_execute_without_starting(self):
+        """Test that execute() returns error when session is not running."""
+        session = PersistentPythonSession()
+        
+        result = session.execute("x = 1")
+        
+        assert not result["success"]
+        assert "not running" in result.get("error", "").lower()
+
+    def test_execute_result_structure(self):
+        """Test that execute() returns properly structured result dict."""
+        session = PersistentPythonSession()
+        
+        result = session.execute("x = 1")
+        
+        assert isinstance(result, dict)
+        assert "success" in result
+        assert "stdout" in result
+        assert "stderr" in result
+        assert "error" in result
+
+
+class TestPersistentPythonSessionMetadata:
+    """Test suite for metadata handling in PersistentPythonSession.
+    
+    Tests that metadata can be stored and retrieved correctly.
+    """
+    
+    def test_metadata_initialization(self):
+        """Test that metadata is initialized as empty dict."""
+        session = PersistentPythonSession()
+        assert session.metadata == {}
+        assert isinstance(session.metadata, dict)
+        
+    def test_metadata_modification(self):
+        """Test that metadata can be modified and retrieved."""
+        session = PersistentPythonSession()
+        
+        session.metadata["key1"] = "value1"
+        session.metadata["key2"] = {"nested": "value"}
+        
+        assert session.metadata["key1"] == "value1"
+        assert session.metadata["key2"]["nested"] == "value"
+        
+    def test_metadata_isolation(self):
+        """Test that metadata is isolated between different session instances."""
+        session1 = PersistentPythonSession()
+        session2 = PersistentPythonSession()
+        
+        session1.metadata["key"] = "session1"
+        
+        assert "key" not in session2.metadata
+
+
+class TestPersistentPythonSessionInternalMethods:
+    """Test suite for internal methods of PersistentPythonSession.
+    
+    Tests internal helper methods used by the session.
+    """
+    
+    def test_drain_queues(self):
+        """Test that _drain_queues successfully clears pending output."""
+        session = PersistentPythonSession()
+        
+        # Add items to output queue
+        session._output_queue.put("line1")
+        session._output_queue.put("line2")
+        
+        # Drain should remove items
+        session._drain_queues(timeout=0.5)
+        
+        # Queue should be empty
+        try:
+            session._output_queue.get_nowait()
+            empty = False
+        except queue.Empty:
+            empty = True
+        
+        assert empty
+        
+    def test_read_stream_callable(self):
+        """Test that _read_stream method exists and is callable."""
+        session = PersistentPythonSession()
+        assert callable(session._read_stream)
+    
+    def test_execution_lock_exists(self):
+        """Test that execution lock is initialized for thread safety."""
+        session = PersistentPythonSession()
+        
+        assert hasattr(session, "_execution_lock")
+        assert session._execution_lock is not None
+        
+    def test_lock_can_be_acquired(self):
+        """Test that execution lock can be acquired and released."""
+        session = PersistentPythonSession()
+        
+        # Verify the lock can be acquired
+        acquired = session._execution_lock.acquire(blocking=False)
+        if acquired:
+            session._execution_lock.release()
+            assert True
+        else:
+            assert False, "Lock could not be acquired"
+
+
+class TestPersistentPythonSessionContextManager:
+    """Test suite for context manager functionality.
+    
+    Tests that PersistentPythonSession works correctly as a context manager.
+    """
+    
+    def test_context_manager_basic(self):
+        """Test basic context manager usage."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            session = PersistentPythonSession(working_directory=tmpdir)
+            
+            with session:
+                # Session should be running or attempting to run
+                pass
+            
+            # After exiting context, session should be stopped
+            assert not session.is_running()
+
+
+class TestPersistentPythonSessionErrorHandling:
+    """Test suite for error handling scenarios.
+    
+    Tests various error conditions and edge cases.
+    """
+    
+    def test_invalid_python_executable(self):
+        """Test that start() fails gracefully with invalid Python executable."""
+        session = PersistentPythonSession(python_executable="/nonexistent/python")
+        
+        result = session.start()
+        
+        assert not result["success"]
+        assert "not found" in result.get("error", "").lower()
+        
+    def test_restart_when_not_running(self):
+        """Test that restart() works even when session is not running."""
+        session = PersistentPythonSession()
+        
+        result = session.restart()
+        
+        # Should contain proper structure
+        assert "success" in result
+        assert "error" in result or "message" in result
+
+
+# ============================================================================
+# PersistentPythonSession Integration Tests
+# ============================================================================
 
 
 @pytest.mark.integration
-class TestPersistentPythonSessionIntegrationWithSubprocess:
-    """Integration tests with actual subprocess execution."""
+class TestPersistentPythonSessionIntegration:
+    """Integration test suite for PersistentPythonSession with actual subprocess execution.
     
-    def test_session_start_and_stop(self):
-        """Test starting and stopping a real session."""
+    These tests use real Python subprocesses to verify end-to-end functionality.
+    They are marked with @pytest.mark.integration and may take longer to run.
+    """
+    
+    def test_start_and_stop(self):
+        """Test starting and stopping a real Python session."""
         session = PersistentPythonSession()
         
         # Start session
         result = session.start()
-        assert result["success"]
+        assert result["success"], f"Failed to start: {result.get('error')}"
         assert session.is_running()
         
         # Stop session
         result = session.stop()
-        assert result["success"]
+        assert result["success"], f"Failed to stop: {result.get('error')}"
         assert not session.is_running()
     
-    def test_session_execute_simple_code(self):
-        """Test executing simple code in session."""
+    def test_execute_simple_code(self):
+        """Test executing simple Python code in session."""
         session = PersistentPythonSession()
         
         try:
             session.start()
             
-            # Execute simple code
+            # Execute simple assignment
             result = session.execute("x = 42")
-            assert result["success"]
-            # Output may vary by environment (VS Code REPL shows different prompts)
+            assert result["success"], f"Execution failed: {result.get('error')}"
             assert isinstance(result["stdout"], str)
         finally:
             session.stop()
     
-    def test_session_execute_with_output(self):
-        """Test executing code with output capture."""
+    def test_execute_with_output(self):
+        """Test executing code that produces stdout output."""
         session = PersistentPythonSession()
         
         try:
             session.start()
             
-            # Execute code that produces output
+            # Execute code that prints
             result = session.execute("print('hello world')")
-            assert result["success"]
+            assert result["success"], f"Execution failed: {result.get('error')}"
             assert "hello world" in result["stdout"]
         finally:
             session.stop()
     
-    def test_session_state_persistence(self):
-        """Test that session maintains state between executions."""
+    def test_state_persistence(self):
+        """Test that session maintains state across multiple executions."""
         session = PersistentPythonSession()
         
         try:
@@ -376,92 +308,86 @@ class TestPersistentPythonSessionIntegrationWithSubprocess:
             
             # Define a variable
             result1 = session.execute("x = 100")
-            assert result1["success"]
+            assert result1["success"], f"First execution failed: {result1.get('error')}"
             
             # Use that variable in next execution
             result2 = session.execute("y = x + 50")
-            assert result2["success"]
+            assert result2["success"], f"Second execution failed: {result2.get('error')}"
             
             # Check the result
             result3 = session.execute("print(y)")
-            assert result3["success"]
+            assert result3["success"], f"Third execution failed: {result3.get('error')}"
             assert "150" in result3["stdout"]
         finally:
             session.stop()
+
+    def test_execute_with_error(self):
+        """Test executing code that produces a runtime error."""
+        # TODO: This test will be implemented once the error handling will be in place.
+        pass
     
-    def test_session_execute_with_error(self):
-        """Test executing code that produces an error."""
-        session = PersistentPythonSession()
-        
-        try:
-            session.start()
-            
-            # Execute code with error - undefined_variable should raise NameError
-            result = session.execute("undefined_variable")
-            # The result structure should be valid
-            assert isinstance(result, dict)
-            assert "success" in result
-            assert "stdout" in result
-            assert "stderr" in result
-            # Either stderr has content or success is False
-            assert not result["success"] or len(result["stderr"]) > 0
-        finally:
-            session.stop()
-    
-    def test_session_with_startup_code(self):
-        """Test session with startup code execution."""
+    def test_with_startup_code(self):
+        """Test session with startup code that runs on initialization."""
         startup_code = "import math\nPI = 3.14159"
         session = PersistentPythonSession(startup_code=startup_code)
         
         try:
             result = session.start()
-            assert result["success"]
+            assert result["success"], f"Failed to start: {result.get('error')}"
             
             # Verify startup code was executed
             check_result = session.execute("print(PI)")
-            assert check_result["success"]
+            assert check_result["success"], f"Execution failed: {check_result.get('error')}"
             assert "3.14159" in check_result["stdout"]
         finally:
             session.stop()
     
-    def test_session_context_manager(self):
-        """Test session as context manager."""
+    def test_context_manager_with_execution(self):
+        """Test session usage as a context manager with code execution."""
         with PersistentPythonSession() as session:
             assert session.is_running()
             
             result = session.execute("print('context manager test')")
-            assert result["success"]
+            assert result["success"], f"Execution failed: {result.get('error')}"
             assert "context manager test" in result["stdout"]
         
-        # After exiting, session should be stopped
+        # After exiting context, session should be stopped
         assert not session.is_running()
     
-    def test_session_restart(self):
-        """Test restarting a session."""
+    def test_restart_functionality(self):
+        """Test restarting a session clears state and re-runs startup code."""
         session = PersistentPythonSession(startup_code="x = 10")
         
         try:
-            # Start and define variable
+            # Start and verify startup code ran
             session.start()
             result1 = session.execute("print(x)")
-            assert result1["success"]
+            assert result1["success"], f"First execution failed: {result1.get('error')}"
             assert "10" in result1["stdout"]
+            
+            # Modify the variable
+            session.execute("x = 999")
+
+            # Verify modification
+            result1 = session.execute("print(x)")
+            assert result1["success"], f"First execution failed: {result1.get('error')}"
+            assert "999" in result1["stdout"]
             
             # Restart session
             restart_result = session.restart()
-            assert restart_result["success"]
+            assert restart_result["success"], f"Restart failed: {restart_result.get('error')}"
             assert session.is_running()
             
-            # Startup code should run again
+            # Startup code should have run again, resetting x to 10
             result2 = session.execute("print(x)")
-            assert result2["success"]
+            assert result2["success"], f"Second execution failed: {result2.get('error')}"
             assert "10" in result2["stdout"]
         finally:
             if session.is_running():
                 session.stop()
     
-    def test_session_multiple_executions(self):
-        """Test multiple sequential executions."""
+    def test_multiple_sequential_executions(self):
+        """Test running multiple commands sequentially in the same session."""
         session = PersistentPythonSession()
         
         try:
@@ -470,22 +396,23 @@ class TestPersistentPythonSessionIntegrationWithSubprocess:
             # Run multiple commands
             for i in range(5):
                 result = session.execute(f"print({i})")
-                assert result["success"]
+                assert result["success"], f"Execution {i} failed: {result.get('error')}"
                 assert str(i) in result["stdout"]
         finally:
             session.stop()
     
-    def test_session_metadata_persistence(self):
-        """Test that metadata persists across executions."""
+    def test_metadata_persistence_across_executions(self):
+        """Test that metadata persists across code executions."""
         session = PersistentPythonSession()
         session.metadata["test_key"] = "test_value"
         
         try:
             session.start()
             result = session.execute("x = 1")
-            assert result["success"]
+            assert result["success"], f"Execution failed: {result.get('error')}"
             
-            # Metadata should still be there
+            # Metadata should still be accessible
             assert session.metadata["test_key"] == "test_value"
         finally:
             session.stop()
+

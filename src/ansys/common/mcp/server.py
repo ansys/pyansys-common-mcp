@@ -204,6 +204,20 @@ print("PyVista configured for off-screen rendering")
             except Exception as e:
                 logger.error(f"Error stopping Python session: {e}")
 
+    def restart_python_session(self):
+        """
+        Restart the persistent Python session.
+        """
+        logger.info("Restarting persistent Python session...")
+
+        # Restart the persistent session
+        restart_result = self.context.python_session.restart()
+        if restart_result["success"]:
+            logger.info("Persistent Python session restarted")
+            logger.info(f"Restart output: {restart_result.get('stdout', '')}")
+        else:
+            logger.warning(f"Failed to restart Python session: {restart_result.get('error')}")
+
     @asynccontextmanager
     async def product_lifespan(self, server: FastMCP) -> AsyncIterator[PyAnsysBaseAppContext]:
         """Default lifespan for PyAnsys MCP servers.
