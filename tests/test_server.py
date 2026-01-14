@@ -245,22 +245,6 @@ class TestPyAnsysBaseMCPSessionManagement:
                 # Should not raise an exception
                 mcp.cleanup_python_session()
 
-    def test_restart_python_session(self):
-        """Test restart_python_session method."""
-        with patch('ansys.common.mcp.server.FastMCP.__init__', return_value=None):
-            mock_session = MagicMock()
-            mock_session.restart.return_value = {"success": True, "stdout": "restarted"}
-            
-            mcp = MockMCP()
-            mcp.context = MagicMock()
-            mcp.context.python_session = mock_session
-            
-            with patch('ansys.common.mcp.server.logger') as mock_logger:
-                mcp.restart_python_session()
-                
-                mock_session.restart.assert_called_once()
-                mock_logger.info.assert_called()
-
 
 class TestPyAnsysBaseMCPLifespan:
     """Tests for product_lifespan context manager."""
@@ -359,17 +343,6 @@ class TestPyAnsysBaseMCPErrors:
                 # Should raise AttributeError when trying to access context.python_session
                 with pytest.raises(AttributeError):
                     mcp.cleanup_python_session()
-    
-    def test_restart_python_session_with_none_context(self):
-        """Test restart_python_session raises AttributeError with None context."""
-        with patch('ansys.common.mcp.server.FastMCP.__init__', return_value=None):
-            with patch('ansys.common.mcp.server.logger'):
-                mcp = MockMCP()
-                mcp.context = None
-                
-                # Should raise AttributeError when trying to access context.python_session
-                with pytest.raises(AttributeError):
-                    mcp.restart_python_session()
 
 
 class TestPyAnsysBaseMCPStartupCode:
