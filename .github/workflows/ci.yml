@@ -21,6 +21,13 @@ env:
   PACKAGE_NAME: "ansys-common-mcp"
 
 jobs:
+  code-style:
+    name: "Code style checks"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Run PyAnsys code style checks"
+        uses: ansys/actions/code-style@21c9de9bee9692173780696d4a39964f20b9cfa3 #v10.1.5
+
   smoke-tests:
     name: "Smoke tests ${{ matrix.python-version }} on ${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
