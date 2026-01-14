@@ -209,6 +209,8 @@ class PersistentPythonSession:
                 stdout_lines = []
                 stderr_lines = []
                 start_time = __import__('time').time()
+                marker_found = False
+                consecutive_empty_reads = 0
 
                 while True:
                     elapsed = __import__('time').time() - start_time
@@ -222,25 +224,57 @@ class PersistentPythonSession:
                             "error": error_msg,
                         }
 
+                    # Track if we got any data this iteration
+                    got_data = False
+
                     # Read from stdout
                     try:
                         line = self._output_queue.get(timeout=0.1)
+                        got_data = True
                         if marker in line:
-                            # Remove the marker line and stop
+                            # Remove the marker line
                             line = line.replace(marker, "").strip()
                             if line:
                                 stdout_lines.append(line)
-                            break
-                        stdout_lines.append(line.rstrip())
+                            marker_found = True
+                        else:
+                            stdout_lines.append(line.rstrip())
                     except queue.Empty:
                         pass
 
                     # Read from stderr
                     try:
-                        line = self._error_queue.get(timeout=0.01)
+                        line = self._error_queue.get(timeout=0.1)
+                        got_data = True
                         stderr_lines.append(line.rstrip())
                     except queue.Empty:
                         pass
+
+                    # If marker was found and no more data, we're done
+                    if marker_found and not got_data:
+                        break
+                    
+                    # Safety: if we've had many consecutive empty reads, break
+                    # (This prevents infinite loops if marker is never found)
+                    if not got_data:
+                        consecutive_empty_reads += 1
+                        if consecutive_empty_reads > 5:  # 5 * 0.1s = 0.5s of no data
+                            if marker_found:
+                                break
+                            # If marker not found but no data, something went wrong
+                            logger.warning("No data received for extended period, stopping collection")
+                            break
+                    else:
+                        consecutive_empty_reads = 0
+
+                # After marker found, do one final drain of stderr to catch any remaining output
+                final_drain_start = __import__('time').time()
+                while __import__('time').time() - final_drain_start < 0.5:
+                    try:
+                        line = self._error_queue.get(timeout=0.05)
+                        stderr_lines.append(line.rstrip())
+                    except queue.Empty:
+                        break
 
                 stdout_text = "\n".join(stdout_lines)
                 stderr_text = "\n".join(stderr_lines)
