@@ -25,8 +25,12 @@ jobs:
     name: "Code style checks"
     runs-on: ubuntu-latest
     steps:
+      - name: "Checkout code"
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 #v5.0.0
       - name: "Run PyAnsys code style checks"
         uses: ansys/actions/code-style@21c9de9bee9692173780696d4a39964f20b9cfa3 #v10.1.5
+        with:
+          checkout: false
 
   smoke-tests:
     name: "Smoke tests ${{ matrix.python-version }} on ${{ matrix.os }}"
