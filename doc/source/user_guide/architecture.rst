@@ -16,7 +16,7 @@ PyAnsys Common MCP follows a layered architecture with clear separation of conce
    flowchart TD
        A["AI Client<br/>(Claude, ChatGPT)"]
        B["Your Product MCP Server<br/>• Custom Context<br/>• Product Startup/Cleanup<br/>• MCP Tools"]
-       C["PyAnsysBaseMCP<br/>(Base Class)<br/>✅ Lifecycle orchestration<br/>✅ Python session management<br/>✅ Context creation & injection<br/>✅ Error handling & logging"]
+       C["PyAnsysBaseMCP<br/>(Base Class)<br/>• Lifecycle orchestration<br/>• Python session management<br/>• Context creation & injection<br/>• Error handling & logging"]
        D["FastMCP<br/>(MCP Protocol Library)<br/>• MCP protocol implementation<br/>• Tool registration & execution<br/>• Transport layer (stdio)"]
        
        A -->|"MCP Protocol (stdio)"| B
