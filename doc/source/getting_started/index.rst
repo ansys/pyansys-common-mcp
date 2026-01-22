@@ -27,11 +27,11 @@ Requirements
 Standard Installation
 ---------------------
 
-Install from PyPI:
+Install from the private PyPI (requires the ``PYANSYS_PYPI_PRIVATE_PAT`` environment variable) :
 
 .. code-block:: bash
 
-   pip install ansys-common-mcp
+   pip install ansys-common-mcp --extra-index-url https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
 
 Development Installation
 ------------------------

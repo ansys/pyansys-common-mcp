@@ -153,19 +153,6 @@ Architecture Overview
 
 The base class handles infrastructure while you focus on product-specific logic.
 
-Installation
-------------
-
-.. code-block:: bash
-
-   pip install ansys-common-mcp
-
-For development:
-
-.. code-block:: bash
-
-   pip install ansys-common-mcp[dev]
-
 Support and Resources
 ---------------------
 
