@@ -17,7 +17,7 @@ concurrency:
 permissions: {}
 
 env:
-  MAIN_PYTHON_VERSION: "3.10"
+  MAIN_PYTHON_VERSION: "3.12"
   PACKAGE_NAME: "ansys-common-mcp"
 
 jobs:
@@ -99,7 +99,7 @@ jobs:
     # Deploy development only when merging to main
     # if: github.ref == 'refs/heads/main' && github.event_name == 'push' TODO: re-enable once action is fixed
     runs-on: ubuntu-latest
-    needs: [package]
+    needs: [docs, package]
     permissions:
       contents: write
     steps:
@@ -113,7 +113,7 @@ jobs:
   release:
     name: "Release project"
     if: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags') }}
-    needs: [package]
+    needs: [docs, package]
     runs-on: ubuntu-latest
     # Specifying a GitHub environment is optional, but strongly encouraged
     environment: release
