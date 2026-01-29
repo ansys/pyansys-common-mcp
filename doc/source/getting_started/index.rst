@@ -99,7 +99,7 @@ Create ``context.py`` to hold product-specific state:
    @dataclass
    class MyProductContext(PyAnsysBaseAppContext):
        """Context for MyProduct MCP server.
-       
+
        Attributes
        ----------
        product_instance : Optional[Any]
@@ -123,7 +123,7 @@ Create ``server.py`` with your server class:
 
    class MyProductMCP(PyAnsysBaseMCP):
        """MCP Server for MyProduct."""
-       
+
        def create_context(self) -> MyProductContext:
            """Create product-specific context."""
            return MyProductContext(
@@ -133,12 +133,12 @@ Create ``server.py`` with your server class:
                ),
                command_history=[],
            )
-       
+
        def product_startup(self):
            """Initialize product connection when server starts."""
            self.context.product_instance = connect()
            print(f"Connected to MyProduct: {self.context.product_instance}")
-       
+
        def product_cleanup(self):
            """Clean up product connection when server stops."""
            if self.context.product_instance:
@@ -161,16 +161,16 @@ Create ``tools.py`` to define the capabilities your server exposes:
 
    def register_tools(mcp):
        """Register all product-specific MCP tools."""
-       
+
        @mcp.tool()
        def execute_command(command: str) -> str:
            """Execute a product command.
-           
+
            Parameters
            ----------
            command : str
                Command to execute
-               
+
            Returns
            -------
            str
@@ -179,13 +179,13 @@ Create ``tools.py`` to define the capabilities your server exposes:
            # Access context via dependency injection
            ctx = get_context()
            app_context = ctx.fastmcp._lifespan_result
-           
+
            # Execute command using product instance
            result = app_context.product_instance.run(command)
-           
+
            # Track in history
            app_context.command_history.append(command)
-           
+
            return result
 
 See :ref:`user_guide_architecture` for details on context injection patterns.
@@ -216,10 +216,10 @@ Create ``__main__.py`` for CLI execution:
        """Run the MCP server."""
        # Initialize server
        mcp = MyProductMCP(name="my-product-mcp")
-       
+
        # Register tools
        register_tools(mcp)
-       
+
        # Run the server
        mcp.run()
        return 0

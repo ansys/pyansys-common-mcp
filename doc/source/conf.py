@@ -1,8 +1,10 @@
 """Sphinx documentation configuration file."""
-from datetime import datetime
+
 import os
+from datetime import datetime
 
 from ansys_sphinx_theme import ansys_favicon, get_version_match, pyansys_logo_black
+
 from ansys.common.mcp import __version__
 
 # Project information
@@ -174,7 +176,6 @@ pygments_style = "sphinx"
 graphviz_output_format = "png"
 
 # -- Options for LaTeX output ------------------------------------------------
-latex_elements = {}
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,

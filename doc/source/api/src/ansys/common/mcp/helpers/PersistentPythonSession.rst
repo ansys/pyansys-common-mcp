@@ -10,7 +10,7 @@
 
 .. py:class:: src.ansys.common.mcp.helpers.PersistentPythonSession(python_executable: Optional[str] = None, startup_code: Optional[str] = None, working_directory: Optional[str] = None)
 
-   
+
    Maintains a persistent Python subprocess for stateful code execution.
 
    This class allows multiple code snippets to be executed in the same
@@ -47,14 +47,14 @@
 
    >>> session = PersistentPythonSession()
    >>> session.start()
-   >>> 
+   >>>
    >>> # Step 1: Define variables
    >>> result = session.execute("x = 10; y = 20")
-   >>> 
+   >>>
    >>> # Step 2: Use those variables
    >>> result = session.execute("z = x + y; print(z)")
    >>> print(result['stdout'])  # 30
-   >>> 
+   >>>
    >>> session.stop()
 
    Use with custom Python executable:
@@ -105,15 +105,15 @@ Overview
           :widths: auto
 
           * - :py:attr:`~python_executable`
-            - 
+            -
           * - :py:attr:`~startup_code`
-            - 
+            -
           * - :py:attr:`~working_directory`
-            - 
+            -
           * - :py:attr:`~process`
-            - 
+            -
           * - :py:attr:`~metadata`
-            - 
+            -
 
 
 
@@ -169,7 +169,7 @@ Method detail
 
 .. py:method:: start() -> dict[str, Any]
 
-   
+
    Start the persistent Python session.
 
 
@@ -196,7 +196,7 @@ Method detail
 
 .. py:method:: execute(code: str, timeout: float = 30.0) -> dict[str, Any]
 
-   
+
    Execute Python code in the persistent session.
 
 
@@ -234,7 +234,7 @@ Method detail
 
 .. py:method:: stop() -> dict[str, Any]
 
-   
+
    Stop the persistent Python session.
 
 
@@ -261,7 +261,7 @@ Method detail
 
 .. py:method:: restart() -> dict[str, Any]
 
-   
+
    Restart the persistent Python session.
 
    Stops the current session (if running) and starts a new one.
@@ -312,10 +312,10 @@ Method detail
    >>> # Get context
    >>> ctx = get_context()
    >>> app_context = ctx.fastmcp._lifespan_result
-   >>> 
+   >>>
    >>> # Restart session
    >>> restart_result = app_context.python_session.restart()
-   >>> 
+   >>>
    >>> # Optionally replay command history
    >>> if restart_result["success"] and app_context.command_history:
    ...     for cmd in app_context.command_history:
@@ -326,7 +326,7 @@ Method detail
 
 .. py:method:: is_running() -> bool
 
-   
+
    Check if the session is currently running.
 
 
@@ -353,7 +353,7 @@ Method detail
 
 .. py:method:: __enter__()
 
-   
+
    Context manager entry.
 
 
@@ -376,7 +376,7 @@ Method detail
 
 .. py:method:: __exit__(exc_type, exc_val, exc_tb)
 
-   
+
    Context manager exit.
 
 
@@ -396,7 +396,3 @@ Method detail
 
    ..
        !! processed by numpydoc !!
-
-
-
-

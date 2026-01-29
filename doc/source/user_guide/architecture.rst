@@ -18,11 +18,11 @@ PyAnsys Common MCP follows a layered architecture with clear separation of conce
        B["Your Product MCP Server<br/>• Custom Context<br/>• Product Startup/Cleanup<br/>• MCP Tools"]
        C["PyAnsysBaseMCP<br/>(Base Class)<br/>• Lifecycle orchestration<br/>• Python session management<br/>• Context creation & injection<br/>• Error handling & logging"]
        D["FastMCP<br/>(MCP Protocol Library)<br/>• MCP protocol implementation<br/>• Tool registration & execution<br/>• Transport layer (stdio)"]
-       
+
        A -->|"MCP Protocol (stdio)"| B
        B -.->|extends| C
        C -.->|uses| D
-       
+
        style A fill:#e1f5ff
        style B fill:#fff4e1
        style C fill:#e8f5e9
@@ -89,7 +89,7 @@ Product-specific servers can extend this to add custom fields:
 
 .. tip::
 
-    If you need a custom field, you can either extend this class or use the 
+    If you need a custom field, you can either extend this class or use the
     ``metadata`` dict to store arbitrary key-value pairs.
 
 
@@ -110,7 +110,7 @@ Declare ``ctx: Context`` as a parameter - FastMCP automatically injects it:
    @mcp.tool()
    def my_tool(ctx: Context, param: str) -> str:
        """Execute something.
-       
+
        Parameters
        ----------
        ctx : Context
@@ -120,14 +120,14 @@ Declare ``ctx: Context`` as a parameter - FastMCP automatically injects it:
        """
        # Access application context
        app_context = ctx.request_context.lifespan_context
-       
+
        # Access product instance
        result = app_context.product_instance.run(param)
-       
+
        # Add to command history if successful
        if result["success"]:
             app_context.command_history.append(param)
-       
+
        return result
 
 .. note::
@@ -157,7 +157,7 @@ This retrieves the current context instance.
        """Execute something."""
        ctx = get_context()
        app_context = ctx.fastmcp._lifespan_result
-       
+
        result = app_context.product_instance.do_something(param)
        app_context.command_history.append(f"my_tool({param})")
        return result
@@ -213,6 +213,6 @@ Logs go to **stderr** (not stdout) to avoid interfering with MCP protocol.
 
    setup_logging(level="INFO")  # or use LOGLEVEL env variable
    logger = get_logger(__name__)
-   
+
    logger.info("Starting...")
    logger.error("Error occurred")

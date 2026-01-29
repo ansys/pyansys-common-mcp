@@ -79,7 +79,7 @@ Module detail
 
 .. py:function:: main()
 
-   
+
    Main entry point - provides usage information.
 
 
@@ -99,6 +99,3 @@ Module detail
 
    ..
        !! processed by numpydoc !!
-
-
-

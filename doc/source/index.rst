@@ -26,10 +26,10 @@ through PyAnsys libraries.
    :padding: 2
 
    .. grid-item-card:: 🎯 For PyAnsys Library Developers
-      
+
       This library is designed for **PyAnsys library developers** who want to create
       MCP servers for their products. It provides the infrastructure to:
-      
+
       - Manage persistent Python sessions for stateful AI interactions
       - Handle product lifecycle (startup, cleanup, error handling)
       - Create extensible, maintainable MCP servers
@@ -42,22 +42,22 @@ Key Features
    :gutter: 2
 
    .. grid-item-card:: 🐍 Persistent Python Sessions
-      
+
       Maintain stateful Python environments across multiple AI requests,
       preserving variables, imports, and state between interactions.
 
    .. grid-item-card:: ♻️ Lifecycle Management
-      
+
       Automatic startup, cleanup, and error handling for product connections
       with extensible hooks for custom initialization.
 
    .. grid-item-card:: 🏗️ Extensible Architecture
-      
+
       Base classes and patterns specifically designed for PyAnsys products,
       making it easy to create consistent MCP servers.
 
    .. grid-item-card:: 📝 Logging Infrastructure
-      
+
       Pre-configured logging to stderr that doesn't interfere with the MCP
       protocol, with environment-based configuration.
 
@@ -77,7 +77,7 @@ Creating an MCP server involves three steps:
    class MyProductMCP(PyAnsysBaseMCP):
        def product_startup(self):
            self.context.product_instance = connect_to_product()
-       
+
        def product_cleanup(self):
            self.context.product_instance.disconnect()
 
@@ -145,7 +145,7 @@ Architecture Overview
    └────────────┬────────────────────────┘
                 │ extends
    ┌────────────▼────────────────────────┐
-   │  PyAnsysBaseMCP                     │ 
+   │  PyAnsysBaseMCP                     │
    │  ✅ Lifecycle management           │
    │  ✅ Python session handling        │
    │  ✅ Error handling & logging       │
@@ -162,4 +162,3 @@ Support and Resources
 - **Email**: pyansys.core@ansys.com
 - **MCP Protocol**: https://modelcontextprotocol.io/
 - **FastMCP**: https://github.com/jlowin/fastmcp
-

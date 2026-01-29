@@ -7,8 +7,8 @@ Advanced patterns
 This section covers advanced techniques for building robust MCP servers.
 
 .. note::
-   
-   All tool examples use the recommended ``ctx: Context`` parameter pattern for accessing 
+
+   All tool examples use the recommended ``ctx: Context`` parameter pattern for accessing
    the application context. See :ref:`user_guide_architecture` for details.
 
 Python session
@@ -24,7 +24,7 @@ Execute Python code from tools
    @mcp.tool()
    def run_python_script(ctx: Context, code: str) -> str:
        """Execute Python code in the persistent session.
-       
+
        Parameters
        ----------
        ctx : Context
@@ -45,7 +45,7 @@ Session restart with history
    @mcp.tool()
    def restart_session(ctx: Context, replay_history: bool = True) -> str:
        """Restart Python session and optionally replay commands.
-       
+
        Parameters
        ----------
        ctx : Context
@@ -54,18 +54,18 @@ Session restart with history
            Whether to replay command history
        """
        app_context = ctx.request_context.lifespan_context
-       
+
        history = app_context.command_history.copy()
        result = app_context.python_session.restart()
-       
+
        if not result["success"]:
            return f"Restart failed: {result['error']}"
-       
+
        if replay_history and history:
            for cmd in history:
                app_context.python_session.execute(cmd)
            return f"Restarted and replayed {len(history)} commands"
-       
+
        return "Session restarted"
 
 
@@ -82,7 +82,7 @@ Create and export command history
    @mcp.tool()
    def execute_command(ctx: Context, command: str) -> str:
        """Execute and track command.
-       
+
        Parameters
        ----------
        ctx : Context
@@ -99,7 +99,7 @@ Create and export command history
    @mcp.tool()
    def export_history(ctx: Context, format: str = "json") -> str:
        """Export command history as JSON or text.
-       
+
        Parameters
        ----------
        ctx : Context
@@ -108,7 +108,7 @@ Create and export command history
            Export format ('json' or 'text')
        """
        app_context = ctx.request_context.lifespan_context
-       
+
        if format == "json":
            import json
            return json.dumps(app_context.command_history, indent=2)
@@ -135,13 +135,13 @@ Handle errors without crashing the server:
            logger.info("Attempting to connect to product...")
            self.context.product_instance = connect(timeout=30)
            logger.info(f"Connected: {self.context.product_instance}")
-           
+
        except ConnectionTimeout as e:
            logger.error(f"Connection timeout: {e}")
            logger.warning("Server will start in limited mode")
            self.context.product_instance = None
            self.context.metadata["mode"] = "limited"
-           
+
        except Exception as e:
            logger.error(f"Unexpected error during startup: {e}")
            raise  # Re-raise for critical errors
@@ -159,17 +159,17 @@ Implement retry logic for flaky connections:
        """Connect with retry logic."""
        max_retries = 3
        retry_delay = 5  # seconds
-       
+
        for attempt in range(1, max_retries + 1):
            try:
                logger.info(f"Connection attempt {attempt}/{max_retries}...")
                self.context.product_instance = connect()
                logger.info("Connected successfully")
                return
-               
+
            except Exception as e:
                logger.warning(f"Attempt {attempt} failed: {e}")
-               
+
                if attempt < max_retries:
                    logger.info(f"Retrying in {retry_delay} seconds...")
                    time.sleep(retry_delay)
@@ -206,7 +206,7 @@ User preferences
    @mcp.tool()
    def set_preference(ctx: Context, key: str, value: str) -> str:
        """Set a user preference.
-       
+
        Parameters
        ----------
        ctx : Context
@@ -233,7 +233,7 @@ User preferences
    @mcp.tool()
    def get_preference(ctx: Context, key: str, default: str = None) -> str:
        """Get a user preference.
-       
+
        Parameters
        ----------
        ctx : Context
@@ -246,7 +246,7 @@ User preferences
        app_context = ctx.request_context.lifespan_context
        prefs = app_context.metadata.get("preferences", {})
        value = prefs.get(key, default)
-       
+
        if value is None:
            return f"Preference '{key}' not set"
        return value

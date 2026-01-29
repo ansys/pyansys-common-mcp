@@ -13,7 +13,7 @@
    Bases: :py:obj:`fastmcp.FastMCP`, :py:obj:`abc.ABC`
 
 
-   
+
    Abstract base class for generic types.
 
    A generic type is typically declared by inheriting from
@@ -97,9 +97,9 @@ Overview
           :widths: auto
 
           * - :py:attr:`~python_executable`
-            - 
+            -
           * - :py:attr:`~working_directory`
-            - 
+            -
 
 
 
@@ -134,7 +134,7 @@ Method detail
    :abstractmethod:
 
 
-   
+
    Cleanup routine before shutting down the server.
 
    Must be implemented by subclasses to handle product-specific cleanup.
@@ -160,7 +160,7 @@ Method detail
    :abstractmethod:
 
 
-   
+
    Startup routine to initialize resources when the server starts.
 
    Must be implemented by subclasses to handle product-specific initialization.
@@ -184,7 +184,7 @@ Method detail
 
 .. py:method:: create_context() -> ansys.common.mcp.context.PyAnsysBaseAppContext
 
-   
+
    Factory method for creating product-specific context.
 
    Override this method in subclasses to return custom context types
@@ -224,7 +224,7 @@ Method detail
 
 .. py:method:: start_python_session()
 
-   
+
    Start a persistent Python session for executing generated code.
 
 
@@ -247,7 +247,7 @@ Method detail
 
 .. py:method:: cleanup_python_session()
 
-   
+
    Cleanup the persistent Python session.
 
 
@@ -272,7 +272,7 @@ Method detail
    :async:
 
 
-   
+
    Default lifespan for PyAnsys MCP servers.
 
    Product-specific servers can override this method if needed.
@@ -309,7 +309,3 @@ Method detail
 
    ..
        !! processed by numpydoc !!
-
-
-
-

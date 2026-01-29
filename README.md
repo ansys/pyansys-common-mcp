@@ -8,7 +8,7 @@ Common infrastructure for building [Model Context Protocol (MCP)](https://modelc
 
 ## Overview
 
-This package provides the foundation for creating MCP servers that enable AI assistants (like Claude, ChatGPT) to interact with Ansys products through PyAnsys libraries. 
+This package provides the foundation for creating MCP servers that enable AI assistants (like Claude, ChatGPT) to interact with Ansys products through PyAnsys libraries.
 
 **Key Features:**
 - **Persistent Python sessions** - Stateful code execution across multiple AI requests

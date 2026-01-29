@@ -36,6 +36,6 @@ What's next?
 .. toctree::
    :maxdepth: 2
    :hidden:
-   
+
    architecture
    advanced_patterns

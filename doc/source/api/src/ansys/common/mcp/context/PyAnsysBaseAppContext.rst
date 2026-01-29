@@ -10,7 +10,7 @@
 
 .. py:class:: src.ansys.common.mcp.context.PyAnsysBaseAppContext
 
-   
+
    Base application context for PyAnsys MCP servers.
 
    This provides a common structure that product-specific contexts
@@ -54,11 +54,11 @@
    >>> from ansys.common.mcp import PyAnsysBaseAppContext
    >>> from dataclasses import dataclass
    >>> from typing import Optional, Any
-   >>> 
+   >>>
    >>> @dataclass
    >>> class MAPDLAppContext(PyAnsysBaseAppContext):
    ...     mapdl: Optional[Any] = None
-   ...     
+   ...
    ...     @property
    ...     def product_instance(self):
    ...         return self.mapdl
@@ -85,15 +85,15 @@ Overview
           :widths: auto
 
           * - :py:attr:`~product_instance`
-            - 
+            -
           * - :py:attr:`~python_executable`
-            - 
+            -
           * - :py:attr:`~python_session`
-            - 
+            -
           * - :py:attr:`~metadata`
-            - 
+            -
           * - :py:attr:`~command_history`
-            - 
+            -
 
 
 
@@ -132,9 +132,3 @@ Attribute detail
 .. py:attribute:: command_history
    :type:  list
    :value: []
-
-
-
-
-
-
