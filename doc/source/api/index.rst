@@ -1,3 +1,5 @@
+.. _api_ref:
+
 API reference
 =============
 
@@ -7,3 +9,5 @@ to interact with them programmatically.
 .. toctree::
    :titlesonly:
    :maxdepth: 3
+
+   src/ansys/common/mcp/index
