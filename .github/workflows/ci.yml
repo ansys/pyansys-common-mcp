@@ -19,6 +19,7 @@ permissions: {}
 env:
   MAIN_PYTHON_VERSION: "3.10"
   PACKAGE_NAME: "ansys-common-mcp"
+  PYMAPDL_GRPC_TRANSPORT: 'insecure'
 
 jobs:
   code-style:
