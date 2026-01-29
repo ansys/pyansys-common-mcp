@@ -62,7 +62,7 @@ Summary
 
 
           * - :py:obj:`~logger`
-            -
+            - 
 
 
 
@@ -97,7 +97,7 @@ Module detail
 
 .. py:function:: exception_wrapper(func: Callable[[], Any]) -> Any | str
 
-
+   
    Wrap to catch exceptions and return error messages.
 
 
@@ -119,3 +119,6 @@ Module detail
        !! processed by numpydoc !!
 
 .. py:data:: logger
+
+
+

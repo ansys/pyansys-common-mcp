@@ -37,7 +37,7 @@ Summary
 
 
           * - :py:obj:`~main`
-            - Main entry point - provides usage information.
+            - Provide usage information - main entry point for module execution.
 
 
 
@@ -79,8 +79,8 @@ Module detail
 
 .. py:function:: main()
 
-
-   Main entry point - provides usage information.
+   
+   Provide usage information - main entry point for module execution.
 
 
 
@@ -99,3 +99,6 @@ Module detail
 
    ..
        !! processed by numpydoc !!
+
+
+

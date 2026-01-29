@@ -40,7 +40,7 @@ Summary
 
 
           * - :py:obj:`~src.ansys.common.mcp.helpers`
-            -
+            - 
 
 
           * - :py:obj:`~src.ansys.common.mcp.logging_config`
@@ -69,7 +69,7 @@ Summary
 
 
           * - :py:obj:`~__version__`
-            -
+            - 
 
 
 
@@ -134,3 +134,7 @@ Module detail
 
 .. py:data:: __version__
    :value: '0.0.1'
+
+
+
+

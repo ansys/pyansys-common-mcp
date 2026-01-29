@@ -116,8 +116,8 @@ What do you want to do?
         production implementations like PyMAPDL-MCP.
 
     .. grid-item-card:: :fa:`file-code` API Reference
-        :link: api_ref
-        :link-type: ref
+        :link: api/index
+        :link-type: doc
 
         Detailed API documentation for all classes, methods, and functions
         in PyAnsys Common MCP.

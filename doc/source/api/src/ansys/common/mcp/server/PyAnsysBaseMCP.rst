@@ -13,25 +13,9 @@
    Bases: :py:obj:`fastmcp.FastMCP`, :py:obj:`abc.ABC`
 
 
+   
+   Base MCP server for PyAnsys libraries.
 
-   Abstract base class for generic types.
-
-   A generic type is typically declared by inheriting from
-   this class parameterized with one or more type variables.
-   For example, a generic mapping type might be defined as::
-
-     class Mapping(Generic[KT, VT]):
-         def __getitem__(self, key: KT) -> VT:
-             ...
-         # Etc.
-
-   This class can then be used as follows::
-
-     def lookup_name(mapping: Mapping[KT, VT], key: KT, default: VT) -> VT:
-         try:
-             return mapping[key]
-         except KeyError:
-             return default
 
 
 
@@ -80,13 +64,13 @@ Overview
           :widths: auto
 
           * - :py:attr:`~create_context`
-            - Factory method for creating product-specific context.
+            - Create product-specific context.
           * - :py:attr:`~start_python_session`
             - Start a persistent Python session for executing generated code.
           * - :py:attr:`~cleanup_python_session`
             - Cleanup the persistent Python session.
           * - :py:attr:`~product_lifespan`
-            - Default lifespan for PyAnsys MCP servers.
+            - Define default lifespan for PyAnsys MCP servers.
 
 
 
@@ -97,9 +81,9 @@ Overview
           :widths: auto
 
           * - :py:attr:`~python_executable`
-            -
+            - 
           * - :py:attr:`~working_directory`
-            -
+            - 
 
 
 
@@ -134,7 +118,7 @@ Method detail
    :abstractmethod:
 
 
-
+   
    Cleanup routine before shutting down the server.
 
    Must be implemented by subclasses to handle product-specific cleanup.
@@ -160,7 +144,7 @@ Method detail
    :abstractmethod:
 
 
-
+   
    Startup routine to initialize resources when the server starts.
 
    Must be implemented by subclasses to handle product-specific initialization.
@@ -184,8 +168,8 @@ Method detail
 
 .. py:method:: create_context() -> ansys.common.mcp.context.PyAnsysBaseAppContext
 
-
-   Factory method for creating product-specific context.
+   
+   Create product-specific context.
 
    Override this method in subclasses to return custom context types
    (e.g., PyMAPDLContext with a mapdl field).
@@ -224,7 +208,7 @@ Method detail
 
 .. py:method:: start_python_session()
 
-
+   
    Start a persistent Python session for executing generated code.
 
 
@@ -247,7 +231,7 @@ Method detail
 
 .. py:method:: cleanup_python_session()
 
-
+   
    Cleanup the persistent Python session.
 
 
@@ -272,8 +256,8 @@ Method detail
    :async:
 
 
-
-   Default lifespan for PyAnsys MCP servers.
+   
+   Define default lifespan for PyAnsys MCP servers.
 
    Product-specific servers can override this method if needed.
 
@@ -309,3 +293,7 @@ Method detail
 
    ..
        !! processed by numpydoc !!
+
+
+
+

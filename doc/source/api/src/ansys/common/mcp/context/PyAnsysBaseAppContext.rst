@@ -10,7 +10,7 @@
 
 .. py:class:: src.ansys.common.mcp.context.PyAnsysBaseAppContext
 
-
+   
    Base application context for PyAnsys MCP servers.
 
    This provides a common structure that product-specific contexts
@@ -85,15 +85,15 @@ Overview
           :widths: auto
 
           * - :py:attr:`~product_instance`
-            -
+            - 
           * - :py:attr:`~python_executable`
-            -
+            - 
           * - :py:attr:`~python_session`
-            -
+            - 
           * - :py:attr:`~metadata`
-            -
+            - 
           * - :py:attr:`~command_history`
-            -
+            - 
 
 
 
@@ -132,3 +132,9 @@ Attribute detail
 .. py:attribute:: command_history
    :type:  list
    :value: []
+
+
+
+
+
+

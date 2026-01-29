@@ -81,7 +81,7 @@ Module detail
 
 .. py:function:: setup_logging(level: Optional[str] = None, log_file: Optional[str] = None, format_string: Optional[str] = None) -> logging.Logger
 
-
+   
    Configure logging for MCP servers.
 
    Sets up logging to stderr (to avoid interfering with MCP protocol on stdout)
@@ -144,7 +144,7 @@ Module detail
 
 .. py:function:: get_logger(name: str) -> logging.Logger
 
-
+   
    Get a logger instance with the specified name.
 
    This is a convenience wrapper around logging.getLogger() that ensures
@@ -180,3 +180,6 @@ Module detail
 
    ..
        !! processed by numpydoc !!
+
+
+

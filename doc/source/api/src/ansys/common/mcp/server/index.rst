@@ -36,7 +36,7 @@ Summary
 
 
           * - :py:obj:`~src.ansys.common.mcp.server.PyAnsysBaseMCP`
-            - Abstract base class for generic types.
+            - Base MCP server for PyAnsys libraries.
 
 
 
@@ -74,3 +74,10 @@ servers can extend to create their own MCP implementations.
 
 ..
     !! processed by numpydoc !!
+
+
+
+
+
+
+
