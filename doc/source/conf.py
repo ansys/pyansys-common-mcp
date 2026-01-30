@@ -149,6 +149,11 @@ exclude_patterns = [
     "links.rst",
 ]
 
+# Suppress specific warnings
+suppress_warnings = [
+    "toc.not_included",  # Suppress warnings for auto-generated API docs not in toctree
+]
+
 # make rst_epilog a variable, so you can add other epilog parts to it
 rst_epilog = ""
 # Read link all targets from file
