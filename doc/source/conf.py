@@ -165,6 +165,8 @@ linkcheck_ignore = [
     r"getting_started/index.html",
     r"contributing/index.html",
     r"user_guide/index.html",
+    "https://github.com/ansys/pyansys-common-mcp/*",
+    "https://github.com/ansys/pymapdl-mcp/*",
 ]
 
 linkcheck_allowed_redirect = [
