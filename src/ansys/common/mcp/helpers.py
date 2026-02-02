@@ -234,39 +234,38 @@ class PersistentPythonSession:
                             "error": error_msg,
                         }
 
-                    # Track if we got any data this iteration
-                    got_data = False
-
                     # Read from stdout
                     try:
-                        line = self._output_queue.get(timeout=0.1)
-                        got_data = True
-                        if marker in line:
-                            # Remove the marker line
-                            line = line.replace(marker, "").strip()
-                            if line:
-                                stdout_lines.append(line)
-                            marker_found = True
-                        else:
-                            stdout_lines.append(line.rstrip())
+                        output_line = self._output_queue.get(timeout=0.1)
                     except queue.Empty:
                         pass
+
+                    if output_line:
+                        if marker in output_line:
+                            # Remove the marker line
+                            output_line = output_line.replace(marker, "").strip()
+                            if output_line:
+                                stdout_lines.append(output_line)
+                            marker_found = True
+                        else:
+                            stdout_lines.append(output_line.rstrip())
 
                     # Read from stderr
                     try:
-                        line = self._error_queue.get(timeout=0.1)
-                        got_data = True
-                        stderr_lines.append(line.rstrip())
+                        error_line = self._error_queue.get(timeout=0.1)
                     except queue.Empty:
                         pass
 
+                    if error_line:
+                        stderr_lines.append(error_line.rstrip())
+
                     # If marker was found and no more data, we're done
-                    if marker_found and not got_data:
+                    if marker_found and not (error_line or output_line):
                         break
 
                     # Safety: if we've had many consecutive empty reads, break
                     # (This prevents infinite loops if marker is never found)
-                    if not got_data:
+                    if not (error_line or output_line):
                         consecutive_empty_reads += 1
                         if consecutive_empty_reads > 5:  # 5 * 0.1s = 0.5s of no data
                             if marker_found:
@@ -280,8 +279,8 @@ class PersistentPythonSession:
                         consecutive_empty_reads = 0
 
                 # After marker found, do one final drain of stderr to catch any remaining output
-                final_drain_start = __import__("time").time()
-                while __import__("time").time() - final_drain_start < 0.5:
+                final_drain_start = time.time()
+                while time.time() - final_drain_start < 0.5:
                     try:
                         line = self._error_queue.get(timeout=0.05)
                         stderr_lines.append(line.rstrip())
