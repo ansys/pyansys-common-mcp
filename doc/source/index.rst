@@ -59,4 +59,4 @@ Real-world implementations
 
 See these production MCP servers built with PyAnsys Common MCP:
 
-- `PyMAPDL-MCP <https://github.com/ansys/pymapdl-mcp>`_ - MCP server for PyMAPDL
+- `PyMAPDL-MCP <pymapdl_mcp_>`_ - MCP server for PyMAPDL

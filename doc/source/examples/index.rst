@@ -7,13 +7,13 @@ Examples
 This section provides complete, working examples of MCP servers built with
 PyAnsys Common MCP, from simple to complex implementations.
 
-Complete Example: PyExample-MCP
+Complete example: PyExample-MCP
 ================================
 
 This section walks through a complete, minimal MCP server implementation for a
 hypothetical PyAnsys library called "PyExample".
 
-Project Structure
+Project structure
 -----------------
 
 .. code-block:: text
@@ -29,7 +29,7 @@ Project Structure
            ├── context.py
            └── tools.py
 
-Step 1: Context Definition
+Step 1: Context definition
 ---------------------------
 
 **File:** ``src/pyexample_mcp/context.py``
@@ -58,7 +58,7 @@ Step 1: Context Definition
        active_model: Optional[str] = None
        simulation_results: dict = field(default_factory=dict)
 
-Step 2: Server Implementation
+Step 2: Server implementation
 ------------------------------
 
 **File:** ``src/pyexample_mcp/server.py``
@@ -186,7 +186,7 @@ Step 2: Server Implementation
                except Exception as e:
                    logger.error(f"Error during PyExample cleanup: {e}")
 
-Step 3: Tool Implementation
+Step 3: Tool implementation
 ----------------------------
 
 **File:** ``src/pyexample_mcp/tools.py``
@@ -390,7 +390,7 @@ Step 3: Tool Implementation
            else:
                return f"Error: {result['error']}"
 
-Step 4: Package Initialization
+Step 4: Package initialization
 -------------------------------
 
 **File:** ``src/pyexample_mcp/__init__.py``
@@ -414,7 +414,7 @@ Step 4: Package Initialization
        "__version__",
    ]
 
-Step 5: Entry Point
+Step 5: Entry point
 --------------------
 
 **File:** ``src/pyexample_mcp/__main__.py``
@@ -449,7 +449,7 @@ Step 5: Entry Point
    if __name__ == "__main__":
        sys.exit(main())
 
-Step 6: Package Configuration
+Step 6: Package configuration
 ------------------------------
 
 **File:** ``pyproject.toml``
@@ -483,7 +483,7 @@ Step 6: Package Configuration
    [project.scripts]
    pyexample-mcp = "pyexample_mcp.__main__:main"
 
-Running the Example
+Running the example
 -------------------
 
 .. code-block:: bash
@@ -497,17 +497,14 @@ Running the Example
    # Or use the installed script
    pyexample-mcp
 
-Real-World Examples
+Real-world examples
 ===================
 
 PyMAPDL-MCP
 -----------
 
-For a production-ready, real-world implementation, see:
-
-**Repository:** https://github.com/ansys/pymapdl-mcp
-
-**PyMAPDL-MCP** is a complete MCP server for Ansys Mechanical APDL (MAPDL).
+For a production-ready and real-world implementation, you can explore
+`PyMAPDL-MCP <pymapdl_mcp_>`_ which is a complete MCP server for PyMAPDL.
 It demonstrates:
 
 - **Full MAPDL integration** - Launch, control, and interact with MAPDL
@@ -518,120 +515,37 @@ It demonstrates:
 **Key Tools:**
 
 - ``launch_mapdl`` - Start MAPDL instance with configurable parameters
-- ``run_mapdl_command`` - Execute APDL commands
-- ``create_geometry`` - Create and manipulate geometry
-- ``mesh_model`` - Generate and refine meshes
-- ``solve_model`` - Run analyses
-- ``extract_results`` - Get solution data and plots
+- ``run_mapdl_commands`` - Execute APDL commands
+- ``run_python_code`` - Execute Python code in persistent session
+- ``screenshot`` - Capture and return MAPDL graphics
 
 **Installation:**
 
+The package is not publicly available on PyPI. You can install it using:
+
 .. code-block:: bash
 
-   pip install pymapdl-mcp
+    pip install ansys-mapdl-mcp --extra-index-url https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
+
 
 **Usage with Claude Desktop:**
 
 .. code-block:: json
 
    {
-     "mcpServers": {
+     "pymapdl-mcp": {
        "pymapdl": {
          "command": "python",
-         "args": ["-m", "pymapdl_mcp"]
+         "args": ["-m", "ansys.mapdl.mcp"],
        }
      }
    }
 
-Additional Patterns
-===================
 
-Error Handling Example
-----------------------
-
-.. code-block:: python
-
-   @mcp.tool()
-   def robust_operation(param: str, retry: bool = True) -> str:
-       """Operation with comprehensive error handling."""
-       ctx = get_context()
-       app_context = ctx.fastmcp._lifespan_result
-
-       max_attempts = 3 if retry else 1
-
-       for attempt in range(1, max_attempts + 1):
-           try:
-               result = app_context.product_instance.operation(param)
-               logger.info(f"Operation succeeded on attempt {attempt}")
-               return result
-
-           except TransientError as e:
-               if attempt < max_attempts:
-                   logger.warning(f"Attempt {attempt} failed (retrying): {e}")
-                   continue
-               else:
-                   logger.error(f"All attempts failed: {e}")
-                   return f"Error after {max_attempts} attempts: {e}"
-
-           except PermanentError as e:
-               logger.error(f"Permanent error: {e}")
-               return f"Error: {e}"
-
-Batch Processing Example
--------------------------
-
-.. code-block:: python
-
-   @mcp.tool()
-   def batch_process(items: list, operation: str) -> str:
-       """Process multiple items in batch.
-
-       Parameters
-       ----------
-       items : list
-           List of items to process
-       operation : str
-           Operation to perform on each item
-
-       Returns
-       -------
-       str
-           Batch processing summary
-       """
-       ctx = get_context()
-       app_context = ctx.fastmcp._lifespan_result
-
-       results = {"success": [], "failed": []}
-
-       for item in items:
-           try:
-               result = app_context.product_instance.run(
-                   f"{operation} {item}"
-               )
-               results["success"].append(item)
-               logger.info(f"Processed: {item}")
-
-           except Exception as e:
-               results["failed"].append({"item": item, "error": str(e)})
-               logger.error(f"Failed to process {item}: {e}")
-
-       summary = (
-           f"Batch processing complete:\n"
-           f"  Success: {len(results['success'])}\n"
-           f"  Failed: {len(results['failed'])}"
-       )
-
-       if results["failed"]:
-           summary += "\n\nFailed items:"
-           for failed in results["failed"]:
-               summary += f"\n  - {failed['item']}: {failed['error']}"
-
-       return summary
-
-Next Steps
+Next steps
 ==========
 
 - Study the :ref:`user_guide_architecture` to understand how it all works
 - Review :ref:`user_guide_advanced_patterns` for more techniques
-- Clone `PyMAPDL-MCP <https://github.com/ansys/pymapdl-mcp>`_ to see a real implementation
+- Clone `PyMAPDL-MCP <pymapdl_mcp_>`_ to see a real implementation
 - Build your own MCP server for your PyAnsys library!

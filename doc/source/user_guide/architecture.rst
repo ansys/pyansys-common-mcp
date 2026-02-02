@@ -28,7 +28,7 @@ PyAnsys Common MCP follows a layered architecture with clear separation of conce
        style C fill:#e8f5e9
        style D fill:#f3e5f5
 
-Core Components
+Core components
 ===============
 
 PyAnsysBaseMCP

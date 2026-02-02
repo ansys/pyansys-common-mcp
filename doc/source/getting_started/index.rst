@@ -24,7 +24,7 @@ Requirements
 - Python 3.10 or later (up to 3.13)
 - PyAnsys library for your product (e.g., PyMAPDL, PyFluent)
 
-Standard Installation
+Standard installation
 ---------------------
 
 Install from the private PyPI (requires the ``PYANSYS_PYPI_PRIVATE_PAT`` environment variable) :
@@ -33,7 +33,7 @@ Install from the private PyPI (requires the ``PYANSYS_PYPI_PRIVATE_PAT`` environ
 
    pip install ansys-common-mcp --extra-index-url https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
 
-Development Installation
+Development installation
 ------------------------
 
 For developers contributing to PyAnsys Common MCP or creating custom servers:
@@ -50,7 +50,7 @@ For developers contributing to PyAnsys Common MCP or creating custom servers:
    # Or for documentation building
    pip install -e .[doc]
 
-Verify Installation
+Verify installation
 -------------------
 
 Verify the installation by importing the package:
@@ -61,12 +61,12 @@ Verify the installation by importing the package:
    >>> from ansys.common.mcp import PersistentPythonSession
    >>> print("Installation successful!")
 
-Quick Start
+Quick start
 ===========
 
 Create a minimal working MCP server in six steps.
 
-Project Structure
+Project structure
 -----------------
 
 Create a new package:
@@ -109,7 +109,7 @@ Create ``context.py`` to hold product-specific state:
 
 The context holds shared state accessible from all tools. See :ref:`user_guide_architecture` for details on context management.
 
-Step 2: Implement MCP Server
+Step 2: Implement MCP server
 -----------------------------
 
 Create ``server.py`` with your server class:
@@ -272,4 +272,4 @@ Next Steps
 Your MCP server is ready! Continue with:
 
 - :ref:`ref_user_guide` - Understand how the framework works and learn advanced patterns
-- :ref:`ref_examples` - See complete working examples like `PyMAPDL-MCP <https://github.com/ansys/pymapdl-mcp>`_
+- :ref:`ref_examples` - See complete working examples like `PyMAPDL-MCP <pymapdl_mcp>`_
