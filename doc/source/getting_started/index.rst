@@ -272,4 +272,4 @@ Next Steps
 Your MCP server is ready! Continue with:
 
 - :ref:`ref_user_guide` - Understand how the framework works and learn advanced patterns
-- :ref:`ref_examples` - See complete working examples like `PyMAPDL-MCP <pymapdl_mcp>`_
+- :ref:`ref_examples` - See complete working examples like `PyMAPDL-MCP <pymapdl_mcp_>`_
