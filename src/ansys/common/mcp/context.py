@@ -43,7 +43,7 @@ class PyAnsysBaseAppContext:
     >>> @dataclass
     >>> class NewAppContext(PyAnsysBaseAppContext):
     ...     instance: Optional[Any] = None
-    ...     
+    ...
     ...     @property
     ...     def product_instance(self):
     ...         return self.instance

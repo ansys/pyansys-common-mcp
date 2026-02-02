@@ -5,7 +5,7 @@ import subprocess  # nosec B404
 import sys
 import threading
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from ansys.common.mcp.logging_config import get_logger
 
