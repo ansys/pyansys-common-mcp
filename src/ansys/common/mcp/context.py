@@ -39,7 +39,7 @@ class PyAnsysBaseAppContext:
     >>> from ansys.common.mcp import PyAnsysBaseAppContext
     >>> from dataclasses import dataclass
     >>> from typing import Optional, Any
-    >>> 
+    >>>
     >>> @dataclass
     >>> class NewAppContext(PyAnsysBaseAppContext):
     ...     instance: Optional[Any] = None
