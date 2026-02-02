@@ -50,7 +50,6 @@ html_theme_options = {
     # },
     "ansys_sphinx_theme_autoapi": {
         "project": project,
-        "directory": "src",
     },
 }
 
@@ -151,7 +150,8 @@ exclude_patterns = [
 
 # Suppress specific warnings
 suppress_warnings = [
-    "toc.not_included",  # Suppress warnings for auto-generated API docs not in toctree
+    "toc.not_included",  # Caused by the autoapi extension
+    "toc.not_readable",  # Caused by incorrect autoapi-generated toctree references
 ]
 
 # make rst_epilog a variable, so you can add other epilog parts to it
