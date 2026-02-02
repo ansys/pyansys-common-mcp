@@ -263,7 +263,7 @@ class PersistentPythonSession:
                     # If marker was found and no more data, we're done
                     if marker_found and not got_data:
                         break
-                    
+
                     # Safety: if we've had many consecutive empty reads, break
                     # (This prevents infinite loops if marker is never found)
                     if not got_data:
@@ -272,14 +272,16 @@ class PersistentPythonSession:
                             if marker_found:
                                 break
                             # If marker not found but no data, something went wrong
-                            logger.warning("No data received for extended period, stopping collection")
+                            logger.warning(
+                                "No data received for extended period, stopping collection"
+                            )
                             break
                     else:
                         consecutive_empty_reads = 0
 
                 # After marker found, do one final drain of stderr to catch any remaining output
-                final_drain_start = __import__('time').time()
-                while __import__('time').time() - final_drain_start < 0.5:
+                final_drain_start = __import__("time").time()
+                while __import__("time").time() - final_drain_start < 0.5:
                     try:
                         line = self._error_queue.get(timeout=0.05)
                         stderr_lines.append(line.rstrip())
