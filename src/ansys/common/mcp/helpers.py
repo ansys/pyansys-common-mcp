@@ -4,6 +4,7 @@ import queue
 import subprocess  # nosec B404
 import sys
 import threading
+import time
 from pathlib import Path
 from typing import Any, Callable, Optional
 
@@ -217,10 +218,10 @@ class PersistentPythonSession:
                 # Collect output until we see the marker or timeout
                 stdout_lines: list[str] = []
                 stderr_lines: list[str] = []
-                start_time = __import__("time").time()
+                start_time = time.time()
 
                 while True:
-                    elapsed = __import__("time").time() - start_time
+                    elapsed = time.time() - start_time
                     if elapsed > timeout:
                         error_msg = f"Code execution timed out after {timeout} seconds"
                         logger.error(error_msg)
