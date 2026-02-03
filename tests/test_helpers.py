@@ -360,6 +360,7 @@ class TestPersistentPythonSessionIntegration:
 x = 10
 y = 20
 z = x / 0
+print('hello')
 """
             result = session.execute(code)
             assert not result["success"], "Error should be caught"
