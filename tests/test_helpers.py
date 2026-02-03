@@ -321,9 +321,51 @@ class TestPersistentPythonSessionIntegration:
             session.stop()
 
     def test_execute_with_error(self):
-        """Test executing code that produces a runtime error."""
-        # TODO: This test will be implemented once the error handling will be in place.
-        pass
+        """Test executing code that produces a runtime error is properly caught."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            # Execute code that raises an error
+            result = session.execute("1/0")
+            assert not result["success"], "Error should be caught"
+            assert result["stderr"], "stderr should contain error info"
+            assert "error" in result["stderr"].lower() or "exception" in result["stderr"].lower()
+        finally:
+            session.stop()
+
+    def test_execute_with_syntax_error(self):
+        """Test executing code with syntax error is properly caught."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            # Execute code with syntax error
+            result = session.execute("if True print('bad syntax')")
+            assert not result["success"], "Syntax error should be caught"
+            assert result["stderr"], "stderr should contain error info"
+        finally:
+            session.stop()
+
+    def test_execute_multiline_with_error(self):
+        """Test executing multiline code where error occurs mid-execution."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            code = """
+x = 10
+y = 20
+z = x / 0
+"""
+            result = session.execute(code)
+            assert not result["success"], "Error should be caught"
+            assert "ZeroDivisionError" in result["stderr"] or "division by zero" in result["stderr"]
+        finally:
+            session.stop()
 
     def test_with_startup_code(self):
         """Test session with startup code that runs on initialization."""
@@ -412,5 +454,44 @@ class TestPersistentPythonSessionIntegration:
 
             # Metadata should still be accessible
             assert session.metadata["test_key"] == "test_value"
+        finally:
+            session.stop()
+
+    def test_stderr_collection_after_marker(self):
+        """Test that stderr is properly collected even after marker is found."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            # Execute code that writes to stderr after printing
+            code = """
+import sys
+print('stdout message')
+sys.stderr.write('stderr message\\n')
+"""
+            result = session.execute(code)
+            assert result["success"], f"Execution failed: {result.get('error')}"
+            assert "stdout message" in result["stdout"]
+            assert "stderr message" in result["stderr"]
+        finally:
+            session.stop()
+
+    def test_execute_with_warning(self):
+        """Test that Python warnings are captured in stderr."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            # Generate a deprecation warning
+            code = """
+import warnings
+warnings.warn('This is a test warning', DeprecationWarning)
+print('done')
+"""
+            result = session.execute(code)
+            # Warnings go to stderr but shouldn't fail execution
+            assert "done" in result["stdout"]
         finally:
             session.stop()

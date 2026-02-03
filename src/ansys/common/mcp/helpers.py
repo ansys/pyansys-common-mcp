@@ -221,6 +221,7 @@ class PersistentPythonSession:
                         }
 
                     # Read from stdout
+                    output_line = None
                     try:
                         output_line = self._output_queue.get(timeout=0.1)
                     except queue.Empty:
@@ -237,6 +238,7 @@ class PersistentPythonSession:
                             stdout_lines.append(output_line.rstrip())
 
                     # Read from stderr
+                    error_line = None
                     try:
                         error_line = self._error_queue.get(timeout=0.1)
                     except queue.Empty:
