@@ -5,25 +5,11 @@ import subprocess  # nosec B404
 import sys
 import threading
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from ansys.common.mcp.logging_config import get_logger
 
 logger = get_logger(__name__)
-
-
-def exception_wrapper(func: Callable[[], Any]) -> Any | str:
-    """Wrap to catch exceptions and return error messages."""
-    try:
-        return func()
-    except ImportError as e:
-        error_msg = f"Error when running {str(func)}: {e}"
-        logger.error(error_msg)
-        return error_msg
-    except Exception as e:
-        error_msg = f"Error when running {str(func)}: {e}"
-        logger.error(error_msg)
-        return error_msg
 
 
 class PersistentPythonSession:
