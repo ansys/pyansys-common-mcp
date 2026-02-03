@@ -59,7 +59,6 @@ Verify the installation by importing the package:
 
    >>> from ansys.common.mcp import PyAnsysBaseMCP, PyAnsysBaseAppContext
    >>> from ansys.common.mcp import PersistentPythonSession
-   >>> print("Installation successful!")
 
 Quick start
 ===========
