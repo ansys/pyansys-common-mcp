@@ -4,6 +4,7 @@ import queue
 import subprocess  # nosec B404
 import sys
 import threading
+import time
 from pathlib import Path
 from typing import Any, Optional
 
@@ -203,10 +204,12 @@ class PersistentPythonSession:
                 # Collect output until we see the marker or timeout
                 stdout_lines: list[str] = []
                 stderr_lines: list[str] = []
-                start_time = __import__("time").time()
+                start_time = time.time()
+                marker_found = False
+                consecutive_empty_reads = 0
 
                 while True:
-                    elapsed = __import__("time").time() - start_time
+                    elapsed = time.time() - start_time
                     if elapsed > timeout:
                         error_msg = f"Code execution timed out after {timeout} seconds"
                         logger.error(error_msg)
@@ -218,24 +221,59 @@ class PersistentPythonSession:
                         }
 
                     # Read from stdout
+                    output_line = None
                     try:
-                        line = self._output_queue.get(timeout=0.1)
-                        if marker in line:
-                            # Remove the marker line and stop
-                            line = line.replace(marker, "").strip()
-                            if line:
-                                stdout_lines.append(line)
-                            break
-                        stdout_lines.append(line.rstrip())
+                        output_line = self._output_queue.get(timeout=0.1)
                     except queue.Empty:
                         pass
 
+                    if output_line:
+                        if marker in output_line:
+                            # Remove the marker line
+                            output_line = output_line.replace(marker, "").strip()
+                            if output_line:
+                                stdout_lines.append(output_line)
+                            marker_found = True
+                        else:
+                            stdout_lines.append(output_line.rstrip())
+
                     # Read from stderr
+                    error_line = None
                     try:
-                        line = self._error_queue.get(timeout=0.01)
-                        stderr_lines.append(line.rstrip())
+                        error_line = self._error_queue.get(timeout=0.1)
                     except queue.Empty:
                         pass
+
+                    if error_line:
+                        stderr_lines.append(error_line.rstrip())
+
+                    # If marker was found and no more data, we're done
+                    if marker_found and not (error_line or output_line):
+                        break
+
+                    # Safety: if we've had many consecutive empty reads, break
+                    # (This prevents infinite loops if marker is never found)
+                    if not (error_line or output_line):
+                        consecutive_empty_reads += 1
+                        if consecutive_empty_reads > 5:  # 5 * 0.1s = 0.5s of no data
+                            if marker_found:
+                                break
+                            # If marker not found but no data, something went wrong
+                            logger.warning(
+                                "No data received for extended period, stopping collection"
+                            )
+                            break
+                    else:
+                        consecutive_empty_reads = 0
+
+                # After marker found, do one final drain of stderr to catch any remaining output
+                final_drain_start = time.time()
+                while time.time() - final_drain_start < 0.5:
+                    try:
+                        line = self._error_queue.get(timeout=0.05)
+                        stderr_lines.append(line.rstrip())
+                    except queue.Empty:
+                        break
 
                 stdout_text = "\n".join(stdout_lines)
                 stderr_text = "\n".join(stderr_lines)
