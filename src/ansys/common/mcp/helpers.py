@@ -25,6 +25,212 @@ def exception_wrapper(func: Callable[[], Any]) -> Any | str:
         logger.error(error_msg)
         return error_msg
 
+def _sanitize_output(text: str) -> str:
+    """Sanitize output text to handle encoding issues.
+
+    This function removes or replaces problematic Unicode characters that can cause
+    encoding issues on Windows systems with limited character sets (e.g., charmap).
+
+    Parameters
+    ----------
+    text : str
+        The text to sanitize.
+
+    Returns
+    -------
+    str
+        The sanitized text with problematic characters removed or replaced.
+    """
+    if not isinstance(text, str):
+        return text
+
+    # Replace common problematic Unicode characters with ASCII alternatives
+    replacements = {
+        # Checkmarks and crosses
+        "\u2713": "[OK]",  # checkmark
+        "\u2717": "[X]",  # cross
+        # Box drawing characters
+        "\u2514": "\\",  # box drawing
+        "\u2502": "|",  # box drawing
+        "\u2500": "-",  # box drawing
+        "\u2510": "\\",  # box drawing
+        "\u250c": "/",  # box drawing
+        "\u2518": "/",  # box drawing
+        # Block elements
+        "\u2588": "#",  # block
+        "\u2589": "#",  # block
+        "\u258a": "#",  # block
+        "\u258c": "|",  # block
+        "\u2590": "|",  # block
+        # Superscript and subscript characters
+        "\u00b9": "^1",  # superscript 1
+        "\u00b2": "^2",  # superscript 2
+        "\u00b3": "^3",  # superscript 3
+        "\u2074": "^4",  # superscript 4
+        "\u2075": "^5",  # superscript 5
+        "\u2076": "^6",  # superscript 6
+        "\u2077": "^7",  # superscript 7
+        "\u2078": "^8",  # superscript 8
+        "\u2079": "^9",  # superscript 9
+        "\u2070": "^0",  # superscript 0
+        # Other commonly problematic characters
+        "\u2022": "*",  # bullet
+        "\u2023": "*",  # triangular bullet
+        "\u2219": "*",  # bullet operator
+        "\u00a0": " ",  # non-breaking space
+        "\u200b": "",  # zero-width space
+        "\u200c": "",  # zero-width non-joiner
+        "\u200d": "",  # zero-width joiner
+        "\ufeff": "",  # zero-width no-break space
+    }
+
+    for unicode_char, replacement in replacements.items():
+        text = text.replace(unicode_char, replacement)
+
+    # Remove any remaining characters that can't be encoded in ascii
+    try:
+        # Try to encode as ASCII to check for problematic characters
+        text.encode("ascii")
+    except UnicodeEncodeError:
+        # If there are non-ASCII characters, replace them with a replacement character
+        text = text.encode("ascii", errors="replace").decode("ascii")
+
+    return text
+
+
+def update_rules(context, new_rules: dict) -> None:
+    """Update the rules in the context with new values.
+
+    This function merges the new rules into the existing rules in the context,
+    allowing for dynamic updates to the rules without overwriting the entire set.
+
+    Parameters
+    ----------
+    context
+        The application context containing the rules to update.
+    new_rules : dict
+        A dictionary of new rules to merge into the existing rules.
+    """
+    if not hasattr(context, "rules") or not isinstance(context.rules, dict):
+        logger.warning("Context does not have a 'rules' attribute or it is not a dict. Initializing it as an empty dict.")
+        context.rules = {}
+
+    # Merge new rules into existing rules
+    context.rules.update(new_rules)
+
+
+async def generate_rule_from_error(code: str, error: str) -> dict[str, str]:
+    """Generate a rule from an error using LLM analysis.
+
+    This function analyzes the code that failed and the error message to generate
+    a concise, actionable rule that can prevent similar errors in the future.
+    The rule is categorized for better organization.
+
+    Parameters
+    ----------
+    code : str
+        The code that caused the error.
+    error : str
+        The error message or traceback.
+
+    Returns
+    -------
+    dict[str, str]
+        Dictionary with 'category' and 'rule' keys.
+
+    Examples
+    --------
+    >>> code = "result = 1/0"
+    >>> error = "ZeroDivisionError: division by zero"
+    >>> rule_info = await generate_rule_from_error(code, error)
+    >>> print(rule_info)
+    {'category': 'Division Operations', 'rule': 'Do not divide by zero'}
+    """
+    try:
+        # Import here to avoid circular dependency
+        from mcp.types import SamplingMessage, TextContent as MCPTextContent, UserMessage
+
+        # Get the current MCP server context if available
+        try:
+            from fastmcp import get_context
+
+            mcp_ctx = get_context()
+            server = mcp_ctx.server
+        except Exception:
+            logger.warning("Could not get MCP context for rule generation")
+            return {
+                "category": "General",
+                "rule": f"Error encountered: {error[:100]}",
+            }
+
+        # Prepare the prompt for the LLM
+        prompt = f"""Analyze this error and generate a concise, actionable rule to prevent it in the future.
+
+Context: Python code execution
+
+Code that failed:
+```python
+{code}
+```
+
+Error:
+```
+{error}
+```
+
+Provide your response in this exact format:
+CATEGORY: <category name>
+RULE: <concise rule description>
+
+Guidelines:
+- The category should group related rules (e.g., "Division Operations", "PREP7 Commands", "Mesh Operations", "File I/O")
+- The rule should be short, actionable, and specific (e.g., "Do not divide by zero", "Always enter PREP7 before defining geometry")
+- Focus on the underlying principle, not just the specific error
+- Use imperative mood (Do/Don't/Always/Never)
+"""
+
+        # Request LLM sampling
+        messages = [
+            UserMessage(
+                role="user",
+                content=MCPTextContent(type="text", text=prompt),
+            )
+        ]
+
+        result = await server.request_sampling_from_llm(
+            messages=messages,
+            max_tokens=200,
+        )
+
+        # Parse the response
+        if result and hasattr(result, "content") and result.content.text:
+            response_text = result.content.text.strip()
+
+            # Extract category and rule
+            category = "General"
+            rule = response_text
+
+            lines = response_text.split("\n")
+            for line in lines:
+                if line.startswith("CATEGORY:"):
+                    category = line.replace("CATEGORY:", "").strip()
+                elif line.startswith("RULE:"):
+                    rule = line.replace("RULE:", "").strip()
+
+            return {"category": category, "rule": rule}
+        else:
+            logger.warning("LLM did not return a valid response for rule generation")
+            return {
+                "category": "General",
+                "rule": f"Error encountered: {error[:100]}",
+            }
+
+    except Exception as e:
+        logger.error(f"Error generating rule from error: {e}")
+        return {
+            "category": "General",
+            "rule": f"Error encountered: {error[:100]}",
+        }
 
 class PersistentPythonSession:
     r"""Maintains a persistent Python subprocess for stateful code execution.

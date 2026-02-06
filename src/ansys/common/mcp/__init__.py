@@ -7,15 +7,26 @@ PyAnsys product-specific MCP servers can extend and use.
 __version__ = "0.0.1"
 
 from ansys.common.mcp.context import PyAnsysBaseAppContext
-from ansys.common.mcp.helpers import PersistentPythonSession
+from ansys.common.mcp.helpers import PersistentPythonSession, generate_rule_from_error
 from ansys.common.mcp.logging_config import get_logger, setup_logging
+from ansys.common.mcp.prompts import RULES_SYSTEM_PROMPT
 from ansys.common.mcp.server import PyAnsysBaseMCP
+from ansys.common.mcp.tools import (
+    create_custom_plot,
+    get_rules,
+    run_python_code,
+)
 
 __all__ = [
     "PyAnsysBaseAppContext",
     "PyAnsysBaseMCP",
     "PersistentPythonSession",
+    "generate_rule_from_error",
     "setup_logging",
     "get_logger",
+    "run_python_code",
+    "create_custom_plot",
+    "get_rules",
+    "RULES_SYSTEM_PROMPT",
     "__version__",
 ]
