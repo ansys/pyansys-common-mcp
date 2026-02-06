@@ -11,14 +11,19 @@ import json
 from fastmcp import Context
 from mcp.types import ImageContent, TextContent
 
-from ansys.common.mcp.helpers import _sanitize_output, generate_rule_from_error, logger
+from ansys.common.mcp.helpers import (
+    _sanitize_output,
+    generate_rule_from_error,
+    logger,
+    update_rules,
+)
 
 
 async def execute_python_code(
     ctx: Context,
     code: str,
     timeout: int = 60,
-    auto_generate_rules: bool = True,
+    auto_generated_rules: bool = True,
 ) -> str:
     """Execute arbitrary Python code in the persistent Python session with automatic rule generation.
 
@@ -34,7 +39,7 @@ async def execute_python_code(
         The Python code to execute.
     timeout : int, optional
         Maximum time in seconds to allow for code execution. Default is 60 seconds.
-    auto_generate_rules : bool, optional
+    auto_generated_rules : bool, optional
         Whether to automatically generate rules from errors. Default is True.
 
     Returns
@@ -99,7 +104,7 @@ async def execute_python_code(
                 error_msg = result.get("error", "Unknown error occurred")
                 error_msg = _sanitize_output(error_msg)
 
-                if auto_generate_rules:
+                if auto_generated_rules:
                     try:
                         logger.info("Generating rule from error...")
                         rule_info = await generate_rule_from_error(
@@ -107,15 +112,15 @@ async def execute_python_code(
                             error=error_msg,
                         )
 
-                        # Add rule to context
-                        if hasattr(app_context, "add_rule"):
-                            app_context.add_rule(
-                                category=rule_info["category"],
-                                rule=rule_info["rule"],
-                            )
-                            logger.info(
-                                f"Added rule - Category: {rule_info['category']}, Rule: {rule_info['rule']}"
-                            )
+                        # Add rule to context using helper function
+                        update_rules(
+                            context=app_context,
+                            category=rule_info["category"],
+                            rule=rule_info["rule"],
+                        )
+                        logger.info(
+                            f"Added rule - Category: {rule_info['category']}, Rule: {rule_info['rule']}"
+                        )
                     except Exception as e:
                         logger.error(f"Failed to generate rule: {e}")
 

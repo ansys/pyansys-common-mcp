@@ -98,25 +98,73 @@ def _sanitize_output(text: str) -> str:
     return text
 
 
-def update_rules(context, new_rules: dict) -> None:
-    """Update the rules in the context with new values.
+def update_rules(
+    context,
+    category: str | None = None,
+    rule: str | None = None,
+    rules_dict: dict | None = None,
+) -> None:
+    """Update the rules in the context.
 
-    This function merges the new rules into the existing rules in the context,
-    allowing for dynamic updates to the rules without overwriting the entire set.
+    This function can be used in two ways:
+    1. Add a single rule: update_rules(context, category="Math", rule="Check divisor")
+    2. Merge multiple rules: update_rules(context, rules_dict={"Math": ["Rule1", "Rule2"]})
 
     Parameters
     ----------
     context
         The application context containing the rules to update.
-    new_rules : dict
-        A dictionary of new rules to merge into the existing rules.
+    category : str | None, optional
+        Category for a single rule to add.
+    rule : str | None, optional
+        Rule text to add to the category.
+    rules_dict : dict | None, optional
+        Dictionary of rules to merge (category -> list of rules).
+
+    Raises
+    ------
+    ValueError
+        If neither (category + rule) nor rules_dict is provided.
+
+    Examples
+    --------
+    Add a single rule:
+    >>> update_rules(context, category="Division", rule="Do not divide by zero")
+
+    Merge multiple rules:
+    >>> update_rules(context, rules_dict={"PREP7": ["Enter PREP7 first", "Exit PREP7 before solution"]})
     """
     if not hasattr(context, "rules") or not isinstance(context.rules, dict):
-        logger.warning("Context does not have a 'rules' attribute or it is not a dict. Initializing it as an empty dict.")
+        logger.warning(
+            "Context does not have a 'rules' attribute or it is not a dict. "
+            "Initializing it as an empty dict."
+        )
         context.rules = {}
 
-    # Merge new rules into existing rules
-    context.rules.update(new_rules)
+    # Mode 1: Add a single rule to a category
+    if category is not None and rule is not None:
+        if not hasattr(context, "add_rule"):
+            # Fallback if add_rule method doesn't exist
+            if category not in context.rules:
+                context.rules[category] = []
+            if rule not in context.rules[category]:
+                context.rules[category].append(rule)
+        else:
+            context.add_rule(category, rule)
+
+    # Mode 2: Merge a dictionary of rules
+    elif rules_dict is not None:
+        for cat, rule_list in rules_dict.items():
+            if cat not in context.rules:
+                context.rules[cat] = []
+            for r in rule_list:
+                if r not in context.rules[cat]:
+                    context.rules[cat].append(r)
+
+    else:
+        raise ValueError(
+            "Must provide either (category and rule) or rules_dict parameter"
+        )
 
 
 async def generate_rule_from_error(code: str, error: str) -> dict[str, str]:
