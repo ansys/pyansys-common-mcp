@@ -14,7 +14,7 @@ from mcp.types import ImageContent, TextContent
 from ansys.common.mcp.helpers import _sanitize_output, generate_rule_from_error, logger
 
 
-async def run_python_code(
+async def execute_python_code(
     ctx: Context,
     code: str,
     timeout: int = 60,
@@ -50,11 +50,11 @@ async def run_python_code(
     ... result = sum([i**2 for i in range(10)])
     ... print(f"Sum of squares: {result}")
     ... '''
-    >>> await run_python_code(ctx, code)
+    >>> await execute_python_code(ctx, code)
 
     Execute code with automatic rule generation on failure:
     >>> code = "result = 1/0"  # This will fail
-    >>> await run_python_code(ctx, code)
+    >>> await execute_python_code(ctx, code)
     # Automatically adds rule like: {"Division Operations": ["Do not divide by zero"]}
     """
     app_context = ctx.request_context.lifespan_context
@@ -360,7 +360,7 @@ def get_rules(ctx: Context, category: str | None = None) -> str:
 
 
 __all__ = [
-    "run_python_code",
+    "execute_python_code",
     "create_custom_plot",
     "get_rules",
 ]

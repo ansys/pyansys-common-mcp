@@ -14,7 +14,7 @@ from ansys.common.mcp.server import PyAnsysBaseMCP
 from ansys.common.mcp.tools import (
     create_custom_plot,
     get_rules,
-    run_python_code,
+    execute_python_code,
 )
 
 __all__ = [
@@ -24,7 +24,7 @@ __all__ = [
     "generate_rule_from_error",
     "setup_logging",
     "get_logger",
-    "run_python_code",
+    "execute_python_code",
     "create_custom_plot",
     "get_rules",
     "RULES_SYSTEM_PROMPT",
