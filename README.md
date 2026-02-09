@@ -90,7 +90,7 @@ async def run_python_code(
 ) -> str:
     """
     Execute Python code with automatic rule learning.
-    
+
     Parameters
     ----------
     ctx : Context
@@ -112,7 +112,7 @@ def plot_custom_data(
 ) -> list:
     """
     Create custom matplotlib or PyVista plots.
-    
+
     Parameters
     ----------
     ctx : Context
@@ -162,10 +162,10 @@ def run_specific_command(ctx: Context, command: str) -> str:
         Command execution result.
     """
     app_context = ctx.request_context.lifespan_context
-    
+
     if not app_context.product_session:
         return "Error: Product session is not connected"
-    
+
     result = app_context.product_session.run(command)
     app_context.command_history.append(command)
     return result
@@ -367,23 +367,23 @@ from ansys.common.mcp.tools import execute_python_code, create_custom_plot, get_
 
 def register_all_tools(app):
     """Register all tools for PyExample MCP."""
-    
+
     # Common tools
     @app.tool()
     async def execute_python_code(code: str, ctx: Context, timeout: int = 60) -> str:
         """Execute Python code with product access."""
         return await execute_python_code(ctx, code, timeout, auto_generated_rules=True)
-    
+
     @app.tool()
     def plot_data(plot_code: str, ctx: Context, plot_type: str = "matplotlib") -> list:
         """Create custom plots."""
         return create_custom_plot(ctx, plot_code, plot_type)
-    
+
     @app.tool()
     def get_session_rules(ctx: Context, category: str | None = None) -> str:
         """Get accumulated rules."""
         return get_rules(ctx, category)
-    
+
     # Product-specific tools
     @app.tool()
     def run_product_command(command: str, ctx: Context) -> str:
@@ -725,7 +725,7 @@ def system_instructions() -> str:
     """System instructions including rules guidance."""
     return f"""
     {RULES_SYSTEM_PROMPT}
-    
+
     Additional product-specific instructions...
     """
 ```

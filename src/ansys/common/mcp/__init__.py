@@ -17,8 +17,8 @@ from ansys.common.mcp.prompts import RULES_SYSTEM_PROMPT
 from ansys.common.mcp.server import PyAnsysBaseMCP
 from ansys.common.mcp.tools import (
     create_custom_plot,
-    get_rules,
     execute_python_code,
+    get_rules,
 )
 
 __all__ = [

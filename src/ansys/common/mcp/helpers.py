@@ -6,7 +6,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from ansys.common.mcp.logging_config import get_logger
 
@@ -25,6 +25,7 @@ def exception_wrapper(func: Callable[[], Any]) -> Any | str:
         error_msg = f"Error when running {str(func)}: {e}"
         logger.error(error_msg)
         return error_msg
+
 
 def _sanitize_output(text: str) -> str:
     """Sanitize output text to handle encoding issues.
@@ -134,7 +135,7 @@ def update_rules(
 
     Merge multiple rules:
     >>> update_rules(context, rules_dict={"PREP7": ["Enter PREP7 first", "Exit PREP7 before solution"]})
-    """
+    """  # noqa: E501``
     if not hasattr(context, "rules") or not isinstance(context.rules, dict):
         logger.warning(
             "Context does not have a 'rules' attribute or it is not a dict. "
@@ -163,9 +164,7 @@ def update_rules(
                     context.rules[cat].append(r)
 
     else:
-        raise ValueError(
-            "Must provide either (category and rule) or rules_dict parameter"
-        )
+        raise ValueError("Must provide either (category and rule) or rules_dict parameter")
 
 
 async def generate_rule_from_error(code: str, error: str) -> dict[str, str]:
@@ -197,7 +196,8 @@ async def generate_rule_from_error(code: str, error: str) -> dict[str, str]:
     """
     try:
         # Import here to avoid circular dependency
-        from mcp.types import SamplingMessage, TextContent as MCPTextContent, UserMessage
+        from mcp.types import TextContent as MCPTextContent
+        from mcp.types import UserMessage
 
         # Get the current MCP server context if available
         try:
@@ -236,7 +236,7 @@ Guidelines:
 - The rule should be short, actionable, and specific (e.g., "Do not divide by zero", "Always enter PREP7 before defining geometry")
 - Focus on the underlying principle, not just the specific error
 - Use imperative mood (Do/Don't/Always/Never)
-"""
+"""  # noqa: E501
 
         # Request LLM sampling
         messages = [
@@ -280,6 +280,7 @@ Guidelines:
             "category": "General",
             "rule": f"Error encountered: {error[:100]}",
         }
+
 
 class PersistentPythonSession:
     r"""Maintains a persistent Python subprocess for stateful code execution.

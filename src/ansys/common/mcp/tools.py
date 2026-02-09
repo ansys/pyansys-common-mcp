@@ -5,7 +5,6 @@ servers can use or extend. These are not registered tools themselves,
 but functions that can be called from product-specific tool implementations.
 """
 
-import asyncio
 import json
 
 from fastmcp import Context
@@ -25,7 +24,7 @@ async def execute_python_code(
     timeout: int = 60,
     auto_generated_rules: bool = True,
 ) -> str:
-    """Execute arbitrary Python code in the persistent Python session with automatic rule generation.
+    """Execute Python code in the persistent Python session with automatic rule generation.
 
     This function should be used for custom Python code execution. When code execution
     fails, it automatically generates a rule using LLM analysis to prevent similar
@@ -69,7 +68,7 @@ async def execute_python_code(
         return json.dumps(
             {
                 "success": False,
-                "error": "No Python session available. The persistent Python session was not initialized.",
+                "error": "No Python session available. The persistent Python session was not initialized.",  # noqa: E501
             },
             ensure_ascii=False,
         )
@@ -119,7 +118,7 @@ async def execute_python_code(
                             rule=rule_info["rule"],
                         )
                         logger.info(
-                            f"Added rule - Category: {rule_info['category']}, Rule: {rule_info['rule']}"
+                            f"Added rule - Category: {rule_info['category']}, Rule: {rule_info['rule']}"  # noqa: E501
                         )
                     except Exception as e:
                         logger.error(f"Failed to generate rule: {e}")
@@ -353,7 +352,8 @@ def get_rules(ctx: Context, category: str | None = None) -> str:
             return formatted
         else:
             # Get all rules formatted
-            return app_context.get_rules_formatted()
+            result: str = app_context.get_rules_formatted()
+            return result
 
     except Exception as e:
         error_msg = f"Error getting rules: {str(e)}"

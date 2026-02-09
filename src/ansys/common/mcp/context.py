@@ -73,7 +73,7 @@ class PyAnsysBaseAppContext:
         if rule not in self.rules[category]:
             self.rules[category].append(rule)
 
-    def get_rules(self, category: Optional[str] = None) -> dict | list:
+    def get_rules(self, category: Optional[str] = None) -> dict[Any, Any] | list[Any]:
         """Get rules from the context.
 
         Parameters
@@ -88,8 +88,10 @@ class PyAnsysBaseAppContext:
             All rules as a dict if category is None, or a list of rules for the category.
         """
         if category is None:
-            return self.rules
-        return self.rules.get(category, [])
+            result: dict[Any, Any] = self.rules
+            return result
+        result_list: list[Any] = self.rules.get(category, [])
+        return result_list
 
     def get_rules_formatted(self) -> str:
         """Get all rules formatted as a readable string.
