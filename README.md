@@ -2,7 +2,7 @@
 
 Common infrastructure for building Model Context Protocol (MCP) servers for PyAnsys libraries.
 
-## What is This?
+## What is this?
 
 This package provides the foundation for creating MCP servers that enable AI assistants (like Claude, ChatGPT) to interact with Ansys products through PyAnsys libraries. It handles:
 
@@ -21,18 +21,18 @@ For development:
 pip install ansys-common-mcp[dev]
 ```
 
-## Quick Start: Create Your Product MCP Server
+## Quick start: Create your product MCP server
 
-### Step 1: Project Structure
+### Step 1: Project structure
 
-Create a new package for your product (e.g., `pymapdl-mcp`):
+Create a new package for your product (e.g., `pyexample-mcp`):
 
 ```
-pymapdl-mcp/
+pyexample-mcp/
 ├── pyproject.toml
 ├── README.md
 └── src/
-    └── pymapdl_mcp/
+    └── pyexample_mcp/
         ├── __init__.py
         ├── __main__.py
         ├── server.py       # Your MCP server class
@@ -40,174 +40,184 @@ pymapdl-mcp/
         └── tools.py        # Your MCP tools
 ```
 
-### Step 2: Define Your Custom Context
+### Step 2: Define your custom context
 
 Create `context.py` to add product-specific fields:
 
 ```python
-# src/pymapdl_mcp/context.py
+# src/pyexample_mcp/context.py
 from dataclasses import dataclass
 from typing import Optional
 from ansys.common.mcp import PyAnsysBaseAppContext
 
 @dataclass
-class PyMAPDLContext(PyAnsysBaseAppContext):
-    """MAPDL-specific context with mapdl instance."""
-    mapdl: Optional[Any] = None  # Your product instance
+class PyExampleContext(PyAnsysBaseAppContext):
+    """Product-specific context with product instance."""
+    product: Optional[Any] = None  # Your product instance
     project_dir: Optional[str] = None  # Additional fields as needed
 ```
 
 **Why?** The context holds your product instance and any state that needs to be shared across tools.
 
-### Step 3: Create Your MCP Server
+### Step 3: Create your MCP server
 
-Create `server.py` implementing the three required methods:
+Create `server.py` implementing the two required methods:
 
-```python
-# src/pymapdl_mcp/server.py
-from ansys.common.mcp import PyAnsysBaseMCP, PersistentPythonSession
-from pymapdl_mcp.context import PyMAPDLContext
-from pymapdl import launch_mapdl
-
-class PyMAPDLMCP(PyAnsysBaseMCP):
-    """MCP Server for PyMAPDL."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Set up product-specific lifespan
-        self.mcp.lifespan = self.product_lifespan
-
-    # REQUIRED: Create your custom context
-    def create_context(self) -> PyMAPDLContext:
-        """Factory method for creating MAPDL-specific context."""
-        return PyMAPDLContext(
-            python_executable=self.python_executable,
-            python_session=PersistentPythonSession(
-                python_executable=self.python_executable,
-                working_directory=self.working_directory,
-            ),
-            command_history=[],
-        )
-
-    # REQUIRED: Initialize your product
-    def product_startup(self):
-        """Launch MAPDL when server starts."""
-        self.context.mapdl = launch_mapdl()
-        print(f"MAPDL launched: {self.context.mapdl}")
-
-    # REQUIRED: Clean up your product
-    def product_cleanup(self):
-        """Exit MAPDL when server stops."""
-        if self.context.mapdl:
-            self.context.mapdl.exit()
-            print("MAPDL session closed")
-```
-
-**Key Points:**
-- `create_context()`: Returns your custom context type
 - `product_startup()`: Initialize connections, launch products
 - `product_cleanup()`: Close connections, clean up resources
 - Python session management is handled automatically by the base class
 
-### Step 4: Add Your MCP Tools
+### Step 4: Add your MCP tools
 
-Create `tools.py` with your product-specific MCP tools:
+You can add tools in two ways: use the common tools or create product-specific tools.
+
+#### Option A: Use common tools (recommended)
+
+The common library provides ready-to-use tool implementations that you can directly wrap:
 
 ```python
-# src/pymapdl_mcp/tools.py
-from pymapdl_mcp.server import PyMAPDLMCP
-from pymapdl_mcp.context import PyMAPDLContext
-from fastmcp.server.dependencies import get_context
+# src/pyexample_mcp/tools.py
+from fastmcp import Context
+from ansys.example.mcp import app
+from ansys.common.mcp.tools import execute_python_code, create_custom_plot, get_rules
 
-def register_tools(mcp: PyMAPDLMCP):
-    """Register all MAPDL-specific MCP tools."""
+@app.tool()
+async def run_python_code(
+    ctx: Context,
+    code: str,
+    timeout: int = 60,
+    auto_generated_rules: bool = True,
+) -> str:
+    """
+    Execute Python code with automatic rule learning.
+    
+    Parameters
+    ----------
+    ctx : Context
+        The MCP context containing server session and application context.
 
-    @mcp.tool()
-    def run_mapdl_command(
-        command: str
-    ) -> str:
-        """Execute a MAPDL command.
+    Returns
+    -------
+    str
+        Command execution result.
+    """
+    return await execute_python_code(ctx, code, timeout, auto_generated_rules)
 
-        Parameters
-        ----------
-        command : str
-            MAPDL command to execute
+@app.tool()
+def plot_custom_data(
+    ctx: Context,
+    plot_code: str,
+    plot_type: str = "matplotlib",
+    timeout: int = 60,
+) -> list:
+    """
+    Create custom matplotlib or PyVista plots.
+    
+    Parameters
+    ----------
+    ctx : Context
+        The MCP context containing server session and application context.
+    plot_code : str
+        Python code to create the plot. Should use matplotlib.pyplot or PyVista.
+        For matplotlib, the code should create the figure/plot but NOT call plt.show().
+        Use the save_matplotlib_plot() or save_plot() helper functions to return the plot.
+    plot_type : str, optional
+        Type of plot: "matplotlib" or "pyvista". Default is "matplotlib".
+    timeout : int, optional
+        Maximum time in seconds to allow for code execution. Default is 60 seconds.
 
-        Returns
-        -------
-        str
-            Command output
-        """
-        # Get context via dependency injection
-        ctx = get_context()
-        app_context = ctx.fastmcp._lifespan_result
+    Returns
+    -------
+    str
+        Command execution result.
+    """
+    return create_custom_plot(ctx, plot_code, plot_type, timeout)
 
-        if not app_context.mapdl:
-            return "Error: MAPDL not connected"
-
-        result = app_context.mapdl.run(command)
-        app_context.command_history.append(command)
-        return result
-
-    @mcp.tool()
-    def create_geometry(
-        geometry_type: str,
-        dimensions: dict
-    ) -> str:
-        """Create geometric entities in MAPDL.
-
-        Parameters
-        ----------
-        geometry_type : str
-            Type of geometry (box, cylinder, sphere)
-        dimensions : dict
-            Dimensions for the geometry
-
-        Returns
-        -------
-        str
-            Result message
-        """
-        # Get context via dependency injection
-        ctx = get_context()
-        app_context = ctx.fastmcp._lifespan_result
-
-        # Your implementation here
-        pass
+@app.tool()
+def get_session_rules(ctx: Context, category: str | None = None) -> str:
+    """Get rules accumulated from errors during this session."""
+    return get_rules(ctx, category)
 ```
 
-**Tool Guidelines:**
-- **Do NOT include `ctx` as a function parameter** - it's automatically injected
-- Use `get_context()` from `fastmcp.server.dependencies` to access the context
-- Access your app context via `ctx.fastmcp._lifespan_result`
-- Use type hints for all parameters (except ctx which is internal)
-- Write clear docstrings (AI assistants read these!)
-- Access product instance via `app_context.mapdl` (or your field name)
-- Store relevant info in `app_context.command_history` or `app_context.metadata`
+#### Option B: Create product-specific tools
 
-### Step 5: Wire Everything Together
+Add tools unique to your product:
+
+```python
+# src/pyexample_mcp/tools.py (continued)
+@app.tool()
+def run_specific_command(ctx: Context, command: str) -> str:
+    """Execute a specific command.
+
+    Parameters
+    ----------
+    ctx : Context
+        The MCP context containing server session and application context.
+    command : str
+        Specific command to execute
+
+    Returns
+    -------
+    str
+        Command execution result.
+    """
+    app_context = ctx.request_context.lifespan_context
+    
+    if not app_context.product_session:
+        return "Error: Product session is not connected"
+    
+    result = app_context.product_session.run(command)
+    app_context.command_history.append(command)
+    return result
+```
+
+#### Combining both approaches
+
+**Tool guidelines:**
+- Include `ctx: Context` as a parameter in your tool function signature
+- Access app context via `ctx.request_context.lifespan_context`
+- Use type hints for all parameters
+- Write clear docstrings (AI assistants read these!)
+- For common tools, simply wrap the imported function
+- For product-specific tools, access your product instance from the context
+
+### Step 5: Wire everything together
+
+Create `__main__.py` to run your server:
+
+```python
+# src/pyexample_mcp/__main__.py
+from pyexample_mcp.server import PyExampleMCP
+from pyexample_mcp.tools import register_all_tools
+
+# Create server instance
+app = PyExampleMCP(name="PyExample MCP Server")
+
+# Run the server
+if __name__ == "__main__":
+    app.run()
+```
 
 Create `__init__.py`:
 
 ```python
-# src/pymapdl_mcp/__init__.py
-from pymapdl_mcp.server import PyMAPDLMCP
-from pymapdl_mcp.context import PyMAPDLContext
-from pymapdl_mcp.tools import register_tools
+# src/pyexample_mcp/__init__.py
+from pyexample_mcp.server import PyExampleMCP
+from pyexample_mcp.context import PyExampleContext
 
-__all__ = ["PyMAPDLMCP", "PyMAPDLContext", "register_tools"]
+__all__ = ["PyExampleMCP", "PyExampleContext"]
 ```
 
 Create `__main__.py` for CLI execution:
 
 ```python
-# src/pymapdl_mcp/__main__.py
+# src/pyexample_mcp/__main__.py
 import sys
-from pymapdl_mcp import PyMAPDLMCP, register_tools
+from pyexample_mcp import PyExampleMCP, register_tools
 
 def main():
     # Initialize your MCP server
-    mcp = PyMAPDLMCP(name="pymapdl-mcp")
+    mcp = PyExampleMCP(name="pyexample-mcp")
 
     # Register your tools
     register_tools(mcp)
@@ -220,69 +230,177 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
-### Step 6: Configure pyproject.toml
+### Step 6: Configure ``pyproject.toml``
 
 ```toml
 [project]
-name = "pymapdl-mcp"
+name = "pyexample-mcp"
 version = "0.1.0"
 dependencies = [
     "ansys-common-mcp>=0.0.1",
-    "ansys-mapdl-core>=0.68.0",
 ]
 
 [project.scripts]
-pymapdl-mcp = "pymapdl_mcp.__main__:main"
+pyexample-mcp = "pyexample_mcp.__main__:main"
 ```
 
-### Step 7: Run Your MCP Server
+### Step 7: Run your MCP server
 
 ```bash
 # Install your package
 pip install -e .
 
 # Run the MCP server
-pymapdl-mcp
+pyexample-mcp
 ```
 
-## Architecture Overview
+## Architecture overview
 
 ```
 ┌─────────────────────────────────────┐
 │   Your Product MCP Server           │
-│   (e.g., PyMAPDLMCP)                │
+│   (e.g., PyExampleMCP)              │
 │                                     │
 │   ├── create_context() ─────────────┼──> Returns YourContext
-│   ├── product_startup() ────────────┼──> launch_mapdl()
-│   └── product_cleanup() ────────────┼──> mapdl.exit()
+│   ├── product_startup() ────────────┼──> launch_product()
+│   ├── product_cleanup() ────────────┼──> exit_product()
+│   └── register_tools() ─────────────┼──> @app.tool() wrappers
 └──────────────┬──────────────────────┘
-               │ extends
+               │ extends / uses
 ┌──────────────▼──────────────────────┐
 │   PyAnsysBaseMCP (Base Class)       │
+│   + Common Tools                    │
 │                                     │
 │   ├── product_lifespan() ───────────┼──> Manages lifecycle
 │   ├── start_python_session() ───────┼──> Starts Python
-│   └── cleanup_python_session() ─────┼──> Stops Python
+│   ├── cleanup_python_session() ─────┼──> Stops Python
+│   │                                 │
+│   └── Common Tool Functions:        │
+│       ├── execute_python_code() ────┼──> Execute code + rules
+│       ├── create_custom_plot() ─────┼──> Plot generation
+│       └── get_rules() ──────────────┼──> Access session rules
 └─────────────────────────────────────┘
 ```
 
-**What the Base Class Handles:**
+**What the base class handles:**
 - ✅ Python session creation and management
 - ✅ Lifecycle orchestration (startup → run → cleanup)
 - ✅ Error handling and logging
 - ✅ Context injection into tools
+- ✅ Automatic rule learning from errors
+- ✅ Reusable tool implementations
 
-**What You Implement:**
+**What you implement:**
 - ✅ Custom context with product-specific fields
 - ✅ Product connection/initialization logic
-- ✅ Product-specific MCP tools
+- ✅ Tool registration (wrapping common tools + adding product-specific ones)
 - ✅ Cleanup logic for your product
+
+## Using common tools in your MCP server
+
+The common library provides three ready-to-use tool implementations:
+
+### 1. `execute_python_code` - Execute code with rule learning
+
+```python
+from ansys.common.mcp.tools import execute_python_code
+
+@app.tool()
+async def execute_python_code(
+    code: str,
+    ctx: Context,
+    timeout: int = 60,
+    auto_generated_rules: bool = True,
+) -> str:
+    """Execute Python code with automatic error rule generation."""
+    return await execute_python_code(ctx, code, timeout, auto_generated_rules)
+```
+
+**Features:**
+- Executes code in persistent Python session
+- Automatically generates rules when code fails
+- Returns JSON with stdout, stderr, and error details
+
+### 2. `create_custom_plot` - Generate plots
+
+```python
+from ansys.common.mcp.tools import create_custom_plot
+
+@app.tool()
+def plot_data(
+    plot_code: str,
+    ctx: Context,
+    plot_type: str = "matplotlib",
+    timeout: int = 60,
+) -> list:
+    """Create matplotlib or PyVista plots."""
+    return create_custom_plot(ctx, plot_code, plot_type, timeout)
+```
+
+**Features:**
+- Supports matplotlib and PyVista
+- Returns base64-encoded images
+- Handles off-screen rendering automatically
+
+### 3. `get_rules` - Access session rules
+
+```python
+from ansys.common.mcp.tools import get_rules
+
+@app.tool()
+def get_session_rules(ctx: Context, category: str | None = None) -> str:
+    """Get rules learned during this session."""
+    return get_rules(ctx, category)
+```
+
+**Features:**
+- Returns all rules or rules for specific category
+- Formatted output ready for LLM consumption
+- Helps LLM avoid repeating errors
+
+### Complete tool registration example
+
+```python
+# src/pyexample_mcp/tools.py
+from fastmcp import Context
+from ansys.common.mcp.tools import execute_python_code, create_custom_plot, get_rules
+
+def register_all_tools(app):
+    """Register all tools for PyExample MCP."""
+    
+    # Common tools
+    @app.tool()
+    async def execute_python_code(code: str, ctx: Context, timeout: int = 60) -> str:
+        """Execute Python code with product access."""
+        return await execute_python_code(ctx, code, timeout, auto_generated_rules=True)
+    
+    @app.tool()
+    def plot_data(plot_code: str, ctx: Context, plot_type: str = "matplotlib") -> list:
+        """Create custom plots."""
+        return create_custom_plot(ctx, plot_code, plot_type)
+    
+    @app.tool()
+    def get_session_rules(ctx: Context, category: str | None = None) -> str:
+        """Get accumulated rules."""
+        return get_rules(ctx, category)
+    
+    # Product-specific tools
+    @app.tool()
+    def run_product_command(command: str, ctx: Context) -> str:
+        """Execute native product command."""
+        app_context = ctx.request_context.lifespan_context
+        if not app_context.product:
+            return "Error: Product not connected"
+        result = app_context.product.run(command)
+        app_context.command_history.append(command)
+        return result
+```
 
 ## Logging
 
 The framework automatically configures logging to output to **stderr** (not stdout, which is reserved for MCP protocol). This ensures log messages don't interfere with the MCP communication.
 
-### Basic Logging
+### Basic logging
 
 ```python
 from ansys.common.mcp import setup_logging, get_logger
@@ -299,17 +417,17 @@ logger.warning("Warning message")
 logger.error("Error message")
 ```
 
-### Configuring Log Level
+### Configuring log level
 
 You can control the log level via environment variable:
 
 ```bash
 # Windows PowerShell
 $env:LOGLEVEL="DEBUG"
-python -m pymapdl_mcp
+python -m pyexample_mcp
 
 # Linux/Mac
-LOGLEVEL=DEBUG python -m pymapdl_mcp
+LOGLEVEL=DEBUG python -m pyexample_mcp
 ```
 
 Or programmatically in your `__main__.py`:
@@ -327,21 +445,21 @@ def main():
     # ... rest of your code
 ```
 
-### Viewing Logs
+### Viewing logs
 
 Logs are output to stderr, so you'll see them in your terminal when running the server. You can redirect them to a file:
 
 ```bash
 # Windows PowerShell
-python -m pymapdl_mcp 2> server.log
+python -m pyexample_mcp 2> server.log
 
 # Linux/Mac
-python -m pymapdl_mcp 2> server.log
+python -m pyexample_mcp 2> server.log
 ```
 
 ## Common Patterns
 
-### Accessing Python Session in Tools
+### Accessing Python session in tools
 
 ```python
 from fastmcp.server.dependencies import get_context
@@ -359,7 +477,7 @@ def execute_python_code(code: str) -> str:
     return f"Error: {result['error']}"
 ```
 
-### Using Command History
+### Using command history
 
 ```python
 from fastmcp.server.dependencies import get_context
@@ -384,19 +502,7 @@ def undo_last_command() -> str:
     return f"Undone: {last_cmd}"
 ```
 
-### Custom Startup Parameters
-
-```python
-class PyMAPDLMCP(PyAnsysBaseMCP):
-    def __init__(self, mapdl_mode="grpc", *args, **kwargs):
-        self.mapdl_mode = mapdl_mode
-        super().__init__(*args, **kwargs)
-
-    def product_startup(self):
-        self.context.mapdl = launch_mapdl(mode=self.mapdl_mode)
-```
-
-### Restarting Python Session
+### Restarting Python session
 
 The Python session can be manually restarted if it becomes unresponsive or if you want to reset the state. Command history is preserved in the context, allowing you to replay commands after restart.
 
@@ -447,7 +553,7 @@ def restart_python_session(replay_history: bool = True) -> str:
 
 **Note:** The `command_history` is stored in the application context (not in the Python session), so it survives restarts. You can choose whether to replay the history to restore the session state.
 
-## Best Practices
+## Best practices
 
 ### 1. **Context Design**
 - Keep only shared state in context
@@ -464,9 +570,9 @@ def restart_python_session(replay_history: bool = True) -> str:
 ```python
 def product_startup(self):
     try:
-        self.context.mapdl = launch_mapdl()
+        self.context.product = launch_product()
     except Exception as e:
-        print(f"Failed to launch MAPDL: {e}")
+        print(f"Failed to launch product: {e}")
         raise  # Let the base class handle cleanup
 ```
 
@@ -476,21 +582,21 @@ import logging
 logger = logging.getLogger(__name__)
 
 def product_startup(self):
-    logger.info("Launching MAPDL...")
-    self.context.mapdl = launch_mapdl()
-    logger.info(f"MAPDL version: {self.context.mapdl.version}")
+    logger.info("Launching product...")
+    self.context.product = launch_product()
+    logger.info(f"Product version: {self.context.product.version}")
 ```
 
-## Testing Your MCP Server
+## Testing your MCP server
 
 ```python
 # tests/test_server.py
 import pytest
-from pymapdl_mcp import PyMAPDLMCP
+from pyexample_mcp import PyExampleMCP
 
 @pytest.fixture
 def mcp_server():
-    server = PyMAPDLMCP(name="test-server")
+    server = PyExampleMCP(name="test-server")
     return server
 
 def test_context_creation(mcp_server):
@@ -503,13 +609,141 @@ def test_tool_execution(mcp_server):
     pass
 ```
 
+## Automatic rule learning system
+
+PyAnsys Common MCP includes an automatic rule learning system that helps the LLM improve over time by learning from errors.
+
+### How it works
+
+1. **Automatic Error Analysis**: When code execution fails, the system uses an LLM to analyze the error
+2. **Rule Generation**: A concise, actionable rule is generated to prevent similar errors
+3. **Categorization**: Rules are automatically categorized (e.g., "Division Operations", "PREP7 Commands", "Mesh Operations")
+4. **Accumulation**: Rules build up during the session, creating a knowledge base specific to your workflow
+
+### Using the rules system
+
+#### In your tools
+
+Use `execute_python_code` instead of directly executing code:
+
+```python
+from ansys.common.mcp import execute_python_code
+from fastmcp import Context
+
+@app.tool()
+async def execute_code(code: str, ctx: Context) -> str:
+    """Execute Python code with automatic rule generation."""
+    return await execute_python_code(
+        ctx=ctx,
+        code=code,
+        timeout=60,
+        auto_generated_rules=True,
+    )
+```
+
+#### Accessing rules
+
+Create a tool to let the LLM check current rules:
+
+```python
+from ansys.common.mcp import get_rules
+
+@app.tool()
+def get_rules(category: str | None = None, ctx: Context = None) -> str:
+    """Get current session rules to avoid repeating errors."""
+    return get_rules(ctx, category=category)
+```
+
+#### Adding custom rules
+
+You can manually add rules to the context in several ways:
+
+**Method 1: Using context.add_rule() directly**
+```python
+app_context = ctx.request_context.lifespan_context
+app_context.add_rule(
+    category="PREP7 Commands",
+    rule="Always enter PREP7 mode before defining geometry"
+)
+```
+
+**Method 2: Using the update_rules helper (recommended)**
+```python
+from ansys.common.mcp import update_rules
+
+app_context = ctx.request_context.lifespan_context
+
+# Add a single rule
+update_rules(
+    app_context,
+    category="Division Operations",
+    rule="Do not divide by zero"
+)
+
+# Or add multiple rules at once
+update_rules(
+    app_context,
+    rules_dict={
+        "PREP7 Commands": [
+            "Always enter PREP7 before defining geometry",
+            "Exit PREP7 before entering solution mode"
+        ],
+        "Mesh Operations": [
+            "Define element type before meshing"
+        ]
+    }
+)
+```
+
+The `update_rules` helper automatically prevents duplicates and can be used in both single-rule and bulk modes.
+
+### Rule examples
+
+After running code that divides by zero:
+```
+Division operations:
+  - Do not divide by zero
+  - Always validate denominator before division
+```
+
+After product-specific errors:
+```
+Mesh operations:
+  - Define element type before meshing
+  - Set material properties before solving
+```
+
+### Using the rules prompt
+
+Include the rules system prompt in your MCP server prompts:
+
+```python
+from ansys.common.mcp import RULES_SYSTEM_PROMPT
+
+@app.prompt()
+def system_instructions() -> str:
+    """System instructions including rules guidance."""
+    return f"""
+    {RULES_SYSTEM_PROMPT}
+    
+    Additional product-specific instructions...
+    """
+```
+
+### Benefits
+
+- **Reduces repeated errors**: LLM learns from mistakes automatically
+- **Organized knowledge**: Rules are categorized for easy reference
+- **Context-specific**: Rules are tailored to your specific workflow
+- **No manual intervention**: System learns automatically during normal usage
+
 ## Troubleshooting
 
 **Issue**: `TypeError: Can't instantiate abstract class`
 - **Solution**: Ensure you've implemented `product_startup()`, `product_cleanup()`, and optionally `create_context()`
 
 **Issue**: Tools can't access product instance
-- **Solution**: Use `get_context()` from `fastmcp.server.dependencies` and access via `ctx.fastmcp._lifespan_result.mapdl`
+- **Solution**: Use `get_context()` from `fastmcp.server.dependencies` and access via `ctx.fastmcp._lifespan_result.product`
 
 **Issue**: `ctx parameter is required` error when calling tools
 - **Solution**: Remove `ctx` from function parameters - it should be obtained via `get_context()` inside the function, not passed as a parameter
@@ -523,11 +757,8 @@ def test_tool_execution(mcp_server):
 **Issue**: Python session becomes unresponsive
 - **Solution**: Use the `restart()` method on the Python session, optionally replaying command history from the context
 
-## Examples
-
-See complete example implementations:
-- [PyMAPDL MCP](https://github.com/ansys/pymapdl-mcp) - MAPDL integration
-- [PyFluent MCP](https://github.com/ansys/pyfluent-mcp) - Fluent integration
+**Issue**: Rules not being generated
+- **Solution**: Ensure you're using `execute_python_code` with `auto_generated_rules=True`
 
 ## Contributing
 
