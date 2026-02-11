@@ -38,10 +38,15 @@ Base class for all PyAnsys product-specific MCP servers.
 
 **Responsibilities:** Lifecycle orchestration, Python session management, context injection, error handling.
 
-**Methods you must implement:**
+.. important::
 
-- ``product_startup()`` - Initialize your product connection
-- ``product_cleanup()`` - Clean up your product connection
+   **Methods you must implement:**
+
+   - ``product_startup()`` - Initialize your product connection
+   - ``product_cleanup()`` - Clean up your product connection
+
+   These methods are abstract and must be implemented in your subclass.
+   Failing to do so will raise a ``TypeError`` at instantiation time.
 
 **Methods you can optionally override:**
 

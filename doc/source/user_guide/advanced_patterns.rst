@@ -14,6 +14,41 @@ This section covers advanced techniques for building robust MCP servers.
 Python session
 ==============
 
+Session initialization with startup code
+----------------------------------------
+
+You can initialize a Python session with custom startup code that runs automatically
+when the session starts. This is useful for importing commonly used libraries,
+setting up configuration, or defining helper functions.
+
+.. code-block:: python
+
+   from ansys.common.mcp.helpers import PersistentPythonSession
+
+   # Create a session with startup code
+   startup_code = """
+   import numpy as np
+   import pandas as pd
+   import matplotlib.pyplot as plt
+
+   # Define a helper function
+   def quick_plot(data):
+       plt.figure(figsize=(10, 6))
+       plt.plot(data)
+       plt.show()
+   """
+
+   session = PersistentPythonSession(startup_code=startup_code)
+   session.start()
+
+   # Now numpy, pandas, and plt are already imported
+   result = session.execute("arr = np.array([1, 2, 3, 4, 5])")
+
+When you restart the session using ``session.restart()``, the startup code
+will be executed again, ensuring that all imports and configurations are
+reestablished. This is particularly useful when resetting the session state
+while maintaining necessary dependencies.
+
 Execute Python code from tools
 -------------------------------
 
@@ -125,11 +160,11 @@ Handle errors without crashing the server:
 
 .. code-block:: python
 
-   from ansys.common.mcp.logging_config import get_logger
+    from ansys.common.mcp.logging_config import get_logger
 
-   logger = get_logger(__name__)
+    logger = get_logger(__name__)
 
-   def product_startup(self):
+    def product_startup(self):
        """Start with graceful error handling."""
        try:
            logger.info("Attempting to connect to product...")
@@ -145,6 +180,11 @@ Handle errors without crashing the server:
        except Exception as e:
            logger.error(f"Unexpected error during startup: {e}")
            raise  # Re-raise for critical errors
+
+.. note::
+
+   Logs are automatically redirected to stderr (not stdout) to avoid interfering
+   with the MCP protocol. This is handled by the logging configuration.
 
 Retry logic
 -----------
