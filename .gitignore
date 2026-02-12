@@ -3,3 +3,7 @@
 dist
 coverage.xml
 .coverage
+
+
+doc/_build/
+doc/source/api/*
