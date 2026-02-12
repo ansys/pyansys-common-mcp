@@ -12,9 +12,7 @@ from mcp.types import ImageContent, TextContent
 
 from ansys.common.mcp.helpers import (
     _sanitize_output,
-    generate_rule_from_error,
     logger,
-    update_rules,
 )
 
 
@@ -22,7 +20,6 @@ async def execute_python_code(
     ctx: Context,
     code: str,
     timeout: int = 60,
-    auto_generated_rules: bool = True,
 ) -> str:
     """Execute Python code in the persistent Python session with automatic rule generation.
 
@@ -38,8 +35,6 @@ async def execute_python_code(
         The Python code to execute.
     timeout : int, optional
         Maximum time in seconds to allow for code execution. Default is 60 seconds.
-    auto_generated_rules : bool, optional
-        Whether to automatically generate rules from errors. Default is True.
 
     Returns
     -------
@@ -102,26 +97,6 @@ async def execute_python_code(
                 # Execution failed - generate rule if enabled
                 error_msg = result.get("error", "Unknown error occurred")
                 error_msg = _sanitize_output(error_msg)
-
-                if auto_generated_rules:
-                    try:
-                        logger.info("Generating rule from error...")
-                        rule_info = await generate_rule_from_error(
-                            code=sanitized_code,
-                            error=error_msg,
-                        )
-
-                        # Add rule to context using helper function
-                        update_rules(
-                            context=app_context,
-                            category=rule_info["category"],
-                            rule=rule_info["rule"],
-                        )
-                        logger.info(
-                            f"Added rule - Category: {rule_info['category']}, Rule: {rule_info['rule']}"  # noqa: E501
-                        )
-                    except Exception as e:
-                        logger.error(f"Failed to generate rule: {e}")
 
                 return json.dumps(
                     {
@@ -301,71 +276,7 @@ def create_custom_plot(
         return [TextContent(type="text", text=error_msg)]
 
 
-def get_rules(ctx: Context, category: str | None = None) -> str:
-    """Get the current rules from the context.
-
-    This function retrieves rules that have been accumulated during the session
-    to help the LLM avoid repeating similar errors.
-
-    Parameters
-    ----------
-    ctx : Context
-        The MCP context containing server session and application context.
-    category : str | None, optional
-        If specified, return only rules for that category.
-        If None, return all rules organized by category.
-
-    Returns
-    -------
-    str
-        Formatted string of rules, or JSON if no rules exist.
-
-    Examples
-    --------
-    Get all rules:
-    >>> get_rules(ctx)
-
-    Get rules for a specific category:
-    >>> get_rules(ctx, category="PREP7")
-    """
-    app_context = ctx.request_context.lifespan_context
-
-    if not hasattr(app_context, "get_rules_formatted"):
-        return json.dumps(
-            {
-                "success": False,
-                "error": "Context does not support rules. Update to latest PyAnsysBaseAppContext.",
-            },
-            ensure_ascii=False,
-        )
-
-    try:
-        if category is not None:
-            # Get rules for specific category
-            rules = app_context.get_rules(category=category)
-            if not rules:
-                return f"No rules found for category: {category}"
-
-            formatted = f"Rules for {category}:\n"
-            for rule in rules:
-                formatted += f"  - {rule}\n"
-            return formatted
-        else:
-            # Get all rules formatted
-            result: str = app_context.get_rules_formatted()
-            return result
-
-    except Exception as e:
-        error_msg = f"Error getting rules: {str(e)}"
-        logger.error(error_msg)
-        return json.dumps(
-            {"success": False, "error": error_msg},
-            ensure_ascii=False,
-        )
-
-
 __all__ = [
     "execute_python_code",
     "create_custom_plot",
-    "get_rules",
 ]
