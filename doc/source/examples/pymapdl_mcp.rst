@@ -44,4 +44,3 @@ Usage with Claude Desktop
        }
      }
    }
-
