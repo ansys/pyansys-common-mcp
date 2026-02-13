@@ -67,11 +67,6 @@ Step 2: Server and tool implementation
 
    logger = get_logger(__name__)
 
-   # Create the MCP server instance
-   app = PyAnsysBaseMCP(
-       name="pyexample-mcp",
-   )
-
    class PyExampleMCP(PyAnsysBaseMCP):
        """MCP Server for PyExample.
 
@@ -185,6 +180,11 @@ Step 2: Server and tool implementation
                    logger.info("PyExample instance closed successfully")
                except Exception as e:
                    logger.error(f"Error during PyExample cleanup: {e}")
+
+   # Create the MCP server instance
+   app = PyExampleMCP(
+       name="pyexample-mcp",
+   )
 
 
 Step 3: Tool implementation
