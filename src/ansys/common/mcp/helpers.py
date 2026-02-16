@@ -28,11 +28,98 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from ansys.common.mcp.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+
+def exception_wrapper(func: Callable[[], Any]) -> Any | str:
+    """Wrap to catch exceptions and return error messages."""
+    try:
+        return func()
+    except ImportError as e:
+        error_msg = f"Error when running {str(func)}: {e}"
+        logger.error(error_msg)
+        return error_msg
+    except Exception as e:
+        error_msg = f"Error when running {str(func)}: {e}"
+        logger.error(error_msg)
+        return error_msg
+
+
+def _sanitize_output(text: str) -> str:
+    """Sanitize output text to handle encoding issues.
+
+    This function removes or replaces problematic Unicode characters that can cause
+    encoding issues on Windows systems with limited character sets (e.g., charmap).
+
+    Parameters
+    ----------
+    text : str
+        The text to sanitize.
+
+    Returns
+    -------
+    str
+        The sanitized text with problematic characters removed or replaced.
+    """
+    if not isinstance(text, str):
+        return text
+
+    # Replace common problematic Unicode characters with ASCII alternatives
+    replacements = {
+        # Checkmarks and crosses
+        "\u2713": "[OK]",  # checkmark
+        "\u2717": "[X]",  # cross
+        # Box drawing characters
+        "\u2514": "\\",  # box drawing
+        "\u2502": "|",  # box drawing
+        "\u2500": "-",  # box drawing
+        "\u2510": "\\",  # box drawing
+        "\u250c": "/",  # box drawing
+        "\u2518": "/",  # box drawing
+        # Block elements
+        "\u2588": "#",  # block
+        "\u2589": "#",  # block
+        "\u258a": "#",  # block
+        "\u258c": "|",  # block
+        "\u2590": "|",  # block
+        # Superscript and subscript characters
+        "\u00b9": "^1",  # superscript 1
+        "\u00b2": "^2",  # superscript 2
+        "\u00b3": "^3",  # superscript 3
+        "\u2074": "^4",  # superscript 4
+        "\u2075": "^5",  # superscript 5
+        "\u2076": "^6",  # superscript 6
+        "\u2077": "^7",  # superscript 7
+        "\u2078": "^8",  # superscript 8
+        "\u2079": "^9",  # superscript 9
+        "\u2070": "^0",  # superscript 0
+        # Other commonly problematic characters
+        "\u2022": "*",  # bullet
+        "\u2023": "*",  # triangular bullet
+        "\u2219": "*",  # bullet operator
+        "\u00a0": " ",  # non-breaking space
+        "\u200b": "",  # zero-width space
+        "\u200c": "",  # zero-width non-joiner
+        "\u200d": "",  # zero-width joiner
+        "\ufeff": "",  # zero-width no-break space
+    }
+
+    for unicode_char, replacement in replacements.items():
+        text = text.replace(unicode_char, replacement)
+
+    # Remove any remaining characters that can't be encoded in ascii
+    try:
+        # Try to encode as ASCII to check for problematic characters
+        text.encode("ascii")
+    except UnicodeEncodeError:
+        # If there are non-ASCII characters, replace them with a replacement character
+        text = text.encode("ascii", errors="replace").decode("ascii")
+
+    return text
 
 
 class PersistentPythonSession:
