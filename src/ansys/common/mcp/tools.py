@@ -67,15 +67,24 @@ async def execute_python_code(
     Examples
     --------
     Execute simple Python code:
-    >>> code = '''
-    ... result = sum([i**2 for i in range(10)])
-    ... print(f"Sum of squares: {result}")
-    ... '''
-    >>> await execute_python_code(ctx, code)
+
+    .. code:: python
+
+        code = '''
+        result = sum([i**2 for i in range(10)])
+        print(f"Sum of squares: {result}")
+        '''
+        await execute_python_code(ctx, code)
+
 
     Execute code with automatic rule generation on failure:
-    >>> code = "result = 1/0"  # This will fail
-    >>> await execute_python_code(ctx, code)
+
+    .. code:: python
+
+        code = "result = 1/0"  # This will fail
+        await execute_python_code(ctx, code)
+
+
     # Automatically adds rule like: {"Division Operations": ["Do not divide by zero"]}
     """
     app_context = ctx.request_context.lifespan_context
@@ -189,26 +198,30 @@ def create_custom_plot(
     Examples
     --------
     Create a custom matplotlib line plot:
-    >>> plot_code = '''
-    ... import matplotlib.pyplot as plt
-    ... import numpy as np
-    ...
-    ... # Extract data from MAPDL
-    ... displacements = mapdl.get_array("NODE", item1="U", it1num="Y")
-    ...
-    ... # Create custom plot
-    ... plt.figure(figsize=(10, 6))
-    ... plt.plot(displacements)
-    ... plt.xlabel("Node Number")
-    ... plt.ylabel("Displacement (m)")
-    ... plt.title("Custom Displacement Plot")
-    ... plt.grid(True)
-    ...
-    ... # Save and return
-    ... result = save_matplotlib_plot(dpi=150)
-    ... print(result)
-    ... '''
-    >>> create_custom_plot(ctx, plot_code, plot_type="matplotlib")
+
+    .. code:: python
+
+        plot_code = '''
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        # Extract data from MAPDL
+        displacements = mapdl.get_array("NODE", item1="U", it1num="Y")
+
+        # Create custom plot
+        plt.figure(figsize=(10, 6))
+        plt.plot(displacements)
+        plt.xlabel("Node Number")
+        plt.ylabel("Displacement (m)")
+        plt.title("Custom Displacement Plot")
+        plt.grid(True)
+        # Save and return
+        result = save_matplotlib_plot(dpi=150)
+        print(result)
+        '''
+
+        create_custom_plot(ctx, plot_code, plot_type="matplotlib")
+
     """
     session = ctx.request_context.lifespan_context.python_session
 
