@@ -52,12 +52,17 @@ while maintaining necessary dependencies.
 Execute Python code from tools
 -------------------------------
 
+The ``execute_python_code`` tool allows you to run arbitrary Python code in the persistent session.
+The code is executed in the context of the session, so it has access to all imports and variables
+defined in the startup code.
+
 .. code-block:: python
 
    from mcp.server.fastmcp import Context
+   from ansys.common.mcp.tools import execute_python_code
 
    @mcp.tool()
-   def run_python_script(ctx: Context, code: str) -> str:
+   async def run_python_code(ctx: Context, code: str) -> str:
        """Execute Python code in the persistent session.
 
        Parameters
@@ -67,13 +72,15 @@ Execute Python code from tools
        code : str
            Python code to execute
        """
-       app_context = ctx.request_context.lifespan_context
-       result = app_context.python_session.execute(code)
-       return result["stdout"] if result["success"] else f"Error: {result['error']}"
+       # Additional exection logic can be added here (e.g., logging, error handling)
+       await return execute_python_code(ctx=ctx, code=code)
 
 
 Session restart with history
 -----------------------------
+
+You can implement a tool to restart the Python session while optionally replaying the command history.
+This allows users to reset the session state without losing their previous commands.
 
 .. code-block:: python
 
@@ -109,6 +116,8 @@ Command history
 
 Create and export command history
 ---------------------------------
+
+You can maintain a command history in the application context and provide tools to export it in various formats.
 
 .. code-block:: python
 

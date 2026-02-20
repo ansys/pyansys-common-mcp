@@ -168,6 +168,19 @@ This retrieves the current context instance.
        return result
 
 
+Tools
+=====
+
+This library provides a set of built-in tools or common operations like executing Python code and
+create custom plots.
+You can check the :py:mod:`ansys.common.mcp.tools` module and use the available functions directly
+in your server or extend them with additional logic.
+
+If a function, that could be used by many repositories is missing, feel free to open an issue or
+submit a PR to add it. The tools module is meant to be a shared utility belt for all PyAnsys product
+MCP servers.
+
+
 Lifecycle management
 ====================
 
