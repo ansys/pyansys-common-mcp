@@ -7,7 +7,7 @@ name = "ansys-common-mcp"
 version = "0.2.dev0"
 description = "Common Model Context Protocol (MCP) server for PyAnsys libraries"
 readme = "README.md"
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.10,<4"
 license = { file = "LICENSE" }
 authors = [
     { name = "ANSYS, Inc.", email = "pyansys.core@ansys.com" }
@@ -28,12 +28,12 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
@@ -89,14 +89,33 @@ ansys-common-mcp = "ansys.common.mcp.__main__:main"
 [tool.flit.module]
 name = "ansys.common.mcp"
 
-[tool.black]
+[tool.ruff]
 line-length = 100
-target-version = ["py38", "py39", "py310", "py311", "py312"]
 
-[tool.isort]
-profile = "black"
-line_length = 100
-src_paths = ["src", "tests"]
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-line-length = "dynamic"
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = [
+#   "E",    # pycodestyle, see https://beta.ruff.rs/docs/rules/#pycodestyle-e-w
+    "D",    # pydocstyle, see https://beta.ruff.rs/docs/rules/#pydocstyle-d
+#   "F",    # pyflakes, see https://beta.ruff.rs/docs/rules/#pyflakes-f
+    "I",    # isort, see https://beta.ruff.rs/docs/rules/#isort-i
+#   "N",    # pep8-naming, see https://beta.ruff.rs/docs/rules/#pep8-naming-n
+   "PTH",  # flake9-use-pathlib, https://beta.ruff.rs/docs/rules/#flake8-use-pathlib-pth
+   "TD",   # flake8-todos, https://docs.astral.sh/ruff/rules/#flake8-todos-td
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+force-sort-within-sections = true
+known-first-party = ["ansys.common.mcp"]
+
+[tool.pydocstyle]
+convention = "numpy"
 
 [tool.mypy]
 python_version = "3.10"
@@ -113,6 +132,11 @@ exclude = [
     "^build/",
     "^dist/",
 ]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/__pycache__/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
