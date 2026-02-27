@@ -565,7 +565,6 @@ class PersistentPythonSession:
             Maximum time to spend draining queues in seconds.
             the default value is ``0.1`` seconds.
         """
-
         start = time.time()
         while time.time() - start < timeout:
             try:
