@@ -80,6 +80,7 @@ def setup_logging(
     Notes
     -----
     - Logs are sent to stderr, NOT stdout (stdout is reserved for MCP protocol)
+    - If logs went to stdout, it would break the MCP protocol and cause client communication to fail
     - The LOGLEVEL environment variable can be used to set the log level
     - The root logger is configured, so all loggers in your application will use this config
     """

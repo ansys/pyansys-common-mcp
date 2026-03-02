@@ -38,7 +38,7 @@ def main():
         "ansys-common-mcp is a library for building PyAnsys MCP servers.\n"
         "It is not meant to be run directly.\n\n"
         "To create a product-specific MCP server, please refer to the documentation:\n"
-        "https://github.com/ansys-internal/pyansys-common-mcp\n\n"
+        "https://github.com/ansys/pyansys-common-mcp\n\n"
         "Example product-specific servers:\n"
         "  - pymapdl-mcp: https://github.com/ansys/pymapdl-mcp\n"
     )

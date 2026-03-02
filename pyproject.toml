@@ -78,10 +78,10 @@ doc = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/ansys-internal/pyansys-common-mcp"
-Documentation = "https://github.com/ansys-internal/pyansys-common-mcp#readme"
-Repository = "https://github.com/ansys-internal/pyansys-common-mcp"
-Issues = "https://github.com/ansys-internal/pyansys-common-mcp/issues"
+Homepage = "https://github.com/ansys/pyansys-common-mcp"
+Documentation = "https://github.com/ansys/pyansys-common-mcp#readme"
+Repository = "https://github.com/ansys/pyansys-common-mcp"
+Issues = "https://github.com/ansys/pyansys-common-mcp/issues"
 
 [project.scripts]
 ansys-common-mcp = "ansys.common.mcp.__main__:main"
