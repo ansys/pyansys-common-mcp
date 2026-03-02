@@ -74,5 +74,5 @@ class PyAnsysBaseAppContext:
     product_instance: Optional[Any] = None
     python_executable: Optional[Any] = None
     python_session: Optional[Any] = None  # PersistentPythonSession instance
-    metadata: dict = field(default_factory=dict)
-    command_history: list = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    command_history: list[str] = field(default_factory=list)

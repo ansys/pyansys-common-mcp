@@ -557,15 +557,14 @@ class PersistentPythonSession:
             logger.error(f"Error reading stream: {e}")
 
     def _drain_queues(self, timeout: float = 0.1):
-        """Drain both output queues to clear any pending output.
+        """Drain both output and error queues to clear any pending output.
 
         Parameters
         ----------
         timeout : float
-            Maximum time to spend draining queues.
+            Maximum time to spend draining queues in seconds.
+            the default value is ``0.1`` seconds.
         """
-        import time
-
         start = time.time()
         while time.time() - start < timeout:
             try:
@@ -585,7 +584,7 @@ class PersistentPythonSession:
         self.start()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, _exc_type, _exc_val, _exc_tb):
         """Context manager exit."""
         self.stop()
         return False
