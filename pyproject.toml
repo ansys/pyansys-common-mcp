@@ -114,9 +114,6 @@ combine-as-imports = true
 force-sort-within-sections = true
 known-first-party = ["ansys.common.mcp"]
 
-[tool.pydocstyle]
-convention = "numpy"
-
 [tool.mypy]
 python_version = "3.10"
 strict = false
