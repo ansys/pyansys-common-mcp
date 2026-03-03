@@ -76,7 +76,8 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         """
         Startup routine to initialize resources when the server starts.
 
-        This abstract method must be implemented by subclasses to handle product-specific initialization.
+        This abstract method must be implemented by subclasses to handle
+        product-specific initialization.
         """
         pass
 
