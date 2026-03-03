@@ -22,7 +22,7 @@
 
 """Base MCP server infrastructure for PyAnsys libraries.
 
-This module provides the PyAnsysBaseMCP class that product-specific MCP
+This module provides the ``PyAnsysBaseMCP`` class that product-specific MCP
 servers can extend to create their own MCP implementations.
 """
 
@@ -50,11 +50,11 @@ class PyAnsysBaseMCP(FastMCP, ABC):
 
         Parameters
         ----------
-        python_executable : Optional[str]
+        python_executable : str, default: None
             Path to the Python executable to use for running the generated code.
-            If None, uses the current Python interpreter (sys.executable).
-        working_directory : Optional[str]
-            The working directory to use for the Python session.
+            If ``None``, the current Python interpreter (sys.executable) is used.
+        working_directory : str, default: None
+            Working directory to use for the Python session.
         """
         # Store parameters before calling super().__init__
         self.python_executable = python_executable
@@ -67,7 +67,7 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         """
         Cleanup routine before shutting down the server.
 
-        Must be implemented by subclasses to handle product-specific cleanup.
+        This abstract method must be implemented by subclasses to handle product-specific cleanup.
         """
         pass
 
@@ -76,7 +76,7 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         """
         Startup routine to initialize resources when the server starts.
 
-        Must be implemented by subclasses to handle product-specific initialization.
+        This abstract method must be implemented by subclasses to handle product-specific initialization.
         """
         pass
 
@@ -84,12 +84,12 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         """Create product-specific context.
 
         Override this method in subclasses to return custom context types
-        (e.g., PyMAPDLContext with a mapdl field).
+        (such as in ``PyMAPDLContext`` with an MAPDL field).
 
         Returns
         -------
         PyAnsysBaseAppContext
-            The context instance for this server. Default implementation
+            Context instance for this server. The default implementation
             creates a base context with Python session support.
 
         Examples
@@ -122,21 +122,22 @@ pv.set_plot_theme('document')
 
 def save_plot(plotter, filename='plot.png', return_base64=False):
     '''
-    Save PyVista plot to file and optionally return as base64.
+    Save a PyVista plot to file and optionally return as base64.
 
     Parameters
     ----------
     plotter : pv.Plotter
-        The PyVista plotter to save
-    filename : str
+        PyVista plotter to save
+    filename : str, default: ``'plot.png'``
         Output filename
-    return_base64 : bool
-        If True, return base64-encoded image data
+    return_base64 : bool, default: False
+        Whether to return base64-encoded image data. If ``False``, saves to file
+        and returns file path message.
 
     Returns
     -------
     str
-        File path or base64 data URI
+        File path or base64 data URI.
     '''
     if return_base64:
         img_array = plotter.screenshot(return_img=True, transparent_background=False)
@@ -156,22 +157,22 @@ def save_plot(plotter, filename='plot.png', return_base64=False):
 
 def save_matplotlib_plot(filename='plot.png', return_base64=False, dpi=150):
     '''
-    Save matplotlib plot to file and optionally return as base64.
-    Uses the current matplotlib figure.
+    Save the current Matplotlib plot to file and optionally return as base64.
 
     Parameters
     ----------
-    filename : str
-        Output filename
-    return_base64 : bool
-        If True, return base64-encoded image data
-    dpi : int
-        Resolution in dots per inch
+    filename : str, default: ``'plot.png'``
+        Output filename.
+    return_base64 : bool, default: False
+        Whether to return base64-encoded image data. If ``False``, saves to
+        file and returns file path message.
+    dpi : int, default: 150
+        Resolution in dots per inch.
 
     Returns
     -------
     str
-        File path or base64 data URI
+        File path or base64 data URI.
     '''
     if return_base64:
         buffer = BytesIO()
@@ -187,8 +188,8 @@ def save_matplotlib_plot(filename='plot.png', return_base64=False, dpi=150):
         return f"Plot saved to {filename}"
 
 # Print confirmation
-print("Matplotlib configured with non-interactive backend (Agg)")
-print("PyVista configured for off-screen rendering")
+print("Matplotlib configured with non-interactive backend (Agg).")
+print("PyVista configured for off-screen rendering.")
 """
         python_session = PersistentPythonSession(
             python_executable=self.python_executable,
@@ -202,25 +203,25 @@ print("PyVista configured for off-screen rendering")
 
     def start_python_session(self):
         """Start a persistent Python session for executing generated code."""
-        logger.info("Server initialized")
+        logger.info("Server initialized.")
         if self.context.python_executable:
             logger.info(f"Using Python executable: {self.context.python_executable}")
 
         # Start the persistent session
         start_result = self.context.python_session.start()
         if start_result["success"]:
-            logger.info("Persistent Python session started")
+            logger.info("Persistent Python session started.")
             logger.info(f"Startup output: {start_result.get('stdout', '')}")
         else:
             logger.warning(f"Failed to start Python session: {start_result.get('error')}")
 
     def cleanup_python_session(self):
-        """Cleanup the persistent Python session."""
+        """Clean up the persistent Python session."""
         if self.context.python_session and self.context.python_session.is_running():
             try:
                 logger.info("Stopping persistent Python session...")
                 self.context.python_session.stop()
-                logger.info("Persistent Python session stopped")
+                logger.info("Persistent Python session stopped.")
             except Exception as e:
                 logger.error(f"Error stopping Python session: {e}")
 
@@ -233,21 +234,21 @@ print("PyVista configured for off-screen rendering")
         Parameters
         ----------
         server : FastMCP
-            The MCP server instance.
+            MCP server instance.
 
         Yields
         ------
         AsyncIterator[PyAnsysBaseAppContext]
-            The application context for the MCP server.
+            Application context for the MCP server.
 
         Notes
         -----
         This method orchestrates the complete lifecycle:
-        1. Creates context (via factory method - extensible by subclasses)
-        2. Initializes Python session (managed by base class)
-        3. Calls product-specific startup
-        4. Yields context to the application
-        5. Cleans up in reverse order on shutdown
+        1. Creates context (via factory method - extensible by subclasses).
+        2. Initializes Python session (managed by base class).
+        3. Calls product-specific startup.
+        4. Yields context to the application.
+        5. Cleans up in reverse order on shutdown.
         """
         # Use factory method to create context (subclasses can override)
         self.server = server

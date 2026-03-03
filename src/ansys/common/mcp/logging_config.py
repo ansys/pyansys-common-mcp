@@ -40,25 +40,26 @@ def setup_logging(
 ) -> logging.Logger:
     """Configure logging for MCP servers.
 
-    Sets up logging to stderr (to avoid interfering with MCP protocol on stdout)
-    and optionally to a file. The log level can be controlled via the LOGLEVEL
-    environment variable or the level parameter.
+    This method sets up logging to stderr (to avoid interfering with MCP protocol on stdout)
+    and optionally to a file. You can control the log level using the ``LOGLEVEL``
+    environment variable or the ``level`` parameter.
 
     Parameters
     ----------
-    level : Optional[str]
-        Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
-        If None, uses LOGLEVEL environment variable or defaults to INFO.
-    log_file : Optional[str]
-        Optional path to log file. If provided, logs will be written to both
-        stderr and the file.
-    format_string : Optional[str]
-        Custom format string for log messages. If None, uses a default format.
+    level : str, default: None
+        Log level. Options are ``"DEBUG"``, ``"INFO"``, ``"WARNING"``, ``"ERROR"``
+        and, ``"CRITICAL"``. In ``None``, the ``LOGLEVEL`` environment variable is
+        used or it defaults to ``"INFO"``.
+    log_file : str, default: None
+        Path to the log file. If a path is provided, logs are written to both
+        stderr and the specified file.
+    format_string : str, default: None
+        Custom format string for log messages. If ``None``, the default format is used.
 
     Returns
     -------
     logging.Logger
-        The root logger instance
+        Root logger instance.
 
     Examples
     --------
@@ -79,10 +80,10 @@ def setup_logging(
 
     Notes
     -----
-    - Logs are sent to stderr, NOT stdout (stdout is reserved for MCP protocol)
-    - If logs went to stdout, it would break the MCP protocol and cause client communication to fail
-    - The LOGLEVEL environment variable can be used to set the log level
-    - The root logger is configured, so all loggers in your application will use this config
+    - Logs are sent to stderr, NOT stdout. stdout is reserved for MCP protocol.
+    - If logs went to stdout, it would break the MCP protocol and cause client communication to fail.
+    - The ``LOGLEVEL`` environment variable can be used to set the log level.
+    - The root logger is configured, so all loggers in your application use this configuration.
     """
     # Determine log level
     if level is None:
@@ -134,19 +135,19 @@ def setup_logging(
 def get_logger(name: str) -> logging.Logger:
     """Get a logger instance with the specified name.
 
-    This is a convenience wrapper around logging.getLogger() that ensures
-    logging has been configured. If setup_logging() hasn't been called,
-    it will be called with default settings.
+    This is a convenience wrapper around ``logging.getLogger()`` that ensures
+    logging has been configured. If ``setup_logging()`` hasn't been called,
+    it is called with default settings.
 
     Parameters
     ----------
     name : str
-        Logger name (typically __name__ of the calling module)
+        Logger name (typically __name__ of the calling module).
 
     Returns
     -------
     logging.Logger
-        Logger instance
+        Logger instance.
 
     Examples
     --------

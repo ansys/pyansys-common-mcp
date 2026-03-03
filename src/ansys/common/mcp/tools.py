@@ -52,11 +52,11 @@ async def execute_python_code(
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
+        MCP context containing server session and application context.
     code : str
-        The Python code to execute.
-    timeout : int, optional
-        Maximum time in seconds to allow for code execution. Default is 60 seconds.
+        Python code to execute.
+    timeout : int, default: 60
+        Maximum time in seconds to allow for code execution.
 
     Returns
     -------
@@ -119,14 +119,14 @@ async def execute_python_code(
                         "success": True,
                         "stdout": stdout,
                         "stderr": stderr,
-                        "message": "Python code executed successfully",
+                        "message": "Python code executed successfully.",
                     },
                     ensure_ascii=False,
                     indent=2,
                 )
             else:
                 # Execution failed - generate rule if enabled
-                error_msg = result.get("error", "Unknown error occurred")
+                error_msg = result.get("error", "Unknown error occurred.")
                 error_msg = _sanitize_output(error_msg)
 
                 return json.dumps(
@@ -146,7 +146,7 @@ async def execute_python_code(
                     "success": True,
                     "stdout": _sanitize_output(str(result)) if result else "",
                     "stderr": "",
-                    "message": "Python code executed successfully",
+                    "message": "Python code executed successfully.",
                 },
                 ensure_ascii=False,
                 indent=2,
@@ -155,7 +155,7 @@ async def execute_python_code(
     except TimeoutError:
         error_dict = {
             "success": False,
-            "error": f"Python code execution timed out after {timeout} seconds",
+            "error": f"Python code execution timed out after {timeout} seconds.",
         }
         logger.error(error_dict["error"])
         return json.dumps(error_dict, ensure_ascii=False)
@@ -172,32 +172,32 @@ def create_custom_plot(
     plot_type: str = "matplotlib",
     timeout: int = 60,
 ) -> list[TextContent | ImageContent] | str:
-    """Create a custom plot using matplotlib or PyVista in the persistent Python session.
+    """Create a custom plot using Matplotlib or PyVista in the persistent Python session.
 
     Parameters
     ----------
     ctx : Context
-        The MCP context containing server session and application context.
+        MCP context containing server session and application context.
     plot_code : str
-        Python code to create the plot. Should use matplotlib.pyplot or PyVista.
-        For matplotlib, the code should create the figure/plot but NOT call plt.show().
-        Use the save_matplotlib_plot() or save_plot() helper functions to return the plot.
-    plot_type : str, optional
-        Type of plot: "matplotlib" or "pyvista". Default is "matplotlib".
-    timeout : int, optional
-        Maximum time in seconds for plot generation. Default is 60 seconds.
+        Python code for creating the plot. You should use ``matplotlib.pyplot`` or PyVista.
+        For Matplotlib, the code should create the figure/plot but NOT call ``plt.show()``.
+        Use the ``save_matplotlib_plot() or ``save_plot()`` helper functions to return the plot.
+    plot_type : str, default: "matplotlib"
+        Type of plot. Options are ``"matplotlib"`` or ``"pyvista"``.
+    timeout : int, default: 60
+        Maximum time in seconds for plot generation.
 
     Returns
     -------
     list[TextContent | ImageContent]
-        A list containing:
+        List containing:
         - TextContent with the plot creation status message
-        - ImageContent with the base64-encoded image data if successfull
+        - ImageContent with the base64-encoded image data if successful
         or a JSON string with error details if failed.
 
     Examples
     --------
-    Create a custom matplotlib line plot:
+    Create a custom Matplotlib line plot:
 
     .. code:: python
 
@@ -234,7 +234,7 @@ def create_custom_plot(
         ]
 
     try:
-        logger.info(f"Creating custom {plot_type} plot in persistent session")
+        logger.info(f"Creating custom {plot_type} plot in persistent session.")
 
         # Sanitize the plot code to remove problematic Unicode characters
         # This prevents encoding issues on Windows systems with limited charsets
@@ -283,7 +283,7 @@ def create_custom_plot(
                         )
                     ]
             else:
-                error_msg = result.get("error", "Unknown error occurred")
+                error_msg = result.get("error", "Unknown error occurred.")
                 error_msg = _sanitize_output(error_msg)
                 return [
                     TextContent(
@@ -301,7 +301,7 @@ def create_custom_plot(
             ]
 
     except TimeoutError:
-        error_msg = f"Plot creation timed out after {timeout} seconds"
+        error_msg = f"Plot creation timed out after {timeout} seconds."
         logger.error(error_msg)
         return [TextContent(type="text", text=error_msg)]
 

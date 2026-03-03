@@ -36,20 +36,20 @@ logger = get_logger(__name__)
 
 
 def _sanitize_output(text: str) -> str:
-    """Sanitize output text to handle encoding issues.
+    """Sanitize the output text to handle encoding issues.
 
     This function removes or replaces problematic Unicode characters that can cause
-    encoding issues on Windows systems with limited character sets (e.g., charmap).
+    encoding issues on Windows systems with limited character sets (such as charmap).
 
     Parameters
     ----------
     text : str
-        The text to sanitize.
+        Text to sanitize.
 
     Returns
     -------
     str
-        The sanitized text with problematic characters removed or replaced.
+        Sanitized text with problematic characters removed or replaced.
     """
     if not isinstance(text, str):
         return text
@@ -97,7 +97,7 @@ def _sanitize_output(text: str) -> str:
     for unicode_char, replacement in replacements.items():
         text = text.replace(unicode_char, replacement)
 
-    # Remove any remaining characters that can't be encoded in ascii
+    # Remove any remaining characters that can't be encoded in ASCII
     try:
         # Try to encode as ASCII to check for problematic characters
         text.encode("ascii")
@@ -118,12 +118,12 @@ class PersistentPythonSession:
 
     Parameters
     ----------
-    python_executable : Optional[str]
-        Path to the Python executable to use. If None, uses sys.executable.
-    startup_code : Optional[str]
-        Python code to execute when the session starts (e.g., imports).
-    working_directory : Optional[str]
-        Working directory for the Python process. If None, uses the current directory.
+    python_executable : str, default: None
+        Path to the Python executable to use. If ``None``, ``sys.executable`` is used.
+    startup_code : str, default: None
+        Python code to execute when the session starts (for exammple, imports).
+    working_directory : str, default: None
+        Working directory for the Python process. If ``None``, the current directory is used.
 
     Examples
     --------
@@ -227,15 +227,15 @@ class PersistentPythonSession:
 
             # Execute startup code if provided
             if self.startup_code:
-                logger.info("Executing startup code")
+                logger.info("Executing startup code...")
                 startup_result = self.execute(self.startup_code)
                 if not startup_result["success"]:
                     logger.warning(f"Startup code failed: {startup_result.get('error')}")
 
-            logger.info("Persistent Python session started successfully")
+            logger.info("Persistent Python session started successfully.")
             return {
                 "success": True,
-                "message": "Session started successfully",
+                "message": "Session started successfully.",
                 "python_executable": self.python_executable,
             }
 
@@ -255,24 +255,24 @@ class PersistentPythonSession:
         ----------
         code : str
             Python code to execute.
-        timeout : float
-            Maximum execution time in seconds (default: 30.0).
+        timeout : float, default: 30.0
+            Maximum execution time in seconds.
 
         Returns
         -------
         dict[str, Any]
             Dictionary containing:
-            - 'success': bool indicating if execution succeeded
-            - 'stdout': str with standard output
-            - 'stderr': str with standard error
-            - 'error': str with error message (if execution failed)
+            - 'success': Boolean indicating if execution succeeded
+            - 'stdout': string with standard output
+            - 'stderr': string with standard error
+            - 'error': string with error message (if execution failed)
         """
         if not self._is_running or self.process is None:
             return {
                 "success": False,
                 "stdout": "",
                 "stderr": "",
-                "error": "Session is not running. Call start() first.",
+                "error": "Session is not running. Call 'start()' first.",
             }
 
         with self._execution_lock:
@@ -291,12 +291,12 @@ class PersistentPythonSession:
                         "success": False,
                         "stdout": "",
                         "stderr": "",
-                        "error": "Process stdin is not available",
+                        "error": "Process stdin is not available.",
                     }
                 self.process.stdin.write(code_with_marker)
                 self.process.stdin.flush()
 
-                # Collect output until we see the marker or timeout
+                # Collect output until reaching the marker or timeout
                 stdout_lines: list[str] = []
                 stderr_lines: list[str] = []
                 start_time = time.time()
@@ -306,7 +306,7 @@ class PersistentPythonSession:
                 while True:
                     elapsed = time.time() - start_time
                     if elapsed > timeout:
-                        error_msg = f"Code execution timed out after {timeout} seconds"
+                        error_msg = f"Code execution timed out after {timeout} seconds."
                         logger.error(error_msg)
                         return {
                             "success": False,
@@ -355,7 +355,7 @@ class PersistentPythonSession:
                                 break
                             # If marker not found but no data, something went wrong
                             logger.warning(
-                                "No data received for extended period, stopping collection"
+                                "No data received for extended period. Stopping collection."
                             )
                             break
                     else:
@@ -410,11 +410,11 @@ class PersistentPythonSession:
         if not self._is_running:
             return {
                 "success": False,
-                "error": "Session is not running",
+                "error": "Session is not running.",
             }
 
         try:
-            logger.info("Stopping persistent Python session")
+            logger.info("Stopping persistent Python session.")
 
             # Send exit command
             if self.process and self.process.stdin:
@@ -429,16 +429,16 @@ class PersistentPythonSession:
                 try:
                     self.process.wait(timeout=5)
                 except subprocess.TimeoutExpired:
-                    logger.warning("Process did not terminate gracefully, forcing termination")
+                    logger.warning("Process did not terminate gracefully. Forcing termination.")
                     self.process.kill()
                     self.process.wait()
 
             self._is_running = False
-            logger.info("Persistent Python session stopped")
+            logger.info("Persistent Python session stopped.")
 
             return {
                 "success": True,
-                "message": "Session stopped successfully",
+                "message": "Session stopped successfully.",
             }
 
         except Exception as e:
@@ -453,10 +453,10 @@ class PersistentPythonSession:
         """Restart the persistent Python session.
 
         Stops the current session (if running) and starts a new one.
-        All session state (variables, imports) will be lost except
-        what's recreated by startup_code.
+        All session state (variables, imports) are lost except
+        what's recreated by ``startup_code``.
 
-        This method is intended for manual restarts only, for example when
+        This method is intended for manual restarts only. For example, use it when
         the session becomes unresponsive or when you want to reset the state.
         Command history and other application state should be managed at the
         application context level, not in the session itself.
@@ -493,30 +493,30 @@ class PersistentPythonSession:
 
         Notes
         -----
-        - This is a manual operation - automatic restart on crashes is NOT implemented
-        - Session state is lost (variables, non-startup imports, etc.)
-        - The startup_code is re-executed on restart
+        - This is a manual operation. Automatic restart on crashes is NOT implemented.
+        - Session state is lost (including variables and non-startup imports).
+        - The ``startup_code`` is re-executed on restart.
         - Consider managing command_history at the context level for replay capability
         """
         logger.info("Restarting persistent Python session...")
 
         # Stop existing session if running
         if self._is_running:
-            logger.debug("Stopping existing session before restart")
+            logger.debug("Stopping existing session before restart.")
             stop_result = self.stop()
             if not stop_result["success"]:
                 logger.warning(f"Error during stop phase of restart: {stop_result.get('error')}")
                 # Continue anyway - we'll try to start fresh
 
         # Start new session
-        logger.debug("Starting new session")
+        logger.debug("Starting new session.")
         start_result = self.start()
 
         if start_result["success"]:
-            logger.info("Persistent Python session restarted successfully")
+            logger.info("Persistent Python session restarted successfully.")
             return {
                 "success": True,
-                "message": "Session restarted successfully",
+                "message": "Session restarted successfully.",
                 "python_executable": self.python_executable,
             }
         else:
@@ -533,7 +533,7 @@ class PersistentPythonSession:
         Returns
         -------
         bool
-            True if session is running, False otherwise.
+            ``True`` if session is running, ``False`` otherwise.
         """
         return self._is_running and self.process is not None and self.process.poll() is None
 
@@ -543,7 +543,7 @@ class PersistentPythonSession:
         Parameters
         ----------
         stream
-            The stream to read from (stdout or stderr).
+            Stream to read from (stdout or stderr).
         output_queue : queue.Queue
             Queue to put the read lines into.
         """
@@ -561,9 +561,8 @@ class PersistentPythonSession:
 
         Parameters
         ----------
-        timeout : float
+        timeout : float, default: 0.1
             Maximum time to spend draining queues in seconds.
-            the default value is ``0.1`` seconds.
         """
         start = time.time()
         while time.time() - start < timeout:
