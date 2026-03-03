@@ -5,7 +5,7 @@ Examples
 ========
 
 This section provides complete, working examples of MCP servers built with
-PyAnsys Common MCP, from simple to complex implementations.
+PyAnsys Common MCP, ranging from simple to complex implementations.
 
 .. grid:: 2
 
@@ -14,7 +14,7 @@ PyAnsys Common MCP, from simple to complex implementations.
        :link-type: ref
 
        A complete, minimal MCP server implementation for a hypothetical PyAnsys
-       library called "PyExample". Learn the fundamentals step-by-step.
+       library named ``PyExample``. Learn the fundamentals step by step.
 
     .. grid-item-card:: Real-world example: PyMAPDL-MCP
        :link: ref_pymapdl_mcp
@@ -29,11 +29,10 @@ PyAnsys Common MCP, from simple to complex implementations.
    pyexample_mcp
    pymapdl_mcp
 
-
-Next Steps
+Next steps
 ----------
 
-- Study the :ref:`user_guide_architecture` to understand how it all works
-- Review :ref:`user_guide_advanced_patterns` for more techniques
-- Clone `PyMAPDL-MCP <pymapdl_mcp_>`_ to see a real implementation
-- Build your own MCP server for your PyAnsys library!
+- Study the :ref:`user_guide_architecture` to understand how PyAnsys Common MCP works.
+- Review :ref:`user_guide_advanced_patterns` for more techniques.
+- Clone `PyMAPDL-MCP <pymapdl_mcp_>`_ to see a real implementation.
+- Build your own MCP server for your PyAnsys library.

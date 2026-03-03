@@ -4,8 +4,8 @@
 PyExample-MCP
 =============
 
-This section walks through a complete, minimal MCP server implementation for a
-hypothetical PyAnsys library called "PyExample".
+This example shows how to implement a minimal MCP server for a
+hypothetical PyAnsys library named ``PyExample``.
 
 Project structure
 -----------------
@@ -22,8 +22,8 @@ Project structure
            ├── server.py
            └── context.py
 
-Step 1: Context definition
----------------------------
+Define the context
+------------------
 
 **File:** ``src/pyexample_mcp/context.py``
 
@@ -51,8 +51,8 @@ Step 1: Context definition
        active_model: Optional[str] = None
        simulation_results: dict = field(default_factory=dict)
 
-Step 2: Server and tool implementation
----------------------------------------
+Implement the server
+--------------------
 
 **File:** ``src/pyexample_mcp/server.py``
 
@@ -85,10 +85,10 @@ Step 2: Server and tool implementation
 
            Parameters
            ----------
-           launch_mode : str
-               Launch mode for PyExample ('local' or 'remote')
-           timeout : int
-               Connection timeout in seconds
+           launch_mode : str, default: ``'local'``.
+               Launch mode for PyExample. Options are ``'local'`` or ``'remote'``.
+           timeout : int, default: 60
+               Connection timeout in seconds.
            """
            self.launch_mode = launch_mode
            self.timeout = timeout
@@ -100,7 +100,7 @@ Step 2: Server and tool implementation
            Returns
            -------
            PyExampleContext
-               Context instance with Python session and command history
+               Context instance with Python session and command history.
            """
            # Custom startup code for PyExample workflows
            startup_code = """
@@ -186,10 +186,8 @@ Step 2: Server and tool implementation
        name="pyexample-mcp",
    )
 
-
-Step 3: Tool implementation
----------------------------
-
+Implement tools
+---------------
 
 **File:** ``src/pyexample_mcp/tools.py``
 
@@ -200,7 +198,7 @@ Step 3: Tool implementation
    from ansys.example_mcp.server import app
    from ansys.common.mcp import get_context
    from ansys.common.mcp.logging_config
-   import get_logger logger = get_logger(__name__)
+import get_logger logger = get_logger(__name__)
 
    # Define tools for interacting with PyExample instance
    @app.tool()
@@ -210,12 +208,12 @@ Step 3: Tool implementation
        Parameters
        ----------
        command : str
-           PyExample command to execute
+           PyExample command to execute.
 
        Returns
        -------
        str
-           Command execution result
+           Command execution result.
        """
        ctx = get_context()
        app_context = ctx.fastmcp._lifespan_result
@@ -244,16 +242,16 @@ Step 3: Tool implementation
        Parameters
        ----------
        name : str
-           Name for the new model
-       model_type : str
-           Type of model to create
-       parameters : Optional[dict]
-           Model creation parameters
+           Name for the new model.
+       model_type : str, default: ``"default"``
+           Type of model to create.
+       parameters : [dict], default: None
+           Model creation parameters.
 
        Returns
        -------
        str
-           Status message
+           Status message.
        """
        ctx = get_context()
        app_context = ctx.fastmcp._lifespan_result
@@ -284,15 +282,15 @@ Step 3: Tool implementation
 
        Parameters
        ----------
-       model_name : Optional[str]
-           Model to simulate (uses active model if not specified)
-       save_results : bool
-           Whether to save results in context
+       model_name : str, default: None
+           Model to simulate. If no model is specified, the active model is used.
+       save_results : bool, default: True
+           Whether to save results in context.
 
        Returns
        -------
        str
-           Simulation results summary
+           Simulation results summary.
        """
        ctx = get_context()
        app_context = ctx.fastmcp._lifespan_result
@@ -329,13 +327,13 @@ Step 3: Tool implementation
 
        Parameters
        ----------
-       format : str
-           Output format: 'list', 'numbered', or 'json'
+       format : str, default: ``"list"``
+           Output format. Options are ``'list'``, ``'numbered'``, and ``'json'``.
 
        Returns
        -------
        str
-           Command history in requested format
+           Command history in requested format.
        """
        ctx = get_context()
        app_context = ctx.fastmcp._lifespan_result
@@ -368,12 +366,12 @@ Step 3: Tool implementation
        Parameters
        ----------
        code : str
-           Python code to execute
+           Python code to execute.
 
        Returns
        -------
        str
-           Execution output
+           Execution output.
        """
        ctx = get_context()
        app_context = ctx.fastmcp._lifespan_result
@@ -388,9 +386,8 @@ Step 3: Tool implementation
        else:
            return f"Error: {result['error']}"
 
-
-Step 3: Package initialization
--------------------------------
+Initialize the package
+----------------------
 
 **File:** ``src/pyexample_mcp/__init__.py``
 
@@ -412,15 +409,14 @@ Step 3: Package initialization
        "__version__",
    ]
 
-
-Step 4: Entry point
---------------------
+Define the entry point
+----------------------
 
 **File:** ``src/pyexample_mcp/__main__.py``
 
 .. code-block:: python
 
-   """Entry point for running PyExample MCP server."""
+   """Entry point for running the PyExample MCP server."""
    import sys
    from pyexample_mcp import app
    from ansys.common.mcp.logging_config import setup_logging
@@ -438,9 +434,8 @@ Step 4: Entry point
    if __name__ == "__main__":
        sys.exit(main())
 
-
-Step 5: Package configuration
-------------------------------
+Configure the package
+---------------------
 
 **File:** ``pyproject.toml``
 
@@ -473,8 +468,8 @@ Step 5: Package configuration
    [project.scripts]
    pyexample-mcp = "pyexample_mcp.__main__:main"
 
-Running the example
--------------------
+Run the example
+---------------
 
 .. code-block:: bash
 

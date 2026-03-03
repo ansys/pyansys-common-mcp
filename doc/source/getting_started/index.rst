@@ -7,36 +7,33 @@ Getting started
 Introduction
 ============
 
-PyAnsys Common MCP is a foundational library for building Model Context Protocol (MCP) servers
-that enable AI assistants to interact with Ansys products through PyAnsys libraries.
+PyAnsys Common MCP is a foundational library that helps you build Model Context Protocol (MCP) servers. These servers let AI assistants interact with Ansys products through PyAnsys libraries.
 
-This guide will help you create your first MCP server in under 30 minutes. For detailed
-architectural concepts and advanced patterns, see the :ref:`ref_user_guide`.
+This section shows how to create your first MCP server in under 30 minutes. For architectural concepts and advanced patterns, see the :ref:`ref_user_guide`.
 
-**Target Audience:** PyAnsys library developers creating MCP servers for their products.
+**Target audience:** PyAnsys library developers who create MCP servers for their products.
 
 Installation
 ============
 
-Requirements
-------------
+Here are the requirements for PyAnsys Common MCP:
 
 - Python 3.10 or later (up to 3.13)
-- PyAnsys library for your product (e.g., PyMAPDL, PyFluent)
+- A PyAnsys library for your product (such as PyMAPDL or PyFluent)
 
-Standard installation
----------------------
+Install in user mode
+--------------------
 
-Install from the private PyPI (requires the ``PYANSYS_PYPI_PRIVATE_PAT`` environment variable) :
+Install in user mode from the private PyPI. Set the ``PYANSYS_PYPI_PRIVATE_PAT`` environment variable:
 
 .. code-block:: bash
 
    pip install ansys-common-mcp --extra-index-url https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
 
-Development installation
-------------------------
+Install in developer mode
+-------------------------
 
-For developers contributing to PyAnsys Common MCP or creating custom servers:
+If you want to contribute to PyAnsys Common MCP or create custom servers, install in developer mode:
 
 .. code-block:: bash
 
@@ -44,10 +41,10 @@ For developers contributing to PyAnsys Common MCP or creating custom servers:
    git clone https://github.com/ansys/pyansys-common-mcp.git
    cd pyansys-common-mcp
 
-   # Install in editable mode with dev dependencies
+   # Install in editable mode with development dependencies
    pip install -e .[dev]
 
-   # Or for documentation building
+   # Or install documentation dependencies for building documentation
    pip install -e .[doc]
 
 Verify installation
@@ -63,12 +60,12 @@ Verify the installation by importing the package:
 Quick start
 ===========
 
-Create a minimal working MCP server in six steps.
+Create a minimal working MCP server by following these steps.
 
-Project structure
------------------
+Create a package
+----------------
 
-Create a new package:
+Create a package with this project structure:
 
 .. code-block:: text
 
@@ -83,10 +80,10 @@ Create a new package:
            ├── context.py      # Your custom context
            └── tools.py        # Your MCP tools
 
-Step 1: Define custom context
-------------------------------
+Define a custom context
+-----------------------
 
-Create ``context.py`` to hold product-specific state:
+Create ``context.py`` to store product-specific state:
 
 .. code-block:: python
 
@@ -106,12 +103,12 @@ Create ``context.py`` to hold product-specific state:
        """
        product_instance: Optional[Any] = None
 
-The context holds shared state accessible from all tools. See :ref:`user_guide_architecture` for details on context management.
+The context stores the shared state accessible from all tools. For information on context management, see :ref:`user_guide_architecture`.
 
-Step 2: Implement MCP server
------------------------------
+Implement the MCP server
+------------------------
 
-Create ``server.py`` with your server class:
+Create a file named ``server.py`` to define your server class. Implement the ``product_startup()`` and ``product_cleanup()`` methods. Optionally, override the ``create_context()`` method if you use a custom context class.
 
 .. code-block:: python
 
@@ -121,7 +118,7 @@ Create ``server.py`` with your server class:
    from my_product import connect  # Your product's API
 
    class MyProductMCP(PyAnsysBaseMCP):
-       """MCP Server for MyProduct."""
+       """MCP server for MyProduct."""
 
        def create_context(self) -> MyProductContext:
            """Create product-specific context."""
@@ -134,24 +131,20 @@ Create ``server.py`` with your server class:
            )
 
        def product_startup(self):
-           """Initialize product connection when server starts."""
+           """Initialize the product connection when the server starts."""
            self.context.product_instance = connect()
            print(f"Connected to MyProduct: {self.context.product_instance}")
 
        def product_cleanup(self):
-           """Clean up product connection when server stops."""
+           """Clean up the product connection when the server stops."""
            if self.context.product_instance:
                self.context.product_instance.disconnect()
                print("Disconnected from MyProduct")
 
-**Required methods:** ``product_startup()`` and ``product_cleanup()``.
+Create MCP tools
+----------------
 
-**Optional:** Override ``create_context()`` only if using a custom context class.
-
-Step 3: Create MCP tools
--------------------------
-
-Create ``tools.py`` to define the capabilities your server exposes:
+Create a file named ``tools.py`` to define the capabilities that your server exposes:
 
 .. code-block:: python
 
@@ -168,29 +161,29 @@ Create ``tools.py`` to define the capabilities your server exposes:
            Parameters
            ----------
            command : str
-               Command to execute
+               Command to execute.
 
            Returns
            -------
            str
-               Command result
+               Command result.
            """
            # Access context via dependency injection
            ctx = get_context()
            app_context = ctx.fastmcp._lifespan_result
 
-           # Execute command using product instance
+           # Run the command using the product instance
            result = app_context.product_instance.run(command)
 
-           # Track in history
+           # Track the command in history
            app_context.command_history.append(command)
 
            return result
 
-See :ref:`user_guide_architecture` for details on context injection patterns.
+For more information on context injection patterns, see :ref:`user_guide_architecture`.
 
-Step 4: Wire everything together
---------------------------------
+Wire everything together
+------------------------
 
 Create ``__init__.py``:
 
@@ -226,10 +219,10 @@ Create ``__main__.py`` for CLI execution:
    if __name__ == "__main__":
        sys.exit(main())
 
-Step 5: Configure package
---------------------------
+Configure the package
+---------------------
 
-Create ``pyproject.toml``:
+Create the ``pyproject.toml`` file:
 
 .. code-block:: toml
 
@@ -250,8 +243,8 @@ Create ``pyproject.toml``:
    [project.scripts]
    my-product-mcp = "my_product_mcp.__main__:main"
 
-Step 6: Run Your Server
-------------------------
+Run the server
+--------------
 
 Install and run:
 
@@ -263,12 +256,12 @@ Install and run:
    # Run the server
    python -m my_product_mcp
 
-The server will start and communicate via stdio, ready to accept MCP requests from AI clients.
+The server starts and communicates using stdio. It is ready to accept MCP requests from AI clients.
 
-Next Steps
+Next steps
 ==========
 
-Your MCP server is ready! Continue with:
+Your MCP server is ready. Explore these sections:
 
-- :ref:`ref_user_guide` - Understand how the framework works and learn advanced patterns
-- :ref:`ref_examples` - See complete working examples like `PyMAPDL-MCP <pymapdl_mcp_>`_
+- :ref:`ref_user_guide`: Learn how the framework works and discover advanced patterns.
+- :ref:`ref_examples`: See complete working examples like `PyMAPDL-MCP <pymapdl_mcp_>`_
