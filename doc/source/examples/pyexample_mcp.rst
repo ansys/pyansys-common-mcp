@@ -1,6 +1,6 @@
 .. _ref_pyexample_mcp:
 
-============= 
+=============
 PyExample-MCP
 =============
 
