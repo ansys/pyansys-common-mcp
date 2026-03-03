@@ -85,7 +85,7 @@ async def execute_python_code(
         await execute_python_code(ctx, code)
 
 
-    # Automatically adds rule like: {"Division Operations": ["Do not divide by zero"]}
+    Automatically adds rule like: ``{"Division Operations": ["Do not divide by zero"]}``
     """
     app_context = ctx.request_context.lifespan_context
     session = app_context.python_session
