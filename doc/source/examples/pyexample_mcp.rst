@@ -1,6 +1,6 @@
 .. _ref_pyexample_mcp:
 
-=============
+============= 
 PyExample-MCP
 =============
 
@@ -178,6 +178,7 @@ Implement the server
                    logger.info("Closing PyExample instance...")
                    self.context.example_instance.exit()
                    logger.info("PyExample instance closed successfully")
+
                except Exception as e:
                    logger.error(f"Error during PyExample cleanup: {e}")
 
@@ -197,8 +198,9 @@ Implement tools
 
    from ansys.example_mcp.server import app
    from ansys.common.mcp import get_context
-   from ansys.common.mcp.logging_config
-import get_logger logger = get_logger(__name__)
+   from ansys.common.mcp.logging_config import get_logger
+
+   logger = get_logger(__name__)
 
    # Define tools for interacting with PyExample instance
    @app.tool()
@@ -215,6 +217,7 @@ import get_logger logger = get_logger(__name__)
        str
            Command execution result.
        """
+
        ctx = get_context()
        app_context = ctx.fastmcp._lifespan_result
 
@@ -229,7 +232,6 @@ import get_logger logger = get_logger(__name__)
        except Exception as e:
            logger.error(f"Command execution failed: {e}")
            return f"Error: {e}"
-
 
    @app.tool()
    def create_model(
@@ -253,6 +255,7 @@ import get_logger logger = get_logger(__name__)
        str
            Status message.
        """
+
        ctx = get_context()
        app_context = ctx.fastmcp._lifespan_result
 
@@ -292,6 +295,7 @@ import get_logger logger = get_logger(__name__)
        str
            Simulation results summary.
        """
+
        ctx = get_context()
        app_context = ctx.fastmcp._lifespan_result
 
@@ -320,10 +324,9 @@ import get_logger logger = get_logger(__name__)
 
        return f"Simulation completed for '{target_model}'\n{result}"
 
-
    @app.tool()
    def get_command_history(format: str = "list") -> str:
-       """Retrieve command execution history.
+       """Get command execution history.
 
        Parameters
        ----------
@@ -335,6 +338,7 @@ import get_logger logger = get_logger(__name__)
        str
            Command history in requested format.
        """
+
        ctx = get_context()
        app_context = ctx.fastmcp._lifespan_result
 
@@ -373,6 +377,7 @@ import get_logger logger = get_logger(__name__)
        str
            Execution output.
        """
+
        ctx = get_context()
        app_context = ctx.fastmcp._lifespan_result
 
