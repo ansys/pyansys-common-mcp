@@ -4,22 +4,22 @@
 Advanced patterns
 =================
 
-This section covers advanced techniques for building robust MCP servers.
+This page explains advanced techniques for building robust MCP servers.
 
 .. note::
 
-   All tool examples use the recommended ``ctx: Context`` parameter pattern for accessing
-   the application context. See :ref:`user_guide_architecture` for details.
+   All tool examples use the recommended ``ctx: Context`` parameter pattern to access
+   the application context. For more information, see :ref:`function_parameter`.
 
-Python session
-==============
+Initialize a Python session
+===========================
 
-Session initialization with startup code
-----------------------------------------
+Set up a session with startup code
+----------------------------------
 
-You can initialize a Python session with custom startup code that runs automatically
-when the session starts. This is useful for importing commonly used libraries,
-setting up configuration, or defining helper functions.
+You can set up a Python session with custom startup code that runs automatically
+when the session starts. This approach is useful for importing commonly used libraries,
+configuring settings, or defining helper functions.
 
 .. code-block:: python
 
@@ -44,16 +44,16 @@ setting up configuration, or defining helper functions.
    # Now numpy, pandas, and plt are already imported
    result = session.execute("arr = np.array([1, 2, 3, 4, 5])")
 
-When you restart the session using ``session.restart()``, the startup code
-will be executed again, ensuring that all imports and configurations are
-reestablished. This is particularly useful when resetting the session state
+When you restart the session using the ``session.restart()`` method, the startup
+code runs again, ensuring that all imports and configurations are
+reestablished. This approach is particularly useful when resetting the session state
 while maintaining necessary dependencies.
 
-Execute Python code from tools
--------------------------------
+Run Python code from tools
+--------------------------
 
-The ``execute_python_code`` tool allows you to run arbitrary Python code in the persistent session.
-The code is executed in the context of the session, so it has access to all imports and variables
+The ``execute_python_code`` tool lets you run arbitrary Python code in the persistent session.
+Because the code runs in the context of the session, it has access to all imports and variables
 defined in the startup code.
 
 .. code-block:: python
@@ -63,37 +63,36 @@ defined in the startup code.
 
    @mcp.tool()
    async def run_python_code(ctx: Context, code: str) -> str:
-       """Execute Python code in the persistent session.
+       """Run Python code in the persistent session.
 
        Parameters
        ----------
        ctx : Context
-           MCP context (automatically injected)
+           MCP context (automatically injected).
        code : str
-           Python code to execute
+           Python code to run.
        """
-       # Additional exection logic can be added here (e.g., logging, error handling)
+       # Add additional execution logic here (such as logging and error handling)
        await return execute_python_code(ctx=ctx, code=code)
 
+Restart a session with history
+------------------------------
 
-Session restart with history
------------------------------
-
-You can implement a tool to restart the Python session while optionally replaying the command history.
-This allows users to reset the session state without losing their previous commands.
+You can create a tool to restart the Python session while optionally replaying the command history.
+This approach allows you to reset the session state without losing previous commands.
 
 .. code-block:: python
 
    @mcp.tool()
    def restart_session(ctx: Context, replay_history: bool = True) -> str:
-       """Restart Python session and optionally replay commands.
+       """Restart the Python session and optionally replay commands.
 
        Parameters
        ----------
        ctx : Context
-           MCP context (automatically injected)
-       replay_history : bool
-           Whether to replay command history
+           MCP context (automatically injected).
+       replay_history : bool, default: True
+           Whether to replay command history.
        """
        app_context = ctx.request_context.lifespan_context
 
@@ -110,14 +109,14 @@ This allows users to reset the session state without losing their previous comma
 
        return "Session restarted"
 
-
-Command history
-===============
+Track command history
+=====================
 
 Create and export command history
 ---------------------------------
 
-You can maintain a command history in the application context and provide tools to export it in various formats.
+You can maintain a command history in the application context and provide tools
+to export it in various formats.
 
 .. code-block:: python
 
@@ -125,14 +124,14 @@ You can maintain a command history in the application context and provide tools 
 
    @mcp.tool()
    def execute_command(ctx: Context, command: str) -> str:
-       """Execute and track command.
+       """Run and track a command.
 
        Parameters
        ----------
        ctx : Context
-           MCP context (automatically injected)
+           MCP context (automatically injected).
        command : str
-           Command to execute
+           Command to run.
        """
        app_context = ctx.request_context.lifespan_context
        result = app_context.product_instance.run(command)
@@ -142,14 +141,14 @@ You can maintain a command history in the application context and provide tools 
 
    @mcp.tool()
    def export_history(ctx: Context, format: str = "json") -> str:
-       """Export command history as JSON or text.
+       """Export the command history as JSON or text.
 
        Parameters
        ----------
        ctx : Context
-           MCP context (automatically injected)
-       format : str
-           Export format ('json' or 'text')
+           MCP context (automatically injected).
+       format : str, default: 'json'
+           Export format ('json' or 'text').
        """
        app_context = ctx.request_context.lifespan_context
 
@@ -158,12 +157,11 @@ You can maintain a command history in the application context and provide tools 
            return json.dumps(app_context.command_history, indent=2)
        return "\n".join(app_context.command_history)
 
+Handle errors
+=============
 
-Error handling
-==============
-
-Graceful degradation
---------------------
+Use graceful degradation
+-------------------------
 
 Handle errors without crashing the server:
 
@@ -192,11 +190,11 @@ Handle errors without crashing the server:
 
 .. note::
 
-   Logs are automatically redirected to stderr (not stdout) to avoid interfering
-   with the MCP protocol. This is handled by the logging configuration.
+   Logs automatically redirect to stderr (not stdout) to avoid interfering
+   with the MCP protocol. The logging configuration handles this behavior.
 
-Retry logic
------------
+Add retry logic
+---------------
 
 Implement retry logic for flaky connections:
 
@@ -226,12 +224,11 @@ Implement retry logic for flaky connections:
                    logger.error("All connection attempts failed")
                    raise
 
+Track metadata
+==============
 
-Metadata
-========
-
-Track session state
--------------------
+Monitor session state
+---------------------
 
 .. code-block:: python
 
@@ -247,8 +244,8 @@ Track session state
            "statistics": {"commands_executed": 0, "errors": 0}
        })
 
-User preferences
-----------------
+Manage user preferences
+-----------------------
 
 .. code-block:: python
 
@@ -259,11 +256,11 @@ User preferences
        Parameters
        ----------
        ctx : Context
-           MCP context (automatically injected)
+           MCP context (automatically injected).
        key : str
-           Preference key
+           Preference key.
        value : str
-           Preference value
+           Preference value.
        """
        app_context = ctx.request_context.lifespan_context
        app_context.metadata.setdefault("preferences", {})[key] = value
@@ -286,16 +283,16 @@ User preferences
        Parameters
        ----------
        ctx : Context
-           MCP context (automatically injected)
+           MCP context (automatically injected).
        key : str
-           Preference key
-       default : str, optional
-           Default value if not found
+           Preference key.
+       default : str, default: None
+           Default value if the specified preference key is not found.
        """
        app_context = ctx.request_context.lifespan_context
        prefs = app_context.metadata.get("preferences", {})
        value = prefs.get(key, default)
 
        if value is None:
-           return f"Preference '{key}' not set"
+           return f"Preference '{key}' is not set."
        return value

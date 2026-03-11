@@ -36,23 +36,23 @@ __all__ = ["PyAnsysBaseAppContext"]
 class PyAnsysBaseAppContext:
     """Base application context for PyAnsys MCP servers.
 
-    This provides a common structure that product-specific contexts
-    can extend. The product_instance field can hold any Ansys product
-    connection (MAPDL, Fluent, Maxwell, etc.).
+    This class provides a common structure that product-specific contexts
+    can extend. The ``product_instance`` field can hold any Ansys product
+    connection (such as MAPDL, Fluent, or Maxwell).
 
     Attributes
     ----------
-    product_instance : Optional[Any]
-        The main product instance (e.g., MAPDL, Fluent) associated with the context.
-    python_executable : Optional[Any]
-        The Python executable used for the session.
-    python_session : Optional[Any]
-        An instance of PersistentPythonSession for managing a persistent
+    product_instance : [Any], default: None
+        Main product instance (such as MAPDL or Fluent) associated with the context.
+    python_executable : [Any], default: None
+        Python executable to usd for the session.
+    python_session : [Any], default: None
+        Instance of the ``PersistentPythonSession`` class for managing the persistent
         Python session.
     metadata : dict
-        A dictionary for storing arbitrary metadata related to the context.
+        Dictionary for storing arbitrary metadata related to the context.
     command_history : list
-        A list to keep track of executed commands in the session.
+        List to keep track of executed commands in the session.
 
     Examples
     --------
