@@ -6,9 +6,11 @@ Getting started
 Introduction
 ------------
 
-PyAnsys Common MCP is a foundational library that helps you build Model Context Protocol (MCP) servers. These servers let AI assistants interact with Ansys products through PyAnsys libraries.
+PyAnsys Common MCP is a foundational library that helps you build Model Context Protocol (MCP)
+servers. These servers let AI assistants interact with Ansys products through PyAnsys libraries.
 
-This section shows how to create your first MCP server in under 30 minutes. For architectural concepts and advanced patterns, see the :ref:`ref_user_guide`.
+This section shows how to create your first MCP server in under 30 minutes. For architectural
+concepts and advanced patterns, see the :ref:`ref_user_guide`.
 
 **Target audience:** PyAnsys library developers who create MCP servers for their products.
 
