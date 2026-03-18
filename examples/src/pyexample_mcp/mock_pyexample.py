@@ -4,11 +4,10 @@ This module simulates a real Ansys product API to enable end-to-end testing
 of the pyansys-common-mcp framework without requiring an actual product installation.
 """
 
+import random
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
-
-from numpy import random
 
 
 @dataclass
@@ -186,14 +185,15 @@ PyExample {self.version} - {len(self.models)} models, {self._command_count} comm
         model = self.models[target]
         model.status = "solved"
 
-        random.seed(hash(target))
+        # Mock simulation results with random values based on model name for consistency
+        random.seed(hash(target))  # nosec B311
 
         result = SimulationResult(
             model_name=target,
             status="converged",
-            convergence_iterations=random.randint(5, 15),
-            max_stress=random.uniform(50.0, 500.0),
-            displacement=random.uniform(0.001, 0.1),
+            convergence_iterations=random.randint(5, 15),  # nosec B311
+            max_stress=random.uniform(50.0, 500.0),  # nosec B311
+            displacement=random.uniform(0.001, 0.1),  # nosec B311
         )
 
         return result
