@@ -1,8 +1,7 @@
 .. _ref_pymapdl_mcp:
 
-===============
 PyMAPDL-MCP
-===============
+===========
 
 For a production-ready and real-world implementation, you can explore
 `PyMAPDL-MCP <pymapdl_mcp_>`_ which is a complete MCP server for PyMAPDL.

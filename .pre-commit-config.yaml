@@ -9,6 +9,10 @@ repos:
     rev: v0.5.2
     hooks:
     - id: add-license-headers
+      exclude: |
+          (?x)^(
+              examples/src/pyexample_mcp/.*
+          )$
       args:
       - --start_year=2025
 

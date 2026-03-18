@@ -122,6 +122,7 @@ asyncio_mode = "auto"
 addopts = [
     "--verbose",
     "--cov=ansys.common.mcp",
+    "--cov=pyexample_mcp",
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml",
