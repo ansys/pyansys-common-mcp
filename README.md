@@ -4,56 +4,56 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
 [![MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Common infrastructure for building [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers for PyAnsys libraries.
+PyAnsys Common MCP provides the infrastructure for building [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers for PyAnsys libraries.
 
 ## Overview
 
 This package provides the foundation for creating MCP servers that enable AI assistants (like Claude, ChatGPT) to interact with Ansys products through PyAnsys libraries.
 
-**Key Features:**
-- **Persistent Python sessions** - Stateful code execution across multiple AI requests
-- **Lifecycle management** - Automatic startup, cleanup, and error handling
-- **Extensible architecture** - Base classes and patterns for product-specific implementations
-- **Logging infrastructure** - Pre-configured logging that doesn't interfere with MCP protocol
+**Key features:**
+- **Persistent Python sessions**: Maintains stateful code execution across multiple AI requests.
+- **Lifecycle management**: Handles startup, cleanup, and errors automatically.
+- **Extensible architecture**: Uses base classes and patterns for product-specific implementations.
+- **Logging infrastructure**: Uses pre-configured logging that does not interfere with the MCP protocol.
 
 ## Installation
 
-As the library is published to the private PyPI, the ``PYANSYS_PYPI_PRIVATE_PAT`` key is needed for the installation process.
+To install the package from the private PyPI, use the `PYANSYS_PYPI_PRIVATE_PAT` key:
 
 ```bash
 pip install ansys-common-mcp --extra-index-url https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
 ```
 
+If you are contributing to PyAnsys Common MCP or creating custom servers, install the package in developer mode:
 
-For developers contributing to PyAnsys Common MCP or creating custom servers:
 ```bash
 # Clone the repository
 git clone https://github.com/ansys/pyansys-common-mcp.git
 cd pyansys-common-mcp
 
-# Install in editable mode with dev dependencies
+# Install in editable mode with development dependencies
 pip install -e .[dev]
 
-# Or for documentation building
+# Or install documentation dependencies for building documentation
 pip install -e .[doc]
 ```
 
-## Quick Start
+## Quick start
 
-Creating an MCP server for your PyAnsys library involves three main steps:
+To create an MCP server for your PyAnsys library, follow these three main steps:
 
-1. **Define your custom context** - Extend `PyAnsysBaseAppContext` to store product-specific state
-2. **Implement your MCP server** - Extend `PyAnsysBaseMCP` with startup/cleanup logic
-3. **Create MCP tools** - Define tools that interact with your product
+1. **Define your custom context**: Extend the `PyAnsysBaseAppContext` dataclass to store the product-specific state.
+2. **Implement your MCP server**: Extend the `PyAnsysBaseMCP` base class with startup and cleanup logic.
+3. **Create MCP tools**: Define tools that interact with your product.
 
-## Real-World Example
+## Real-world example
 
-See **[PyMAPDL-MCP](https://github.com/ansys/pymapdl-mcp)** for a complete, production-ready implementation.
+For a complete, production-ready implementation, see the [PyMAPDL-MCP](https://github.com/ansys/pymapdl-mcp) repository.
 
-## Documentation
+## Resources
 
-Full documentation available at:
-- **Documentation**: [Full documentation](https://refactored-chainsaw-r6q6r7j.pages.github.io/)
-- **Issues**: [GitHub issues](https://github.com/ansys/pyansys-common-mcp/issues)
-- **Email**: pyansys.core@ansys.com
-- **Discussions**: [GitHub discussions](https://github.com/ansys/pyansys-common-mcp/discussions)
+- [PyAnsys Common MCP documentation](https://refactored-chainsaw-r6q6r7j.pages.github.io/)
+- [Repository's Issues page](https://github.com/ansys/pyansys-common-mcp/issues)
+- [Repository's Discussion page](https://github.com/ansys/pyansys-common-mcp/discussions)
+
+For general PyAnsys questions, email pyansys.core@ansys.com.

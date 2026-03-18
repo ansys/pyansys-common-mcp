@@ -6,35 +6,35 @@ Getting started
 Introduction
 ------------
 
-PyAnsys Common MCP is a foundational library for building Model Context Protocol (MCP) servers
-that enable AI assistants to interact with Ansys products through PyAnsys libraries.
+PyAnsys Common MCP is a foundational library that helps you build Model Context Protocol (MCP) servers. These servers let AI assistants interact with Ansys products through PyAnsys libraries.
 
-This guide will help you create your first MCP server in under 30 minutes. For detailed
-architectural concepts and advanced patterns, see the :ref:`ref_user_guide`.
+This section shows how to create your first MCP server in under 30 minutes. For architectural concepts and advanced patterns, see the :ref:`ref_user_guide`.
 
-**Target Audience:** PyAnsys library developers creating MCP servers for their products.
+**Target audience:** PyAnsys library developers who create MCP servers for their products.
 
 Installation
 ------------
 
+Here are the requirements for PyAnsys Common MCP:
+
 Requirements
 ~~~~~~~~~~~~
 - Python 3.10 or later (up to 3.13)
-- PyAnsys library for your product (e.g., PyMAPDL, PyFluent)
+- A PyAnsys library for your product (such as PyMAPDL or PyFluent)
 
-Standard installation
-~~~~~~~~~~~~~~~~~~~~~
+Install in user mode
+~~~~~~~~~~~~~~~~~~~~
 
-Install from the private PyPI (requires the ``PYANSYS_PYPI_PRIVATE_PAT`` environment variable) :
+Install in user mode from the private PyPI. Set the ``PYANSYS_PYPI_PRIVATE_PAT`` environment variable:
 
 .. code-block:: bash
 
    pip install ansys-common-mcp --extra-index-url https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
 
-Development installation
-~~~~~~~~~~~~~~~~~~~~~~~~
+Install in developer mode
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For developers contributing to PyAnsys Common MCP or creating custom servers:
+If you want to contribute to PyAnsys Common MCP or create custom servers, install in developer mode:
 
 .. code-block:: bash
 
@@ -42,14 +42,14 @@ For developers contributing to PyAnsys Common MCP or creating custom servers:
    git clone https://github.com/ansys/pyansys-common-mcp.git
    cd pyansys-common-mcp
 
-   # Install in editable mode with dev dependencies
+   # Install in editable mode with development dependencies
    pip install -e .[dev]
 
-   # Or for documentation building
+   # Or install documentation dependencies for building documentation
    pip install -e .[doc]
 
-Verify installation
-~~~~~~~~~~~~~~~~~~~
+Verify the installation
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Verify the installation by importing the package:
 
@@ -61,8 +61,9 @@ Verify the installation by importing the package:
 Quick start
 -----------
 
-Check the :ref:`ref_pyexample_mcp` for complete working examples. Below is a high-level overview of the
-steps to create a simple MCP server.
+Refer to the :ref:`ref_pyexample_mcp` section for a step-by-step example.
+Below is a high-level overview of the steps to create a simple MCP server using the
+``pyansys-common-mcp`` library.
 
 1. **Define the context**: Create a custom context class that inherits from
    :class:`ansys.common.mcp.context.PyAnsysBaseAppContext`.
@@ -83,10 +84,12 @@ steps to create a simple MCP server.
 
 7. **Run the server**: Install the package and run the server using the entry point.
 
+The server starts and communicates using stdio. It is ready to accept MCP requests from AI clients.
+
 Next steps
-----------
+==========
 
-Your MCP server is ready! Continue with:
+Your MCP server is ready. Explore these sections:
 
-- :ref:`ref_user_guide` - Understand how the framework works and learn advanced patterns
-- :ref:`ref_examples` - See complete working examples like `PyMAPDL-MCP <pymapdl_mcp_>`_
+- :ref:`ref_user_guide`: Learn how the framework works and discover advanced patterns.
+- :ref:`ref_examples`: See complete working examples like `PyMAPDL-MCP <pymapdl_mcp_>`_

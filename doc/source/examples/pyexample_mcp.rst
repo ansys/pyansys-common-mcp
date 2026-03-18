@@ -3,8 +3,8 @@
 PyExample-MCP
 =============
 
-This section walks through a complete, minimal MCP server implementation for a
-hypothetical PyAnsys library called "PyExample".
+This example shows how to implement a minimal MCP server for a
+hypothetical PyAnsys library named ``PyExample``.
 
 Project structure
 -----------------
@@ -24,10 +24,11 @@ This example uses a standard Python package layout with a ``src`` directory:
            ├── server.py
            └── context.py
 
-Once the structure is in place, we can start implementing the server.
 
-Step 1: Context definition
----------------------------
+Once the structure is in place, you can start implementing the server.
+
+Define the context
+------------------
 
 It is recommended to define a custom context class that inherits from
 :class:`ansys.common.mcp.context.PyAnsysBaseAppContext`.
@@ -41,8 +42,8 @@ This context will hold any shared state or resources needed by your MCP tools.
 The context holds shared state accessible from all tools. See :ref:`user_guide_architecture` for
 details on context management.
 
-Step 2: Server implementation
------------------------------
+Implement the server
+--------------------
 
 The server class inherits from :class:`ansys.common.mcp.server.PyAnsysBaseMCP` and implements the
 required methods to handle incoming requests.
@@ -59,8 +60,8 @@ Those methods are required by the :class:`ansys.common.mcp.server.PyAnsysBaseMCP
 
 **Optional:** Override ``create_context()`` only if using a custom context class.
 
-Step 3: Tool implementation
----------------------------
+Implement tools
+---------------
 
 The server can have one or more tools that implement specific functionality.
 
@@ -72,28 +73,33 @@ The server can have one or more tools that implement specific functionality.
 
 See the :ref:`user_guide_architecture` for details on context injection patterns.
 
-Step 4: Package initialization
--------------------------------
+
+Initialize the package
+----------------------
 
 **File:** ``src/pyexample_mcp/__init__.py``
 
 .. literalinclude:: ../../../examples/src/pyexample_mcp/__init__.py
    :language: python
 
-Step 5: Entry point
---------------------
+
+Define the entry point
+----------------------
 
 **File:** ``src/pyexample_mcp/__main__.py``
 
 .. literalinclude:: ../../../examples/src/pyexample_mcp/__main__.py
+   :language: python
 
-Step 6: Package configuration
-------------------------------
+
+Configure the package
+---------------------
 
 **File:** ``pyproject.toml``
 
 .. literalinclude:: ../../../examples/pyproject.toml
    :language: toml
+
 
 Run the example
 ---------------

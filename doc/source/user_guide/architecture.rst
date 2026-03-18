@@ -4,22 +4,22 @@
 Architecture
 ============
 
-This section explains the architecture of PyAnsys Common MCP and how components work together.
+This page describes the architecture of PyAnsys Common MCP and explains how components work together.
 
 Overview
 ========
 
-PyAnsys Common MCP follows a layered architecture with clear separation of concerns:
+PyAnsys Common MCP uses a layered architecture with a clear separation of concerns:
 
 .. mermaid::
 
    flowchart TD
-       A["AI Client<br/>(Claude, ChatGPT)"]
-       B["Your Product MCP Server<br/>• Custom Context<br/>• Product Startup/Cleanup<br/>• MCP Tools"]
-       C["PyAnsysBaseMCP<br/>(Base Class)<br/>• Lifecycle orchestration<br/>• Python session management<br/>• Context creation & injection<br/>• Error handling & logging"]
-       D["FastMCP<br/>(MCP Protocol Library)<br/>• MCP protocol implementation<br/>• Tool registration & execution<br/>• Transport layer (stdio)"]
+       A["AI client<br/>(Claude, ChatGPT)"]
+       B["Your product MCP server<br/>• Custom context<br/>• Product startup/cleanup<br/>• MCP tools"]
+       C["PyAnsysBaseMCP<br/>(Base class)<br/>• Lifecycle orchestration<br/>• Python session management<br/>• Context creation and injection<br/>• Error handling and logging"]
+       D["FastMCP<br/>(MCP protocol library)<br/>• MCP protocol implementation<br/>• Tool registration and execution<br/>• Transport layer (stdio)"]
 
-       A -->|"MCP Protocol (stdio)"| B
+       A -->|"MCP protocol (stdio)"| B
        B -.->|extends| C
        C -.->|uses| D
 
@@ -34,34 +34,35 @@ Core components
 PyAnsysBaseMCP
 --------------
 
-Base class for all PyAnsys product-specific MCP servers.
+``PyAnsysBaseMCP`` is the base class for all PyAnsys product-specific MCP servers.
 
-**Responsibilities:** Lifecycle orchestration, Python session management, context injection, error handling.
+**Responsibilities:** It orchestrates the lifecycle, manages Python sessions, injects context, and handles errors.
 
 .. important::
 
    **Methods you must implement:**
 
-   - ``product_startup()`` - Initialize your product connection
-   - ``product_cleanup()`` - Clean up your product connection
+   - ``product_startup()``: Initialize your product connection.
+   - ``product_cleanup()``: Clean up your product connection.
 
    These methods are abstract and must be implemented in your subclass.
-   Failing to do so will raise a ``TypeError`` at instantiation time.
+   If you fail to implement them, the system raises a ``TypeError`` at instantiation.
 
 **Methods you can optionally override:**
 
-- ``create_context()`` - Override only if using a custom context class (returns ``PyAnsysBaseAppContext`` by default)
+- ``create_context()``: Override this method only if you use a custom context class.
+  It returns the ``PyAnsysBaseAppContext`` dataclass by default.
 
 **Methods already implemented:**
 
-- ``start_python_session()`` - Starts persistent Python subprocess
-- ``cleanup_python_session()`` - Stops Python session
-- ``product_lifespan()`` - Manages complete server lifecycle
+- ``start_python_session()``: Start a persistent Python subprocess.
+- ``cleanup_python_session()``: Stop the Python session.
+- ``product_lifespan()``: Manage the complete server lifecycle.
 
 PyAnsysBaseAppContext
 ---------------------
 
-A dataclass that holds shared state accessible from all MCP tools.
+``PyAnsysBaseAppContent`` is the dataclass that holds the shared state accessible from all MCP tools.
 
 **Built-in fields:**
 
@@ -75,10 +76,9 @@ A dataclass that holds shared state accessible from all MCP tools.
        metadata: dict = field(default_factory=dict)
        command_history: list = field(default_factory=list)
 
-
 **Extending the context:**
 
-Product-specific servers can extend this to add custom fields:
+Product-specific servers can extend this class to add custom fields:
 
 .. code-block:: python
 
@@ -91,22 +91,31 @@ Product-specific servers can extend this to add custom fields:
        """Extended dataclass for MyProduct MCP context."""
        custom_field: Optional[str] = None
 
-
 .. tip::
 
     If you need a custom field, you can either extend this class or use the
-    ``metadata`` dict to store arbitrary key-value pairs.
-
+    ``metadata`` dictionary to store arbitrary key-value pairs.
 
 Context injection
 =================
 
-Context is injected into tools via FastMCP's dependency system. There are two ways to access it:
+The system injects context into tools using FastMCP's dependency system. You can inject context in two ways:
 
-Method 1: Function parameter (recommended)
-------------------------------------------
+.. _function_parameter:
 
-Declare ``ctx: Context`` as a parameter - FastMCP automatically injects it:
+Function parameter
+------------------
+
+The recommended way to inject context is to declare ``ctx: Context`` as a parameter. FastMCP then automatically injects it.
+
+- Always include ``ctx: Context`` as the first parameter to ensure proper injection.
+  This also enforces implementation of critical methods like ``product_startup()``
+  and ``product_cleanup()`` in your server class.
+
+- Do not attempt to pass ``ctx`` manually when calling the tool. The framework handles it
+  automatically.
+
+  This code shows how to declare ``ctx: Context`` as a parameter:
 
 .. code-block:: python
 
@@ -119,9 +128,9 @@ Declare ``ctx: Context`` as a parameter - FastMCP automatically injects it:
        Parameters
        ----------
        ctx : Context
-           MCP context (automatically injected, don't pass manually)
+           MCP context (automatically injected). Do not pass manually.
        param : str
-           Your parameter
+           Your parameter.
        """
        # Access application context
        app_context = ctx.request_context.lifespan_context
@@ -135,23 +144,11 @@ Declare ``ctx: Context`` as a parameter - FastMCP automatically injects it:
 
        return result
 
-.. note::
+``get_context()`` function
+--------------------------
 
-    Always include ``ctx: Context`` as the first parameter to ensure proper injection.
-    This also enforces implementation of critical methods like ``product_startup()``
-    and ``product_cleanup()`` in your server class.
-
-.. note::
-
-    Do not attempt to pass ``ctx`` manually when calling the tool - it is handled
-    automatically by the framework.
-
-
-Method 2: ``get_context()`` function
-------------------------------------
-
-Another way is to import and call ``get_context()`` inside the tool function.
-This retrieves the current context instance.
+The other way to inject context is to import and call the ``get_context()`` function
+inside the tool function. This function retrieves the current context instance.
 
 .. code-block:: python
 
@@ -167,63 +164,48 @@ This retrieves the current context instance.
        app_context.command_history.append(f"my_tool({param})")
        return result
 
-
 Tools
 =====
 
-This library provides a set of built-in tools or common operations like executing Python code and
-create custom plots.
-You can check the :py:mod:`ansys.common.mcp.tools` module and use the available functions directly
-in your server or extend them with additional logic.
+This library provides a set of built-in tools for common operations, such as executing Python code and creating custom plots. You can explore the :py:mod:`ansys.common.mcp.tools` module to use the available functions directly in your server or extend them with additional logic.
 
-If a function, that could be used by many repositories is missing, feel free to open an issue or
-submit a PR to add it. The tools module is meant to be a shared utility belt for all PyAnsys product
-MCP servers.
-
+If you identify a missing function that could benefit multiple repositories, consider opening an issue or submitting a pull request (PR) to add it. The tools module serves as a shared utility belt for all PyAnsys product MCP servers.
 
 Lifecycle management
 ====================
 
-Server lifecycle is managed automatically by ``product_lifespan``:
+The ``product_lifespan()`` method automatically manages the server lifecycle:
 
 **Phases:**
 
-1. Create Context
-2. Start Python Session
-3. **Product Startup** ← Your code
-4. Server runs (handles requests)
-5. **Product Cleanup** ← Your code
-6. Stop Python Session
+1. Create context.
+2. Start Python session.
+3. **Start product.** ← Add your code here.
+4. Server runs (handles requests).
+5. **Clean up product.** ← Add your code here.
+6. Stop Python session.
 
-Using ABC ensures that product-specific servers implement ``product_startup()``
-and ``product_cleanup()``. Forgetting these would cause runtime errors, so we
-catch them at instantiation:
+Using the abstract base class ensures that product-specific servers implement the
+``product_startup()`` and ``product_cleanup()`` methods. If these methods are not
+implemented, the system raises runtime errors:
 
 .. code-block:: python
 
-   # This will raise TypeError if methods not implemented
+   # This raises TypeError if methods are not implemented
    server = MyProductMCP()
-   # TypeError: Can't instantiate abstract class MyProductMCP with abstract methods product_cleanup, product_startup
+   # TypeError: Can't instantiate abstract class MyProductMCP with abstract methods product_cleanup() and product_startup()
 
-Why async lifespan?
--------------------
+**Asynchronous lifecycle:**
 
-**Reason:** FastMCP uses async/await for all operations
+FastMCP uses async/await for all operations because the MCP protocol is inherently asynchronous. The ``product_lifespan()`` method is an async context manager that integrates with FastMCP's event loop. This allows the framework to handle all asynchronous complexity internally.
 
-The MCP protocol is inherently asynchronous. FastMCP handles all the async
-complexity internally. The ``product_lifespan`` is an async context manager
-that integrates with FastMCP's event loop.
-
-**Note:** Your ``product_startup()`` and ``product_cleanup()`` are regular
-(synchronous) functions - the async part is handled by the framework.
-
+**Note:** Your ``product_startup()`` and ``product_cleanup()`` methods are regular
+(synchronous) functions. The framework handles the async part.
 
 Logging
 =======
 
-Logs go to **stderr** (not stdout) to avoid interfering with MCP protocol.
-
-**Setup:**
+Logs are written to **stderr** (not ``stdout``) to avoid interfering with the MCP protocol. To configure logging, use this code:
 
 .. code-block:: python
 

@@ -22,8 +22,8 @@
 
 """Entry point for running the MCP server as a module.
 
-Note: This common package is primarily intended to be used as a library
-by product-specific MCP servers (e.g., PyMAPDL, PyFluent). It does not
+**Note:** This common package is primarily intended to be used as a library
+by product-specific MCP servers (such as PyMAPDL or PyFluent). It does not
 provide a standalone runnable server.
 
 To create a product-specific MCP server, see the examples in the README.
@@ -33,13 +33,13 @@ import sys
 
 
 def main():
-    """Provide usage information - main entry point for module execution."""
+    """Provide usage information. This is the main entry point for module execution."""
     print(
         "ansys-common-mcp is a library for building PyAnsys MCP servers.\n"
         "It is not meant to be run directly.\n\n"
-        "To create a product-specific MCP server, please refer to the documentation:\n"
-        "https://github.com/ansys-internal/pyansys-common-mcp\n\n"
-        "Example product-specific servers:\n"
+        "To create a product-specific MCP server, see the documentation:\n"
+        "https://github.com/ansys/pyansys-common-mcp\n\n"
+        "For example product-specific servers, see:\n"
         "  - pymapdl-mcp: https://github.com/ansys/pymapdl-mcp\n"
     )
     return 0
