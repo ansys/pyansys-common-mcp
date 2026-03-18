@@ -71,7 +71,6 @@ extensions = [
     "sphinx_design",
     "sphinx.ext.autodoc",
     "sphinx.ext.extlinks",
-    "sphinx.ext.graphviz",
     "sphinx.ext.intersphinx",
     "sphinxcontrib.mermaid",
 ]
