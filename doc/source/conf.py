@@ -73,6 +73,7 @@ extensions = [
     "sphinx.ext.extlinks",
     "sphinx.ext.graphviz",
     "sphinx.ext.intersphinx",
+    "sphinxcontrib.mermaid",
 ]
 
 # Intersphinx mapping
