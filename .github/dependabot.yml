@@ -19,7 +19,7 @@ updates:
       - "maintenance"
       - "dependencies"
     commit-message:
-      prefix: "BUILD(uv)"
+      prefix: "maint"
 
   - package-ecosystem: "github-actions"
     cooldown:
@@ -40,4 +40,4 @@ updates:
       - "maintenance"
       - "dependencies"
     commit-message:
-      prefix: "BUILD(actions)"
+      prefix: "maint"
