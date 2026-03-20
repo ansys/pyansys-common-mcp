@@ -36,7 +36,8 @@ PyAnsysBaseMCP
 
 ``PyAnsysBaseMCP`` is the base class for all PyAnsys product-specific MCP servers.
 
-**Responsibilities:** It orchestrates the lifecycle, manages Python sessions, injects context, and handles errors.
+**Responsibilities:** It orchestrates the lifecycle, manages Python sessions, injects context, and
+handles errors.
 
 .. important::
 
@@ -99,14 +100,16 @@ Product-specific servers can extend this class to add custom fields:
 Context injection
 =================
 
-The system injects context into tools using FastMCP's dependency system. You can inject context in two ways:
+The system injects context into tools using FastMCP's dependency system. You can inject context in
+two ways:
 
 .. _function_parameter:
 
 Function parameter
 ------------------
 
-The recommended way to inject context is to declare ``ctx: Context`` as a parameter. FastMCP then automatically injects it.
+The recommended way to inject context is to declare ``ctx: Context`` as a parameter. FastMCP then
+automatically injects it.
 
 - Always include ``ctx: Context`` as the first parameter to ensure proper injection.
   This also enforces implementation of critical methods like ``product_startup()``
@@ -167,9 +170,13 @@ inside the tool function. This function retrieves the current context instance.
 Tools
 =====
 
-This library provides a set of built-in tools for common operations, such as executing Python code and creating custom plots. You can explore the :py:mod:`ansys.common.mcp.tools` module to use the available functions directly in your server or extend them with additional logic.
+This library provides a set of built-in tools for common operations, such as executing Python code
+and creating custom plots. You can explore the :py:mod:`ansys.common.mcp.tools` module to use the
+available functions directly in your server or extend them with additional logic.
 
-If you identify a missing function that could benefit multiple repositories, consider opening an issue or submitting a pull request (PR) to add it. The tools module serves as a shared utility belt for all PyAnsys product MCP servers.
+If you identify a missing function that could benefit multiple repositories, consider opening an
+issue or submitting a pull request (PR) to add it. The tools module serves as a shared utility belt
+for all PyAnsys product MCP servers.
 
 Lifecycle management
 ====================
@@ -193,11 +200,14 @@ implemented, the system raises runtime errors:
 
    # This raises TypeError if methods are not implemented
    server = MyProductMCP()
-   # TypeError: Can't instantiate abstract class MyProductMCP with abstract methods product_cleanup() and product_startup()
+   # TypeError: Can't instantiate abstract class MyProductMCP with abstract methods
+   # product_cleanup() and product_startup()
 
 **Asynchronous lifecycle:**
 
-FastMCP uses async/await for all operations because the MCP protocol is inherently asynchronous. The ``product_lifespan()`` method is an async context manager that integrates with FastMCP's event loop. This allows the framework to handle all asynchronous complexity internally.
+FastMCP uses async/await for all operations because the MCP protocol is inherently asynchronous.
+The ``product_lifespan()`` method is an async context manager that integrates with FastMCP's event
+loop. This allows the framework to handle all asynchronous complexity internally.
 
 **Note:** Your ``product_startup()`` and ``product_cleanup()`` methods are regular
 (synchronous) functions. The framework handles the async part.
@@ -205,7 +215,8 @@ FastMCP uses async/await for all operations because the MCP protocol is inherent
 Logging
 =======
 
-Logs are written to **stderr** (not ``stdout``) to avoid interfering with the MCP protocol. To configure logging, use this code:
+Logs are written to **stderr** (not ``stdout``) to avoid interfering with the MCP protocol. To
+configure logging, use this code:
 
 .. code-block:: python
 
