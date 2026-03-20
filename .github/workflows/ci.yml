@@ -77,7 +77,6 @@ jobs:
       - name: "Run Ansys documentation building action"
         uses: ansys/actions/doc-build@2a2b198b65c63adb69c0d032d180e4dc728d4809 #v10.2.9
         with:
-          library-name: ${{ env.PACKAGE_NAME }}
           python-version: ${{ env.MAIN_PYTHON_VERSION }}
           checkout: false
 
