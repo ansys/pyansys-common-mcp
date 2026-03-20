@@ -4,4 +4,4 @@ This project uses [towncrier](https://towncrier.readthedocs.io/) to generate cha
 
 Refer to the [raw release notes](doc/source/changelog.rst) for more information.
 
-[Published release notes](https://math.docs.pyansys.com/version/stable/changelog.html) can be found in the online documentation.
+[Published release notes](https://common-mcp.docs.pyansys.com/version/stable/changelog.html) can be found in the online documentation.

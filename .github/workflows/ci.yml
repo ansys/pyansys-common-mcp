@@ -19,7 +19,7 @@ permissions: {}
 env:
   MAIN_PYTHON_VERSION: "3.12"
   PACKAGE_NAME: "ansys-common-mcp"
-  DOCUMENTATION_CNAME: 'refactored-chainsaw-r6q6r7j.pages.github.io'
+  DOCUMENTATION_CNAME: 'common-mcp.docs.pyansys.com'
 
 jobs:
   code-style:
