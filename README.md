@@ -25,18 +25,17 @@ Python 3.14 on Windows, Mac OS, and Linux.
 
 Install the latest package for use with this command:
 
-.. code::
-
-   pip install ansys-common-mcp
+```bash
+pip install ansys-common-mcp
+```
 
 Alternatively, install the latest
 `PyAnsys Common MCP GitHub <https://github.com/ansys/pyansys-common-mcp>`_ package
 with this command:
 
-.. code::
-
-   pip install git+https://github.com/ansys/pyansys-common-mcp.git
-
+```bash
+pip install git+https://github.com/ansys/pyansys-common-mcp.git
+```
 
 ### For developers
 
