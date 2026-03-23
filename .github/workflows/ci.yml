@@ -134,7 +134,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [docs]
     permissions:
-      contents: write  
+      contents: write
       pull-requests: write  # Needed to write comment on PR
     steps:
       - name: "Deploy the PR documentation"
