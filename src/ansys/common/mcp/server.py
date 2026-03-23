@@ -45,7 +45,7 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         working_directory: Optional[str] = None,
         *args,
         **kwargs,
-    ):  # noqa: D403
+    ):
         """PyAnsys Base MCP server for PyAnsys libraries.
 
         Parameters
