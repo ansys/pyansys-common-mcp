@@ -3,7 +3,7 @@
 Overall guidance on contributing to a PyAnsys library appears in the
 [Contributing] topic in the *PyAnsys developer's guide*. Ensure that you
 are thoroughly familiar with this guide before attempting to contribute to
-X.
+the PyAnsys Common MCP project.
 
 The following contribution information is specific to PyAnsys Common MCP.
 
