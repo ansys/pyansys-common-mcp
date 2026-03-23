@@ -18,11 +18,27 @@ This package provides the foundation for creating MCP servers that enable AI ass
 
 ## Installation
 
-To install the package from the private PyPI, use the `PYANSYS_PYPI_PRIVATE_PAT` key:
+### For users
 
-```bash
-pip install ansys-common-mcp --extra-index-url https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
-```
+The ``ansys.common.mcp`` package currently supports Python 3.10 through
+Python 3.14 on Windows, Mac OS, and Linux.
+
+Install the latest package for use with this command:
+
+.. code::
+
+   pip install ansys-common-mcp
+
+Alternatively, install the latest
+`PyAnsys Common MCP GitHub <https://github.com/ansys/pyansys-common-mcp>`_ package
+with this command:
+
+.. code::
+
+   pip install git+https://github.com/ansys/pyansys-common-mcp.git
+
+
+### For developers
 
 If you are contributing to PyAnsys Common MCP or creating custom servers, install the package in developer mode:
 
@@ -52,7 +68,7 @@ For a complete, production-ready implementation, see the [PyMAPDL-MCP](https://g
 
 ## Resources
 
-- [PyAnsys Common MCP documentation](https://refactored-chainsaw-r6q6r7j.pages.github.io/)
+- [PyAnsys Common MCP documentation](https://common-mcp.docs.pyansys.com)
 - [Repository's Issues page](https://github.com/ansys/pyansys-common-mcp/issues)
 - [Repository's Discussion page](https://github.com/ansys/pyansys-common-mcp/discussions)
 

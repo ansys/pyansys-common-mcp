@@ -19,9 +19,24 @@ permissions: {}
 env:
   MAIN_PYTHON_VERSION: "3.12"
   PACKAGE_NAME: "ansys-common-mcp"
-  DOCUMENTATION_CNAME: 'refactored-chainsaw-r6q6r7j.pages.github.io'
+  DOCUMENTATION_CNAME: 'common-mcp.docs.pyansys.com'
 
 jobs:
+
+  update-changelog:
+    name: "Update CHANGELOG (on release)"
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to read and write repository contents
+      pull-requests: write # Needed to create pull requests
+    steps:
+      - uses: ansys/actions/doc-deploy-changelog@36cd86710c966963f4dcec56a9670171618cf76a # v10.2.4
+        with:
+          token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
+          bot-user: ${{ secrets.PYANSYS_CI_BOT_USERNAME }}
+          bot-email: ${{ secrets.PYANSYS_CI_BOT_EMAIL }}
+
   code-style:
     name: "Code style checks"
     runs-on: ubuntu-latest
@@ -77,7 +92,6 @@ jobs:
       - name: "Run Ansys documentation building action"
         uses: ansys/actions/doc-build@2a2b198b65c63adb69c0d032d180e4dc728d4809 #v10.2.9
         with:
-          library-name: ${{ env.PACKAGE_NAME }}
           python-version: ${{ env.MAIN_PYTHON_VERSION }}
           checkout: false
 
@@ -134,7 +148,7 @@ jobs:
   release:
     name: "Release project"
     if: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags') }}
-    needs: [docs, package]
+    needs: [docs, package, update-changelog]
     runs-on: ubuntu-latest
     # Specifying a GitHub environment is optional, but strongly encouraged
     environment: release

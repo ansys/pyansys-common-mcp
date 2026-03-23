@@ -15,6 +15,7 @@ PyAnsys Common MCP
    user_guide/index
    api/index
    examples/index
+   changelog
 
 PyAnsys Common MCP is a foundational library for building Model Context Protocol (MCP)
 servers for PyAnsys libraries.

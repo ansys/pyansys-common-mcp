@@ -13,19 +13,10 @@ Explore the `PyMAPDL-MCP <pymapdl_mcp_>`_ repository for a production-ready, rea
 Key functions
 -------------
 
-- ``launch_mapdl()``: Start a MAPDL instance with configurable parameters.
+- ``launch_mapdl_session()``: Start a MAPDL instance with configurable parameters.
 - ``run_mapdl_commands()``: Execute APDL commands.
 - ``run_python_code()``: Execute Python code in a persistent session.
 - ``screenshot()``: Capture and return MAPDL graphics.
-
-Installation
-------------
-
-This package is not publicly available on PyPI. Install it with the following command:
-
-.. code-block:: bash
-
-    pip install ansys-mapdl-mcp --extra-index-url https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
 
 Usage with Claude Desktop
 -------------------------

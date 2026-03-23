@@ -27,11 +27,23 @@ Requirements
 Install in user mode
 ~~~~~~~~~~~~~~~~~~~~
 
-Install in user mode from the private PyPI. Set the ``PYANSYS_PYPI_PRIVATE_PAT`` environment variable:
+The ``ansys.common.mcp`` package currently supports Python 3.10 through
+Python 3.14 on Windows, Mac OS, and Linux.
+
+Install the latest package for use with this command:
 
 .. code-block:: bash
 
-   pip install ansys-common-mcp --extra-index-url https://${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}@pkgs.dev.azure.com/pyansys/_packaging/pyansys/pypi/simple/
+   pip install ansys-common-mcp
+
+Alternatively, install the latest
+`PyAnsys Common MCP GitHub <https://github.com/ansys/pyansys-common-mcp>`_ package
+with this command:
+
+.. code-block:: bash
+
+   pip install git+https://github.com/ansys/pyansys-common-mcp.git
+
 
 Install in developer mode
 ~~~~~~~~~~~~~~~~~~~~~~~~~
