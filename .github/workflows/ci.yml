@@ -135,7 +135,6 @@ jobs:
     needs: [docs]
     permissions:
       contents: write
-      pull-requests: write  # Needed to write comment on PR
     steps:
       - name: "Deploy the PR documentation"
         uses: ansys/actions/doc-deploy-pr@2a2b198b65c63adb69c0d032d180e4dc728d4809 #v10.2.9
