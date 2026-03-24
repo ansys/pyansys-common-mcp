@@ -31,7 +31,7 @@ jobs:
       contents: write # Needed to read and write repository contents
       pull-requests: write # Needed to create pull requests
     steps:
-      - uses: ansys/actions/doc-deploy-changelog@36cd86710c966963f4dcec56a9670171618cf76a # v10.2.4
+      - uses: ansys/actions/doc-deploy-changelog@90a4cd10a7253a205f71ee8619aefb8142c16f47 # v10.2.10
         with:
           token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
           bot-user: ${{ secrets.PYANSYS_CI_BOT_USERNAME }}
@@ -47,7 +47,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
 
       - name: "Run PyAnsys code style checks"
-        uses: ansys/actions/code-style@2a2b198b65c63adb69c0d032d180e4dc728d4809 #v10.2.9
+        uses: ansys/actions/code-style@90a4cd10a7253a205f71ee8619aefb8142c16f47 #v10.2.10
         with:
           checkout: false
 
@@ -64,7 +64,7 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - name: "Run tests with pytest"
-        uses: ansys/actions/tests-pytest@2a2b198b65c63adb69c0d032d180e4dc728d4809 #v10.2.9
+        uses: ansys/actions/tests-pytest@90a4cd10a7253a205f71ee8619aefb8142c16f47 #v10.2.10
         with:
           python-version: ${{ matrix.python-version }}
           pytest-extra-args: "--cov=ansys.common.mcp --cov-report=term --cov-report=html --cov-report=xml"
@@ -90,7 +90,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
 
       - name: "Run Ansys documentation building action"
-        uses: ansys/actions/doc-build@2a2b198b65c63adb69c0d032d180e4dc728d4809 #v10.2.9
+        uses: ansys/actions/doc-build@90a4cd10a7253a205f71ee8619aefb8142c16f47 #v10.2.10
         with:
           python-version: ${{ env.MAIN_PYTHON_VERSION }}
           checkout: false
@@ -106,7 +106,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
 
       - name: "Build library source and wheel artifacts"
-        uses: ansys/actions/build-library@2a2b198b65c63adb69c0d032d180e4dc728d4809 #v10.2.9
+        uses: ansys/actions/build-library@90a4cd10a7253a205f71ee8619aefb8142c16f47 #v10.2.10
         with:
           library-name: ${{ env.PACKAGE_NAME }}
           python-version: ${{ env.MAIN_PYTHON_VERSION }}
@@ -122,7 +122,7 @@ jobs:
       contents: write
     steps:
       - name: "Deploy the latest documentation"
-        uses: ansys/actions/doc-deploy-dev@2a2b198b65c63adb69c0d032d180e4dc728d4809 #v10.2.9
+        uses: ansys/actions/doc-deploy-dev@90a4cd10a7253a205f71ee8619aefb8142c16f47 #v10.2.10
         with:
           cname: ${{ env.DOCUMENTATION_CNAME }}
           token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
@@ -138,7 +138,7 @@ jobs:
       contents: write
     steps:
       - name: "Deploy the PR documentation"
-        uses: ansys/actions/doc-deploy-pr@2a2b198b65c63adb69c0d032d180e4dc728d4809 #v10.2.9
+        uses: ansys/actions/doc-deploy-pr@90a4cd10a7253a205f71ee8619aefb8142c16f47 #v10.2.10
         with:
           cname: ${{ env.DOCUMENTATION_CNAME }}
           token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
@@ -167,14 +167,14 @@ jobs:
         run: ls -Rla
 
       - name: "Release to GitHub"
-        uses: ansys/actions/release-github@2a2b198b65c63adb69c0d032d180e4dc728d4809 #v10.2.9
+        uses: ansys/actions/release-github@90a4cd10a7253a205f71ee8619aefb8142c16f47 #v10.2.10
         with:
           library-name: ${{ env.PACKAGE_NAME }}
           token: ${{ secrets.GITHUB_TOKEN }}
           only-code: true
 
       - name: "Release to private PyPI"
-        uses: ansys/actions/release-pypi-private@2a2b198b65c63adb69c0d032d180e4dc728d4809 #v10.2.9
+        uses: ansys/actions/release-pypi-private@90a4cd10a7253a205f71ee8619aefb8142c16f47 #v10.2.10
         with:
           library-name: ${{ env.PACKAGE_NAME }}
           twine-username: "__token__"
@@ -190,7 +190,7 @@ jobs:
       contents: write
     steps:
       - name: "Deploy the stable documentation"
-        uses: ansys/actions/doc-deploy-stable@2a2b198b65c63adb69c0d032d180e4dc728d4809 #v10.2.9
+        uses: ansys/actions/doc-deploy-stable@90a4cd10a7253a205f71ee8619aefb8142c16f47 #v10.2.10
         with:
           cname: ${{ env.DOCUMENTATION_CNAME }}
           token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
