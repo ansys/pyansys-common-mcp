@@ -79,3 +79,11 @@ repos:
         args: ['-c', 'pyproject.toml']
         additional_dependencies: ['bandit[toml]']
         exclude: ^tests/
+
+  # Spell checking with typos
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.44.0
+    hooks:
+      - id: typos
+        args: ["--config", "doc/styles/typos.toml"]
+        exclude: "doc/styles/config/vocabularies"
