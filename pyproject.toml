@@ -60,7 +60,7 @@ doc = [
     "inflect==7.5.0",
     "jupyter_sphinx==0.5.3",
     "numpy==2.2.6",
-    "numpydoc==1.8.0",
+    "numpydoc==1.10.0",
     "pandas==2.3.3",
     "parse==1.21.1",
     "pypandoc==1.17",
