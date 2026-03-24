@@ -62,7 +62,7 @@ doc = [
     "numpy==2.2.6",
     "numpydoc==1.8.0",
     "pandas==2.3.3",
-    "parse==1.20.2",
+    "parse==1.21.1",
     "pypandoc==1.17",
     "pytest-sphinx==0.7.1",
     "regex==2025.7.34",
