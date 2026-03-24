@@ -19,7 +19,7 @@ updates:
       - "maintenance"
       - "dependencies"
     commit-message:
-      prefix: "maint"
+      prefix: "build(pip)"
 
   - package-ecosystem: "github-actions"
     cooldown:
@@ -40,4 +40,4 @@ updates:
       - "maintenance"
       - "dependencies"
     commit-message:
-      prefix: "maint"
+      prefix: "build(actions)"
