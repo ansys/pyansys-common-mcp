@@ -45,7 +45,7 @@ class PyAnsysBaseAppContext:
     product_instance : [Any], default: None
         Main product instance (such as MAPDL or Fluent) associated with the context.
     python_executable : [Any], default: None
-        Python executable to usd for the session.
+        Python executable to use for the session.
     python_session : [Any], default: None
         Instance of the ``PersistentPythonSession`` class for managing the persistent
         Python session.
