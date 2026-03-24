@@ -130,6 +130,8 @@ jobs:
     - name: "Changelog fragment"
       uses: ansys/actions/doc-changelog@36cd86710c966963f4dcec56a9670171618cf76a # v10.2.4
       with:
+        use-pull-request-title: true
+        use-default-towncrier-config: true
         token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
         bot-user: ${{ secrets.PYANSYS_CI_BOT_USERNAME }}
         bot-email: ${{ secrets.PYANSYS_CI_BOT_EMAIL }}
