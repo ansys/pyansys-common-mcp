@@ -121,7 +121,7 @@ class PersistentPythonSession:
     python_executable : str, default: None
         Path to the Python executable to use. If ``None``, ``sys.executable`` is used.
     startup_code : str, default: None
-        Python code to execute when the session starts (for exammple, imports).
+        Python code to execute when the session starts (for example, imports).
     working_directory : str, default: None
         Working directory for the Python process. If ``None``, the current directory is used.
 
