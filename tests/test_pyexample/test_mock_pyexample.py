@@ -22,13 +22,13 @@
 
 """Unit tests for the mock PyExample library."""
 
-import pytest
 from pyexample_mcp.mock_pyexample import (
     Model,
     PyExample,
     SimulationResult,
     launch_pyexample,
 )
+import pytest
 
 
 class TestModel:

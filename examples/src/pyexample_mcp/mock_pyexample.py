@@ -4,10 +4,10 @@ This module simulates a real Ansys product API to enable end-to-end testing
 of the pyansys-common-mcp framework without requiring an actual product installation.
 """
 
-import random
-import uuid
 from dataclasses import dataclass, field
+import random
 from typing import Any, Dict, List, Optional
+import uuid
 
 
 @dataclass
@@ -69,6 +69,7 @@ class PyExample:
         Dictionary of created models
     active_model : Optional[str]
         Name of the currently active model
+
     """
 
     def __init__(
@@ -105,6 +106,7 @@ class PyExample:
         -------
         str
             Command execution result
+
         """
         self._command_count += 1
         command = command.strip()
@@ -156,6 +158,7 @@ PyExample {self.version} - {len(self.models)} models, {self._command_count} comm
         -------
         Model
             The created model
+
         """
         model = Model(name=name, model_type=model_type, parameters=parameters)
         self.models[name] = model
@@ -174,6 +177,7 @@ PyExample {self.version} - {len(self.models)} models, {self._command_count} comm
         -------
         SimulationResult
             Results of the simulation
+
         """
         target = model_name or self.active_model
         if not target:
@@ -210,6 +214,7 @@ PyExample {self.version} - {len(self.models)} models, {self._command_count} comm
         -------
         Model
             The requested model
+
         """
         if name not in self.models:
             raise ValueError(f"Model '{name}' not found")
@@ -222,6 +227,7 @@ PyExample {self.version} - {len(self.models)} models, {self._command_count} comm
         -------
         List[Model]
             List of all models
+
         """
         return list(self.models.values())
 
@@ -259,5 +265,6 @@ def launch_pyexample(
     -------
     PyExample
         Connected PyExample instance
+
     """
     return PyExample(mode=mode, timeout=timeout, port=port)

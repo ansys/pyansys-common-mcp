@@ -22,14 +22,11 @@
 
 """Unit tests for server module."""
 
-import asyncio
-from contextlib import asynccontextmanager
-from unittest.mock import AsyncMock, MagicMock, Mock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from ansys.common.mcp.context import PyAnsysBaseAppContext
-from ansys.common.mcp.helpers import PersistentPythonSession
 from ansys.common.mcp.server import PyAnsysBaseMCP
 
 
@@ -37,6 +34,7 @@ class MockMCP(PyAnsysBaseMCP):
     """Mock implementation of PyAnsysBaseMCP for testing."""
 
     def __init__(self, *args, **kwargs):
+        """Initialize mock MCP server for testing."""
         self.product_startup_called = False
         self.product_cleanup_called = False
         super().__init__(*args, **kwargs)
@@ -134,7 +132,7 @@ class TestPyAnsysBaseMCPCreateContext:
                 # Verify session is not created before calling create_context
                 mock_session.assert_not_called()
 
-                context = mcp.create_context()
+                mcp.create_context()
 
                 # Verify PersistentPythonSession was instantiated
                 mock_session.assert_called()
@@ -153,7 +151,7 @@ class TestPyAnsysBaseMCPCreateContext:
         with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
             with patch("ansys.common.mcp.server.PersistentPythonSession") as mock_session:
                 mcp = MockMCP()
-                context = mcp.create_context()
+                mcp.create_context()
 
                 # Check that the session was created with startup code
                 call_kwargs = mock_session.call_args[1]
