@@ -110,11 +110,11 @@ lint.ignore = [
 lint.per-file-ignores."!src/**.py" = [ "D" ]
 # Ignore `F401` (import violations) in all `__init__.py` files.
 lint.per-file-ignores."__init__.py" = [ "F401" ]
-# Ignore `E402` (module level import not at top of file) in `src/ansys/geometry/core/__init__.py`.
-lint.per-file-ignores."src/ansys/geometry/core/__init__.py" = [ "E402" ]
+# Ignore `E402` (module level import not at top of file) in `src/ansys/common/mcp/__init__.py`.
+lint.per-file-ignores."src/ansys/common/mcp/__init__.py" = [ "E402" ]
 lint.isort.combine-as-imports = true
 lint.isort.force-sort-within-sections = true
-lint.isort.known-first-party = [ "ansys.geometry.core" ]
+lint.isort.known-first-party = [ "ansys.common.mcp" ]
 lint.pydocstyle.convention = "numpy"
 
 [tool.mypy]
