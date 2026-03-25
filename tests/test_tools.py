@@ -25,8 +25,8 @@
 import json
 from unittest.mock import MagicMock
 
-import pytest
 from mcp.types import ImageContent, TextContent
+import pytest
 
 from ansys.common.mcp.tools import create_custom_plot, execute_python_code
 
@@ -337,7 +337,10 @@ class TestCreateCustomPlotBasic:
         # Setup mock context
         mock_context = MagicMock()
         mock_session = MagicMock()
-        base64_data = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        base64_data = (
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwAD"
+            "hgGAWjR9awAAAABJRU5ErkJggg=="
+        )
         mock_session.execute.return_value = {
             "success": True,
             "stdout": f"data:image/png;base64,{base64_data}",
@@ -362,7 +365,10 @@ class TestCreateCustomPlotBasic:
         # Setup mock context
         mock_context = MagicMock()
         mock_session = MagicMock()
-        base64_data = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        base64_data = (
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwAD"
+            "hgGAWjR9awAAAABJRU5ErkJggg=="
+        )
         mock_session.execute.return_value = {
             "success": True,
             "stdout": f"data:image/png;base64,{base64_data}",

@@ -26,12 +26,11 @@ These tests validate the complete MCP server implementation and serve as
 end-to-end tests for the pyansys-common-mcp library.
 """
 
-import asyncio
 from unittest.mock import MagicMock, patch
 
-import pytest
 from pyexample_mcp import PyExampleContext, PyExampleMCP, app
 from pyexample_mcp.mock_pyexample import PyExample
+import pytest
 
 
 class TestPyExampleMCPInitialization:
@@ -80,7 +79,7 @@ class TestPyExampleMCPContext:
         with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
             with patch("pyexample_mcp.server.PersistentPythonSession") as mock_session:
                 mcp = PyExampleMCP()
-                context = mcp.create_context()
+                mcp.create_context()
 
                 call_kwargs = mock_session.call_args[1]
                 startup = call_kwargs["startup_code"]

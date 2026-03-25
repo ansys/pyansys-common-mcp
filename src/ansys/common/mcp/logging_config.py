@@ -85,6 +85,7 @@ def setup_logging(
       communication to fail.
     - The ``LOGLEVEL`` environment variable can be used to set the log level.
     - The root logger is configured, so all loggers in your application use this configuration.
+
     """
     # Determine log level
     if level is None:
@@ -155,6 +156,7 @@ def get_logger(name: str) -> logging.Logger:
     >>> from ansys.common.mcp.logging_config import get_logger
     >>> logger = get_logger(__name__)
     >>> logger.info("Processing request...")
+
     """
     # Check if root logger has handlers
     root_logger = logging.getLogger()

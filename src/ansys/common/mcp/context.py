@@ -69,6 +69,7 @@ class PyAnsysBaseAppContext:
     ...     @property
     ...     def product_instance(self):
     ...         return self.instance
+
     """
 
     product_instance: Optional[Any] = None

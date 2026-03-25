@@ -1,7 +1,8 @@
 """Sphinx documentation configuration file."""
 
-import os
 from datetime import datetime
+import os
+from pathlib import Path
 
 from ansys_sphinx_theme import ansys_favicon, get_version_match, pyansys_logo_black
 
@@ -114,12 +115,12 @@ master_doc = "index"
 
 
 def prepare_jinja_env(jinja_env) -> None:
-    """
-    Customize the jinja env.
+    """Customize the jinja env.
 
     Notes
     -----
     See https://jinja.palletsprojects.com/en/3.0.x/api/#jinja2.Environment
+
     """
     jinja_env.globals["project_name"] = project
 
@@ -150,7 +151,7 @@ suppress_warnings = [
 # make rst_epilog a variable, so you can add other epilog parts to it
 rst_epilog = ""
 # Read link all targets from file
-with open("links.rst") as f:
+with Path("links.rst").open() as f:
     rst_epilog += f.read()
 
 linkcheck_ignore = [

@@ -4,6 +4,14 @@
 
 repos:
 
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.7
+    hooks:
+      # Run the linter.
+      - id: ruff-check
+      # Run the formatter.
+      - id: ruff-format
+
   # Add copyright statement to files
   - repo: https://github.com/ansys/pre-commit-hooks
     rev: v0.5.2
@@ -37,13 +45,6 @@ repos:
     hooks:
       - id: black
         args: ['--line-length=100']
-
-  # Import sorting with isort
-  - repo: https://github.com/PyCQA/isort
-    rev: 7.0.0
-    hooks:
-      - id: isort
-        args: ['--profile=black', '--line-length=100']
 
   # Linting with flake8
   - repo: https://github.com/pyCQA/flake8

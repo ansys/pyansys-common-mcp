@@ -1,3 +1,5 @@
+"""PyExample MCP server package."""
+
 from pyexample_mcp.context import PyExampleContext
 from pyexample_mcp.server import PyExampleMCP, app
 

@@ -88,28 +88,34 @@ name = "ansys.common.mcp"
 
 [tool.ruff]
 line-length = 100
-
-[tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-docstring-code-line-length = "dynamic"
-docstring-code-format = true
-
-[tool.ruff.lint]
-select = [
-#   "E",    # pycodestyle, see https://beta.ruff.rs/docs/rules/#pycodestyle-e-w
-    "D",    # pydocstyle, see https://beta.ruff.rs/docs/rules/#pydocstyle-d
-#   "F",    # pyflakes, see https://beta.ruff.rs/docs/rules/#pyflakes-f
-    "I",    # isort, see https://beta.ruff.rs/docs/rules/#isort-i
-#   "N",    # pep8-naming, see https://beta.ruff.rs/docs/rules/#pep8-naming-n
-   "PTH",  # flake9-use-pathlib, https://beta.ruff.rs/docs/rules/#flake8-use-pathlib-pth
-   "TD",   # flake8-todos, https://docs.astral.sh/ruff/rules/#flake8-todos-td
+extend-exclude = [ "tests/integration/files" ]
+fix = true
+format.indent-style = "space"
+format.quote-style = "double"
+format.docstring-code-line-length = "dynamic"
+format.docstring-code-format = true
+lint.select = [
+  "D",   # pydocstyle, see https://docs.astral.sh/ruff/rules/#pydocstyle-d
+  "E",   # pycodestyle, see https://docs.astral.sh/ruff/rules/#pycodestyle-e-w
+  "F",   # pyflakes, see https://docs.astral.sh/ruff/rules/#pyflakes-f
+  "I",   # isort, see https://docs.astral.sh/ruff/rules/#isort-i
+  "N",   # pep8-naming, see https://docs.astral.sh/ruff/rules/#pep8-naming-n
+  "PTH", # flake8-use-pathlib, https://docs.astral.sh/ruff/rules/#flake8-use-pathlib-pth
+  "TD",  # flake8-todos, https://docs.astral.sh/ruff/rules/#flake8-todos-td
 ]
-
-[tool.ruff.lint.isort]
-combine-as-imports = true
-force-sort-within-sections = true
-known-first-party = ["ansys.common.mcp"]
+lint.ignore = [
+  "TD002", # Missing author in TODOs comment
+]
+# Ignore `D` rules everywhere except for the `src/` directory.
+lint.per-file-ignores."!src/**.py" = [ "D" ]
+# Ignore `F401` (import violations) in all `__init__.py` files.
+lint.per-file-ignores."__init__.py" = [ "F401" ]
+# Ignore `E402` (module level import not at top of file) in `src/ansys/geometry/core/__init__.py`.
+lint.per-file-ignores."src/ansys/geometry/core/__init__.py" = [ "E402" ]
+lint.isort.combine-as-imports = true
+lint.isort.force-sort-within-sections = true
+lint.isort.known-first-party = [ "ansys.geometry.core" ]
+lint.pydocstyle.convention = "numpy"
 
 [tool.mypy]
 python_version = "3.10"

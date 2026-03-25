@@ -2,11 +2,11 @@
 
 import sys
 
-# Import tools to register them with the app
-import pyexample_mcp.tools  # noqa: F401
+from ansys.common.mcp.logging_config import setup_logging
 from pyexample_mcp import app
 
-from ansys.common.mcp.logging_config import setup_logging
+# Import tools to register them with the app
+import pyexample_mcp.tools  # noqa: F401
 
 
 def main():

@@ -22,8 +22,6 @@
 
 """Tests for context module."""
 
-import pytest
-
 from ansys.common.mcp.context import PyAnsysBaseAppContext
 from ansys.common.mcp.helpers import PersistentPythonSession
 
