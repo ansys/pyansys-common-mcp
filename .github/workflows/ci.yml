@@ -166,18 +166,22 @@ jobs:
       - name: "Display structure of downloaded files"
         run: ls -Rla
 
+      - name: "Upload artifacts to PyPI using trusted publisher"
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
+        with:
+          repository-url: "https://upload.pypi.org/legacy/"
+          print-hash: true
+          packages-dir: ${{ env.PACKAGE_NAME }}-artifacts
+          skip-existing: false
+
       - name: "Release to GitHub"
         uses: ansys/actions/release-github@90a4cd10a7253a205f71ee8619aefb8142c16f47 #v10.2.10
         with:
           library-name: ${{ env.PACKAGE_NAME }}
           token: ${{ secrets.GITHUB_TOKEN }}
           only-code: true
-
-      - name: "Release to PyPI using trusted publisher"
-        uses: ansys/actions/release-pypi-public@90a4cd10a7253a205f71ee8619aefb8142c16f47 #v10.2.10
-        with:
-          library-name: ${{ env.PACKAGE_NAME }}
-          use-trusted-publisher: true
+          add-artifact-attestation-notes: true
+          changelog-release-notes: true
 
   doc-deploy-stable:
     name: "Deploy stable documentation"
