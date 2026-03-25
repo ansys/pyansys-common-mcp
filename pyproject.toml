@@ -152,22 +152,6 @@ addopts = [
     "--cov-report=xml",
 ]
 
-[tool.pydocstyle]
-convention = "numpy"
-add_ignore = ["D100", "D104"]  # Missing docstring in public module/package
-
-[tool.flake8]
-max-line-length = 100
-extend-ignore = ["E203", "W503"]
-exclude = [
-    ".git",
-    "__pycache__",
-    ".venv",
-    "venv",
-    "build",
-    "dist",
-]
-
 [tool.towncrier]
 package = "ansys.common.mcp"
 directory = "doc/changelog.d"

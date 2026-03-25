@@ -49,14 +49,6 @@ repos:
         additional_dependencies:
           - types-tabulate
 
-  # Docstring checks
-  - repo: https://github.com/PyCQA/pydocstyle
-    rev: 6.3.0
-    hooks:
-      - id: pydocstyle
-        args: ['--convention=numpy', '--add-ignore=D100,D104']
-        exclude: ^tests/
-
   # Security checks with bandit
   - repo: https://github.com/PyCQA/bandit
     rev: 1.8.0
