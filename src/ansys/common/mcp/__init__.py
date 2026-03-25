@@ -38,6 +38,9 @@ from ansys.common.mcp.tools import (
     execute_python_code,
 )
 
+__version__ = importlib_metadata.version(__name__.replace(".", "-"))
+"""PyAnsys Common MCP version."""
+
 __all__ = [
     "PyAnsysBaseAppContext",
     "PyAnsysBaseMCP",
@@ -46,20 +49,5 @@ __all__ = [
     "get_logger",
     "execute_python_code",
     "create_custom_plot",
-]
-
-
-__version__ = importlib_metadata.version(__name__.replace(".", "-"))
-__version__ = importlib_metadata.version(__name__.replace(".", "-"))
-"""PyAnsys Common MCP version."""
-
-__all__ = [
-"PyAnsysBaseAppContext",
-"PyAnsysBaseMCP",
-"PersistentPythonSession",
-"setup_logging",
-"get_logger",
-"execute_python_code",
-"create_custom_plot",
-"__version__",
+    "__version__",
 ]
