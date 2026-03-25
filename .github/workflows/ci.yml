@@ -173,12 +173,11 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           only-code: true
 
-      - name: "Release to private PyPI"
-        uses: ansys/actions/release-pypi-private@90a4cd10a7253a205f71ee8619aefb8142c16f47 #v10.2.10
+      - name: "Release to PyPI using trusted publisher"
+        uses: ansys/actions/release-pypi-public@90a4cd10a7253a205f71ee8619aefb8142c16f47 #v10.2.10
         with:
           library-name: ${{ env.PACKAGE_NAME }}
-          twine-username: "__token__"
-          twine-token: ${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}
+          use-trusted-publisher: true
 
   doc-deploy-stable:
     name: "Deploy stable documentation"
