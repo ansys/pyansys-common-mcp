@@ -27,10 +27,9 @@ with the PyExample instance and context.
 """
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import pytest
-from pyexample_mcp import PyExampleContext, app
+from pyexample_mcp import PyExampleContext
 from pyexample_mcp.mock_pyexample import PyExample
 from pyexample_mcp.tools import (
     create_model,
@@ -39,6 +38,7 @@ from pyexample_mcp.tools import (
     get_command_history,
     run_simulation,
 )
+import pytest
 
 
 @pytest.fixture

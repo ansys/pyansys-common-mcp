@@ -26,7 +26,7 @@ This package provides base classes, utilities, and common tools that
 PyAnsys product-specific MCP servers can extend and use.
 """
 
-__version__ = "0.0.1"
+import importlib.metadata as importlib_metadata
 
 from ansys.common.mcp.context import PyAnsysBaseAppContext
 from ansys.common.mcp.helpers import (
@@ -38,6 +38,9 @@ from ansys.common.mcp.tools import (
     create_custom_plot,
     execute_python_code,
 )
+
+__version__ = importlib_metadata.version(__name__.replace(".", "-"))
+"""PyAnsys Common MCP version."""
 
 __all__ = [
     "PyAnsysBaseAppContext",

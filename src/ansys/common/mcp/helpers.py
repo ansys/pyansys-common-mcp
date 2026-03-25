@@ -20,6 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+"""Helper utilities for the MCP server."""
+
+from pathlib import Path
 import queue
 
 # Subprocess is needed for managing the persistent Python session
@@ -27,7 +30,6 @@ import subprocess  # nosec B404
 import sys
 import threading
 import time
-from pathlib import Path
 from typing import Any, Optional
 
 from ansys.common.mcp.logging_config import get_logger
@@ -50,6 +52,7 @@ def _sanitize_output(text: str) -> str:
     -------
     str
         Sanitized text with problematic characters removed or replaced.
+
     """
     if not isinstance(text, str):
         return text
@@ -137,7 +140,7 @@ class PersistentPythonSession:
     >>>
     >>> # Step 2: Use those variables
     >>> result = session.execute("z = x + y; print(z)")
-    >>> print(result['stdout'])  # 30
+    >>> print(result["stdout"])  # 30
     >>>
     >>> session.stop()
 
@@ -145,8 +148,9 @@ class PersistentPythonSession:
 
     >>> session = PersistentPythonSession(
     ...     python_executable="/path/to/venv/bin/python",
-    ...     startup_code="import numpy as np\\nimport pandas as pd"
+    ...     startup_code="import numpy as np\\nimport pandas as pd",
     ... )
+
     """
 
     def __init__(
@@ -175,6 +179,7 @@ class PersistentPythonSession:
         -------
         dict[str, Any]
             Dictionary with success status and any startup messages.
+
         """
         if self._is_running:
             return {
@@ -266,6 +271,7 @@ class PersistentPythonSession:
             - 'stdout': string with standard output
             - 'stderr': string with standard error
             - 'error': string with error message (if execution failed)
+
         """
         if not self._is_running or self.process is None:
             return {
@@ -406,6 +412,7 @@ class PersistentPythonSession:
         -------
         dict[str, Any]
             Dictionary with success status and cleanup messages.
+
         """
         if not self._is_running:
             return {
@@ -497,6 +504,7 @@ class PersistentPythonSession:
         - Session state is lost (including variables and non-startup imports).
         - The ``startup_code`` is re-executed on restart.
         - Consider managing command_history at the context level for replay capability
+
         """
         logger.info("Restarting persistent Python session...")
 
@@ -534,6 +542,7 @@ class PersistentPythonSession:
         -------
         bool
             ``True`` if session is running, ``False`` otherwise.
+
         """
         return self._is_running and self.process is not None and self.process.poll() is None
 
@@ -546,6 +555,7 @@ class PersistentPythonSession:
             Stream to read from (stdout or stderr).
         output_queue : queue.Queue
             Queue to put the read lines into.
+
         """
         try:
             for line in iter(stream.readline, ""):
@@ -563,6 +573,7 @@ class PersistentPythonSession:
         ----------
         timeout : float, default: 0.1
             Maximum time to spend draining queues in seconds.
+
         """
         start = time.time()
         while time.time() - start < timeout:

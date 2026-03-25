@@ -1,9 +1,8 @@
 """MCP server for PyExample."""
 
-from pyexample_mcp.context import PyExampleContext
-
 from ansys.common.mcp import PersistentPythonSession, PyAnsysBaseMCP
 from ansys.common.mcp.logging_config import get_logger
+from pyexample_mcp.context import PyExampleContext
 
 logger = get_logger(__name__)
 
@@ -24,6 +23,11 @@ class PyExampleMCP(PyAnsysBaseMCP):
             Launch mode for PyExample ('local' or 'remote')
         timeout : int
             Connection timeout in seconds
+        *args : tuple
+            Additional positional arguments passed to parent class
+        **kwargs : dict
+            Additional keyword arguments passed to parent class
+
         """
         self.launch_mode = launch_mode
         self.timeout = timeout
@@ -36,6 +40,7 @@ class PyExampleMCP(PyAnsysBaseMCP):
         -------
         PyExampleContext
             Context instance with Python session and command history
+
         """
         # Custom startup code for PyExample workflows
         startup_code = """
