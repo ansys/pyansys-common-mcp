@@ -50,4 +50,16 @@ __all__ = [
 
 
 __version__ = importlib_metadata.version(__name__.replace(".", "-"))
+__version__ = importlib_metadata.version(__name__.replace(".", "-"))
 """PyAnsys Common MCP version."""
+
+__all__ = [
+"PyAnsysBaseAppContext",
+"PyAnsysBaseMCP",
+"PersistentPythonSession",
+"setup_logging",
+"get_logger",
+"execute_python_code",
+"create_custom_plot",
+"__version__",
+]
