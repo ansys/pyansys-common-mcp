@@ -16,6 +16,7 @@ class PyExampleContext(PyAnsysBaseAppContext):
         The connected PyExample instance
     simulation_results : dict
         Storage for simulation results
+
     """
 
     example_instance: Optional[Any] = None

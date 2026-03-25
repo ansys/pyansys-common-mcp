@@ -30,12 +30,12 @@ but functions that can be called from product-specific tool implementations.
 import json
 
 from fastmcp import Context
-from mcp.types import ImageContent, TextContent
 
 from ansys.common.mcp.helpers import (
     _sanitize_output,
     logger,
 )
+from mcp.types import ImageContent, TextContent
 
 
 async def execute_python_code(
@@ -86,6 +86,7 @@ async def execute_python_code(
 
 
     Automatically adds rule like: ``{"Division Operations": ["Do not divide by zero"]}``
+
     """
     app_context = ctx.request_context.lifespan_context
     session = app_context.python_session

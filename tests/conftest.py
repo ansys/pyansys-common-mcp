@@ -22,8 +22,8 @@
 
 """Pytest configuration for ansys-common-mcp tests."""
 
-import sys
 from pathlib import Path
+import sys
 
 # Add the examples/src directory to the Python path so that
 # examples.src.pyexample_mcp can be imported in tests

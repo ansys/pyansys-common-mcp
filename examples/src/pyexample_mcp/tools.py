@@ -4,9 +4,9 @@ import json
 from typing import Optional
 
 from fastmcp.server import Context
-from pyexample_mcp import app
 
 from ansys.common.mcp.logging_config import get_logger
+from pyexample_mcp import app
 
 logger = get_logger(__name__)
 
@@ -18,6 +18,8 @@ def execute_command(ctx: Context, command: str) -> str:
 
     Parameters
     ----------
+    ctx : Context
+        The FastMCP context
     command : str
         PyExample command to execute
 
@@ -25,6 +27,7 @@ def execute_command(ctx: Context, command: str) -> str:
     -------
     str
         Command execution result
+
     """
     app_context = ctx.fastmcp._lifespan_result
 
@@ -52,6 +55,8 @@ def create_model(
 
     Parameters
     ----------
+    ctx : Context
+        The FastMCP context
     name : str
         Name for the new model
     model_type : str
@@ -63,6 +68,7 @@ def create_model(
     -------
     str
         Status message
+
     """
     app_context = ctx.fastmcp._lifespan_result
 
@@ -89,6 +95,8 @@ def run_simulation(
 
     Parameters
     ----------
+    ctx : Context
+        The FastMCP context
     model_name : Optional[str]
         Model to simulate (uses active model if not specified)
     save_results : bool
@@ -98,6 +106,7 @@ def run_simulation(
     -------
     str
         Simulation results summary
+
     """
     app_context = ctx.fastmcp._lifespan_result
 
@@ -130,6 +139,8 @@ def get_command_history(ctx: Context, format: str = "list") -> str:
 
     Parameters
     ----------
+    ctx : Context
+        The FastMCP context
     format : str
         Output format: 'list', 'numbered', or 'json'
 
@@ -137,6 +148,7 @@ def get_command_history(ctx: Context, format: str = "list") -> str:
     -------
     str
         Command history in requested format
+
     """
     app_context = ctx.fastmcp._lifespan_result
 
@@ -144,7 +156,7 @@ def get_command_history(ctx: Context, format: str = "list") -> str:
         return "No commands executed yet"
 
     if format == "numbered":
-        lines = [f"{i+1}. {cmd}" for i, cmd in enumerate(app_context.command_history)]
+        lines = [f"{i + 1}. {cmd}" for i, cmd in enumerate(app_context.command_history)]
         return "\n".join(lines)
 
     elif format == "json":
@@ -163,6 +175,8 @@ def execute_python_code(ctx: Context, code: str) -> str:
 
     Parameters
     ----------
+    ctx : Context
+        The FastMCP context
     code : str
         Python code to execute
 
@@ -170,6 +184,7 @@ def execute_python_code(ctx: Context, code: str) -> str:
     -------
     str
         Execution output
+
     """
     app_context = ctx.fastmcp._lifespan_result
 

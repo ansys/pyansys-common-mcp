@@ -55,6 +55,11 @@ class PyAnsysBaseMCP(FastMCP, ABC):
             If ``None``, the current Python interpreter (sys.executable) is used.
         working_directory : str, default: None
             Working directory to use for the Python session.
+        *args : tuple
+            Additional positional arguments passed to FastMCP
+        **kwargs : dict
+            Additional keyword arguments passed to FastMCP
+
         """
         # Store parameters before calling super().__init__
         self.python_executable = python_executable
@@ -64,8 +69,7 @@ class PyAnsysBaseMCP(FastMCP, ABC):
 
     @abstractmethod
     def product_cleanup(self):
-        """
-        Cleanup routine before shutting down the server.
+        """Cleanup routine before shutting down the server.
 
         This abstract method must be implemented by subclasses to handle product-specific cleanup.
         """
@@ -73,8 +77,7 @@ class PyAnsysBaseMCP(FastMCP, ABC):
 
     @abstractmethod
     def product_startup(self):
-        """
-        Startup routine to initialize resources when the server starts.
+        """Startup routine to initialize resources when the server starts.
 
         This abstract method must be implemented by subclasses to handle
         product-specific initialization.
@@ -103,6 +106,7 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         ...             python_session=PersistentPythonSession(self.python_executable),
         ...             command_history=[],
         ...         )
+
         """
         startup_code = """
 import matplotlib
@@ -250,6 +254,7 @@ print("PyVista configured for off-screen rendering.")
         3. Calls product-specific startup.
         4. Yields context to the application.
         5. Cleans up in reverse order on shutdown.
+
         """
         # Use factory method to create context (subclasses can override)
         self.server = server

@@ -24,9 +24,9 @@
 
 import logging
 import os
+from pathlib import Path
 import sys
 import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -121,7 +121,7 @@ class TestGetLogger:
         root_logger = logging.getLogger()
         root_logger.handlers.clear()
 
-        logger = get_logger("test_module")
+        get_logger("test_module")
 
         # Root logger should now have handlers
         assert len(root_logger.handlers) > 0
