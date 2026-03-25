@@ -88,7 +88,6 @@ name = "ansys.common.mcp"
 
 [tool.ruff]
 line-length = 100
-extend-exclude = [ "tests/integration/files" ]
 fix = true
 format.indent-style = "space"
 format.quote-style = "double"
