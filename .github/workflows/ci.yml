@@ -101,16 +101,15 @@ jobs:
     needs: [tests]
     permissions:
       contents: read
+      id-token: write
+      attestations: write
     steps:
-      - name: "Checkout code"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
-
       - name: "Build library source and wheel artifacts"
         uses: ansys/actions/build-library@90a4cd10a7253a205f71ee8619aefb8142c16f47 #v10.2.10
         with:
           library-name: ${{ env.PACKAGE_NAME }}
           python-version: ${{ env.MAIN_PYTHON_VERSION }}
-          checkout: false
+          attest-provenance: true
 
   doc-deploy-dev:
     name: "Deploy development documentation"
@@ -166,19 +165,22 @@ jobs:
       - name: "Display structure of downloaded files"
         run: ls -Rla
 
+      - name: "Upload artifacts to PyPI using trusted publisher"
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
+        with:
+          repository-url: "https://upload.pypi.org/legacy/"
+          print-hash: true
+          packages-dir: ${{ env.PACKAGE_NAME }}-artifacts
+          skip-existing: false
+
       - name: "Release to GitHub"
         uses: ansys/actions/release-github@90a4cd10a7253a205f71ee8619aefb8142c16f47 #v10.2.10
         with:
           library-name: ${{ env.PACKAGE_NAME }}
           token: ${{ secrets.GITHUB_TOKEN }}
           only-code: true
-
-      - name: "Release to private PyPI"
-        uses: ansys/actions/release-pypi-private@90a4cd10a7253a205f71ee8619aefb8142c16f47 #v10.2.10
-        with:
-          library-name: ${{ env.PACKAGE_NAME }}
-          twine-username: "__token__"
-          twine-token: ${{ secrets.PYANSYS_PYPI_PRIVATE_PAT }}
+          add-artifact-attestation-notes: true
+          changelog-release-notes: true
 
   doc-deploy-stable:
     name: "Deploy stable documentation"
