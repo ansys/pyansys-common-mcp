@@ -30,7 +30,7 @@ pip install ansys-common-mcp
 ```
 
 Alternatively, install the latest
-`PyAnsys Common MCP GitHub <https://github.com/ansys/pyansys-common-mcp>`_ package
+[PyAnsys Common MCP GitHub](https://github.com/ansys/pyansys-common-mcp) package
 with this command:
 
 ```bash
