@@ -47,10 +47,10 @@ dependencies = [
 tests = [
     "pytest==9.0.2",
     "pytest-asyncio==1.3.0",
-    "pytest-cov==7.0.0",
+    "pytest-cov==7.1.0",
     "pytest-mock==3.15.1",
     "mcp==1.26.0",
-    "fastmcp==3.1.1",
+    "fastmcp==3.2.0",
 ]
 doc = [
     "Sphinx==8.2.3",
