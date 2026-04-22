@@ -14,7 +14,7 @@ repos:
 
   # Add copyright statement to files
   - repo: https://github.com/ansys/pre-commit-hooks
-    rev: v0.5.2
+    rev: main
     hooks:
     - id: add-license-headers
       exclude: |
@@ -23,6 +23,7 @@ repos:
           )$
       args:
       - --start_year=2025
+      - --custom_license=Apache-2.0
 
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
