@@ -6,6 +6,7 @@ from typing import Optional
 from fastmcp.server import Context
 
 from ansys.common.mcp.logging_config import get_logger
+from ansys.common.mcp.tools import create_custom_plot, execute_python_code
 from pyexample_mcp import app
 
 logger = get_logger(__name__)
@@ -167,11 +168,8 @@ def get_command_history(ctx: Context, format: str = "list") -> str:
 
 
 @app.tool()
-def execute_python_code(ctx: Context, code: str) -> str:
+async def run_python_code(ctx: Context, code: str) -> str:
     """Execute Python code in the persistent session.
-
-    This allows for custom analysis and processing using the
-    full Python ecosystem.
 
     Parameters
     ----------
@@ -186,14 +184,21 @@ def execute_python_code(ctx: Context, code: str) -> str:
         Execution output
 
     """
-    app_context = ctx.fastmcp._lifespan_result
+    await execute_python_code(ctx, code)
 
-    result = app_context.python_session.execute(code)
 
-    if result["success"]:
-        output = str(result["stdout"])
-        if result["stderr"]:
-            output += f"\n\nWarnings:\n{result['stderr']}"
-        return output
-    else:
-        return f"Error: {result['error']}"
+@app.tool()
+def custom_plot(ctx: Context, plot_code: str) -> str:
+    """Custom plotting tool that generates a plot based on provided Python code.
+
+    This tool handles proper execution of the plotting code and returns a plot object that can
+    be rendered in the client.
+
+    Parameters
+    ----------
+    ctx : Context
+        The FastMCP context
+    plot_code : str
+        Python code to generate the plot (should define a function that returns a plot object)
+    """
+    return create_custom_plot(ctx, plot_code)

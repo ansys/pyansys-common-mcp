@@ -57,6 +57,7 @@ def mock_fastmcp_context(app_context):
     """Fixture providing a mock FastMCP context."""
     context = MagicMock()
     context.request_context = MagicMock()
+    context.request_context.lifespan_context = app_context
     context.fastmcp._lifespan_result = app_context
     return context
 
@@ -251,7 +252,7 @@ class TestGetCommandHistoryTool:
 class TestExecutePythonCodeTool:
     """Tests for the execute_python_code tool."""
 
-    def test_execute_python_code_success(self, mock_fastmcp_context):
+    async def test_execute_python_code_success(self, mock_fastmcp_context):
         """Test successful Python code execution."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
         context.python_session.execute = MagicMock(
@@ -262,11 +263,11 @@ class TestExecutePythonCodeTool:
             }
         )
 
-        result = execute_python_code(ctx=mock_fastmcp_context, code="print(42)")
+        result = await execute_python_code(ctx=mock_fastmcp_context, code="print(42)")
 
         assert "42" in result
 
-    def test_execute_python_code_with_warnings(self, mock_fastmcp_context):
+    async def test_execute_python_code_with_warnings(self, mock_fastmcp_context):
         """Test Python code execution with warnings."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
         context.python_session.execute = MagicMock(
@@ -277,13 +278,13 @@ class TestExecutePythonCodeTool:
             }
         )
 
-        result = execute_python_code(ctx=mock_fastmcp_context, code="some_code()")
+        result = await execute_python_code(ctx=mock_fastmcp_context, code="some_code()")
 
         assert "Result" in result
         assert "Warning" in result
         assert "deprecated" in result
 
-    def test_execute_python_code_error(self, mock_fastmcp_context):
+    async def test_execute_python_code_error(self, mock_fastmcp_context):
         """Test Python code execution with error."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
         context.python_session.execute = MagicMock(
@@ -293,7 +294,7 @@ class TestExecutePythonCodeTool:
             }
         )
 
-        result = execute_python_code(ctx=mock_fastmcp_context, code="undefined()")
+        result = await execute_python_code(ctx=mock_fastmcp_context, code="undefined()")
 
         assert "Error:" in result
         assert "NameError" in result
@@ -302,7 +303,7 @@ class TestExecutePythonCodeTool:
 class TestToolsIntegration:
     """Integration tests for multiple tools working together."""
 
-    def test_complete_workflow(self, mock_fastmcp_context):
+    async def test_complete_workflow(self, mock_fastmcp_context):
         """Test complete workflow using multiple tools."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
         context.python_session.execute = MagicMock(
@@ -327,7 +328,7 @@ class TestToolsIntegration:
         assert "SOLVE MODEL" in history
 
         # Execute Python code
-        code_result = execute_python_code(
+        code_result = await execute_python_code(
             ctx=mock_fastmcp_context, code="print('Analysis complete')"
         )
         assert "Analysis complete" in code_result
