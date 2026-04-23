@@ -22,6 +22,10 @@ from typing import Optional
 from fastmcp.server import Context
 
 from ansys.common.mcp.logging_config import get_logger
+from ansys.common.mcp.tools import (
+    execute_python_code,
+    restart_python_session,
+)
 from pyexample_mcp import app
 
 logger = get_logger(__name__)
@@ -183,8 +187,8 @@ def get_command_history(ctx: Context, format: str = "list") -> str:
 
 
 @app.tool()
-def execute_python_code(ctx: Context, code: str) -> str:
-    """Execute Python code in the persistent session.
+def run_python_code(ctx: Context, code: str) -> str:
+    """Run Python code in the persistent session.
 
     This allows for custom analysis and processing using the
     full Python ecosystem.
@@ -202,14 +206,27 @@ def execute_python_code(ctx: Context, code: str) -> str:
         Execution output
 
     """
-    app_context = ctx.fastmcp._lifespan_result
+    return execute_python_code(ctx, code)
 
-    result = app_context.python_session.execute(code)
+@app.tool()
+def restart_python(ctx: Context, run_successful_history_commands: bool = True, run_all_history: bool = False ) -> str:
+    """Restart the Python execution environment.
 
-    if result["success"]:
-        output = str(result["stdout"])
-        if result["stderr"]:
-            output += f"\n\nWarnings:\n{result['stderr']}"
-        return output
-    else:
-        return f"Error: {result['error']}"
+    This can be useful for clearing state or reloading modules.
+
+    Parameters
+    ----------
+    ctx : Context
+        The FastMCP context
+
+    Returns
+    -------
+    str
+        Status message
+
+    """
+    return restart_python_session(
+        ctx=ctx,
+        run_successful_history_commands=run_successful_history_commands,
+        run_all_history=run_all_history
+    )

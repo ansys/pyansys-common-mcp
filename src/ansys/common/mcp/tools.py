@@ -32,10 +32,11 @@ from ansys.common.mcp.helpers import (
 from mcp.types import ImageContent, TextContent
 
 
-async def execute_python_code(
+def execute_python_code(
     ctx: Context,
     code: str,
     timeout: int = 60,
+    skip_history: bool = False,
 ) -> str:
     """Execute Python code in the persistent Python session with automatic rule generation.
 
@@ -68,7 +69,7 @@ async def execute_python_code(
         result = sum([i**2 for i in range(10)])
         print(f"Sum of squares: {result}")
         '''
-        await execute_python_code(ctx, code)
+        execute_python_code(ctx, code)
 
 
     Execute code with automatic rule generation on failure:
@@ -76,7 +77,7 @@ async def execute_python_code(
     .. code:: python
 
         code = "result = 1/0"  # This will fail
-        await execute_python_code(ctx, code)
+        execute_python_code(ctx, code)
 
 
     Automatically adds rule like: ``{"Division Operations": ["Do not divide by zero"]}``
@@ -109,6 +110,8 @@ async def execute_python_code(
             stderr = _sanitize_output(result.get("stderr", ""))
 
             if result.get("success"):
+                if not skip_history:
+                    app_context.command_history.append(["python_code", True, sanitized_code])
                 return json.dumps(
                     {
                         "success": True,
@@ -120,6 +123,8 @@ async def execute_python_code(
                     indent=2,
                 )
             else:
+                if not skip_history:
+                    app_context.command_history.append(["python_code", False, sanitized_code])
                 # Execution failed - generate rule if enabled
                 error_msg = result.get("error", "Unknown error occurred.")
                 error_msg = _sanitize_output(error_msg)
@@ -135,19 +140,23 @@ async def execute_python_code(
                     indent=2,
                 )
         else:
+            if not skip_history:
+                app_context.command_history.append(["python_code", False, sanitized_code])
             # Fallback if result is not a dict
             return json.dumps(
                 {
-                    "success": True,
+                    "success": False,
                     "stdout": _sanitize_output(str(result)) if result else "",
                     "stderr": "",
-                    "message": "Python code executed successfully.",
+                    "message": "Python code executed with unexpected result format.",
                 },
                 ensure_ascii=False,
                 indent=2,
             )
 
     except TimeoutError:
+        if not skip_history:
+            app_context.command_history.append(["python_code", False, sanitized_code])
         error_dict = {
             "success": False,
             "error": f"Python code execution timed out after {timeout} seconds.",
@@ -156,6 +165,8 @@ async def execute_python_code(
         return json.dumps(error_dict, ensure_ascii=False)
 
     except Exception as e:
+        if not skip_history:
+            app_context.command_history.append(["python_code", False, sanitized_code])
         error_dict = {"success": False, "error": f"Error executing Python code: {str(e)}"}
         logger.error(error_dict["error"])
         return json.dumps(error_dict, ensure_ascii=False)
@@ -166,6 +177,7 @@ def create_custom_plot(
     plot_code: str,
     plot_type: str = "matplotlib",
     timeout: int = 60,
+    skip_history: bool = False,
 ) -> list[TextContent | ImageContent] | str:
     """Create a custom plot using Matplotlib or PyVista in the persistent Python session.
 
@@ -218,7 +230,8 @@ def create_custom_plot(
         create_custom_plot(ctx, plot_code, plot_type="matplotlib")
 
     """
-    session = ctx.request_context.lifespan_context.python_session
+    app_context = ctx.request_context.lifespan_context
+    session = app_context.python_session
 
     if session is None:
         return [
@@ -244,6 +257,8 @@ def create_custom_plot(
             stderr = _sanitize_output(result.get("stderr", ""))
 
             if result.get("success"):
+                if not skip_history:
+                    app_context.command_history.append(["plot_code", True, sanitized_plot_code])
                 # Try to extract plot data from stdout
                 # The helper functions return data URI format:
                 # "data:image/png;base64,<base64_string>"
@@ -271,6 +286,8 @@ def create_custom_plot(
                     ]
                 else:
                     # Unexpected output format
+                    if not skip_history:
+                        app_context.command_history.append(["plot_code", False, sanitized_plot_code])
                     return [
                         TextContent(
                             type="text",
@@ -278,6 +295,8 @@ def create_custom_plot(
                         )
                     ]
             else:
+                if not skip_history:
+                    app_context.command_history.append(["plot_code", False, sanitized_plot_code])
                 error_msg = result.get("error", "Unknown error occurred.")
                 error_msg = _sanitize_output(error_msg)
                 return [
@@ -287,6 +306,8 @@ def create_custom_plot(
                     )
                 ]
         else:
+            if not skip_history:
+                app_context.command_history.append(["plot_code", False, sanitized_plot_code])
             # Fallback if result is not a dict
             return [
                 TextContent(
@@ -296,17 +317,69 @@ def create_custom_plot(
             ]
 
     except TimeoutError:
+        if not skip_history:
+            app_context.command_history.append(["plot_code", False, sanitized_plot_code])
         error_msg = f"Plot creation timed out after {timeout} seconds."
         logger.error(error_msg)
         return [TextContent(type="text", text=error_msg)]
 
     except Exception as e:
+        if not skip_history:
+            app_context.command_history.append(["plot_code", False, sanitized_plot_code])
         error_msg = f"Error creating custom plot: {str(e)}"
         logger.error(error_msg)
         return [TextContent(type="text", text=error_msg)]
 
 
+def restart_python_session(ctx: Context, run_successful_history_commands: bool = True, run_all_history: bool = False) -> str:
+    """Restart the persistent Python session.
+
+    Parameters
+    ----------
+    ctx : Context
+        MCP context containing server session and application context.
+    run_successful_history_commands : bool, optional
+        Whether to run the commands that executed successfully after restarting the Python session,
+        default is True.
+    run_all_history : bool, optional
+        Whether to run the all command history after restarting the Python session, default is False.
+
+    Returns
+    -------
+    str
+        Status message
+
+    """
+    app_context = ctx.request_context.lifespan_context
+    session = app_context.python_session
+
+    if not session:
+        return "Error: No Python session to restart."
+    
+    run_history = run_all_history or run_successful_history_commands
+
+    try:
+        session.restart()
+        logger.info("Persistent Python session restarted successfully.")
+
+        if run_history:
+            logger.info("Re-running command history after session restart.")
+            for command in app_context.command_history:
+                if run_all_history or (run_successful_history_commands and command[1]):
+                    logger.info(f"Re-running command: {command[2]}")
+                    if command[0] == "python_code":
+                        # Re-run Python code commands
+                        execute_python_code(ctx, command[2], skip_history=True)
+                    elif command[0] == "plot_code":
+                        # Re-run plot code commands
+                        create_custom_plot(ctx, command[2], skip_history=True)
+        return "Persistent Python session restarted successfully."
+    except Exception as e:
+        logger.error(f"Failed to restart Python session: {e}")
+        return f"Error restarting Python session: {e}"
+
 __all__ = [
     "execute_python_code",
     "create_custom_plot",
+    "restart_python_session",
 ]

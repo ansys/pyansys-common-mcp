@@ -45,8 +45,9 @@ class PyAnsysBaseAppContext:
         Python session.
     metadata : dict
         Dictionary for storing arbitrary metadata related to the context.
-    command_history : list
-        List to keep track of executed commands in the session.
+    command_history : list of list of str, default: []
+        List to keep track of executed commands in the session with the
+        following format: [[type_of_code (str), success (bool), code (str)]]
 
     Examples
     --------
@@ -70,4 +71,4 @@ class PyAnsysBaseAppContext:
     python_executable: Optional[Any] = None
     python_session: Optional[Any] = None  # PersistentPythonSession instance
     metadata: dict[str, Any] = field(default_factory=dict)
-    command_history: list[str] = field(default_factory=list)
+    command_history: list[list[str, bool, str]] = field(default_factory=list) # Keep track of successful commands executed in the session

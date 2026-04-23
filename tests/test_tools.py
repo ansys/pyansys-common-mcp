@@ -32,8 +32,7 @@ from ansys.common.mcp.tools import create_custom_plot, execute_python_code
 class TestExecutePythonCodeBasic:
     """Test suite for basic execute_python_code functionality."""
 
-    @pytest.mark.asyncio
-    async def test_execute_simple_code_success(self):
+    def test_execute_simple_code_success(self):
         """Test executing simple Python code successfully."""
         # Setup mock context
         mock_context = MagicMock()
@@ -44,10 +43,11 @@ class TestExecutePythonCodeBasic:
             "stderr": "",
         }
         mock_context.request_context.lifespan_context.python_session = mock_session
+        mock_context.request_context.lifespan_context.command_history = []
 
         # Execute code
         code = "print(42)"
-        result = await execute_python_code(mock_context, code)
+        result = execute_python_code(mock_context, code)
 
         # Verify result
         assert isinstance(result, str)
@@ -56,8 +56,7 @@ class TestExecutePythonCodeBasic:
         assert "42" in result_dict["stdout"]
         mock_session.execute.assert_called_once_with(code, timeout=60)
 
-    @pytest.mark.asyncio
-    async def test_execute_code_with_custom_timeout(self):
+    def test_execute_code_with_custom_timeout(self):
         """Test executing code with custom timeout."""
         # Setup mock context
         mock_context = MagicMock()
@@ -72,15 +71,14 @@ class TestExecutePythonCodeBasic:
         # Execute with custom timeout
         code = "print('test')"
         timeout = 120
-        result = await execute_python_code(mock_context, code, timeout=timeout)
+        result = execute_python_code(mock_context, code, timeout=timeout)
 
         # Verify timeout was passed
         mock_session.execute.assert_called_once_with(code, timeout=timeout)
         result_dict = json.loads(result)
         assert result_dict["success"] is True
 
-    @pytest.mark.asyncio
-    async def test_execute_code_no_session(self):
+    def test_execute_code_no_session(self):
         """Test executing code when no Python session is available."""
         # Setup mock context with no session
         mock_context = MagicMock()
@@ -88,15 +86,14 @@ class TestExecutePythonCodeBasic:
 
         # Execute code
         code = "print('test')"
-        result = await execute_python_code(mock_context, code)
+        result = execute_python_code(mock_context, code)
 
         # Verify error response
         result_dict = json.loads(result)
         assert result_dict["success"] is False
         assert "No Python session available" in result_dict["error"]
 
-    @pytest.mark.asyncio
-    async def test_execute_code_with_error(self):
+    def test_execute_code_with_error(self):
         """Test executing code that produces an error."""
         # Setup mock context
         mock_context = MagicMock()
@@ -111,15 +108,14 @@ class TestExecutePythonCodeBasic:
 
         # Execute code that will fail
         code = "1/0"
-        result = await execute_python_code(mock_context, code)
+        result = execute_python_code(mock_context, code)
 
         # Verify error is returned
         result_dict = json.loads(result)
         assert result_dict["success"] is False
         assert "ZeroDivisionError" in result_dict["error"]
 
-    @pytest.mark.asyncio
-    async def test_execute_code_with_stdout_and_stderr(self):
+    def test_execute_code_with_stdout_and_stderr(self):
         """Test executing code that produces both stdout and stderr."""
         # Setup mock context
         mock_context = MagicMock()
@@ -133,7 +129,7 @@ class TestExecutePythonCodeBasic:
 
         # Execute code
         code = "import sys; print('output message'); sys.stderr.write('warning message')"
-        result = await execute_python_code(mock_context, code)
+        result = execute_python_code(mock_context, code)
 
         # Verify both outputs are included
         result_dict = json.loads(result)
@@ -145,8 +141,7 @@ class TestExecutePythonCodeBasic:
 class TestExecutePythonCodeSanitization:
     """Test suite for Unicode sanitization in execute_python_code."""
 
-    @pytest.mark.asyncio
-    async def test_sanitize_input_code(self):
+    def test_sanitize_input_code(self):
         """Test that input code is sanitized for problematic Unicode."""
         # Setup mock context
         mock_context = MagicMock()
@@ -160,14 +155,13 @@ class TestExecutePythonCodeSanitization:
 
         # Code with problematic Unicode
         code = "print('✓ checkmark')"
-        await execute_python_code(mock_context, code)
+        execute_python_code(mock_context, code)
 
         # Verify sanitized code was passed to execute
         called_code = mock_session.execute.call_args[0][0]
         assert "\u2713" not in called_code  # Checkmark should be replaced
 
-    @pytest.mark.asyncio
-    async def test_sanitize_output(self):
+    def test_sanitize_output(self):
         """Test that stdout/stderr are sanitized in response."""
         # Setup mock context
         mock_context = MagicMock()
@@ -180,7 +174,7 @@ class TestExecutePythonCodeSanitization:
         mock_context.request_context.lifespan_context.python_session = mock_session
 
         # Execute code
-        result = await execute_python_code(mock_context, "print('test')")
+        result = execute_python_code(mock_context, "print('test')")
 
         # Verify output is sanitized
         result_dict = json.loads(result)
@@ -191,8 +185,7 @@ class TestExecutePythonCodeSanitization:
 class TestExecutePythonCodeExceptionHandling:
     """Test suite for exception handling in execute_python_code."""
 
-    @pytest.mark.asyncio
-    async def test_timeout_error(self):
+    def test_timeout_error(self):
         """Test handling of timeout error."""
         # Setup mock context
         mock_context = MagicMock()
@@ -201,7 +194,7 @@ class TestExecutePythonCodeExceptionHandling:
         mock_context.request_context.lifespan_context.python_session = mock_session
 
         # Execute code
-        result = await execute_python_code(mock_context, "while True: pass", timeout=30)
+        result = execute_python_code(mock_context, "while True: pass", timeout=30)
 
         # Verify timeout error is returned
         result_dict = json.loads(result)
@@ -209,8 +202,7 @@ class TestExecutePythonCodeExceptionHandling:
         assert "timed out" in result_dict["error"].lower()
         assert "30 seconds" in result_dict["error"]
 
-    @pytest.mark.asyncio
-    async def test_general_exception(self):
+    def test_general_exception(self):
         """Test handling of general exceptions."""
         # Setup mock context
         mock_context = MagicMock()
@@ -219,7 +211,7 @@ class TestExecutePythonCodeExceptionHandling:
         mock_context.request_context.lifespan_context.python_session = mock_session
 
         # Execute code
-        result = await execute_python_code(mock_context, "print('test')")
+        result = execute_python_code(mock_context, "print('test')")
 
         # Verify exception is caught and returned
         result_dict = json.loads(result)
@@ -227,8 +219,7 @@ class TestExecutePythonCodeExceptionHandling:
         assert "Error executing Python code" in result_dict["error"]
         assert "Unexpected error" in result_dict["error"]
 
-    @pytest.mark.asyncio
-    async def test_non_dict_result(self):
+    def test_non_dict_result(self):
         """Test handling when session returns non-dict result."""
         # Setup mock context
         mock_context = MagicMock()
@@ -237,19 +228,18 @@ class TestExecutePythonCodeExceptionHandling:
         mock_context.request_context.lifespan_context.python_session = mock_session
 
         # Execute code
-        result = await execute_python_code(mock_context, "print('test')")
+        result = execute_python_code(mock_context, "print('test')")
 
         # Verify fallback handling
         result_dict = json.loads(result)
-        assert result_dict["success"] is True
+        assert result_dict["success"] is False
         assert "unexpected string result" in result_dict["stdout"]
 
 
 class TestExecutePythonCodeJSONFormatting:
     """Test suite for JSON response formatting."""
 
-    @pytest.mark.asyncio
-    async def test_json_structure_success(self):
+    def test_json_structure_success(self):
         """Test JSON structure for successful execution."""
         # Setup mock context
         mock_context = MagicMock()
@@ -262,7 +252,7 @@ class TestExecutePythonCodeJSONFormatting:
         mock_context.request_context.lifespan_context.python_session = mock_session
 
         # Execute code
-        result = await execute_python_code(mock_context, "print('test')")
+        result = execute_python_code(mock_context, "print('test')")
 
         # Verify JSON structure
         result_dict = json.loads(result)
@@ -272,8 +262,7 @@ class TestExecutePythonCodeJSONFormatting:
         assert "message" in result_dict
         assert result_dict["success"] is True
 
-    @pytest.mark.asyncio
-    async def test_json_structure_failure(self):
+    def test_json_structure_failure(self):
         """Test JSON structure for failed execution."""
         # Setup mock context
         mock_context = MagicMock()
@@ -287,7 +276,7 @@ class TestExecutePythonCodeJSONFormatting:
         mock_context.request_context.lifespan_context.python_session = mock_session
 
         # Execute code
-        result = await execute_python_code(mock_context, "invalid code")
+        result = execute_python_code(mock_context, "invalid code")
 
         # Verify JSON structure
         result_dict = json.loads(result)
@@ -297,8 +286,7 @@ class TestExecutePythonCodeJSONFormatting:
         assert "error" in result_dict
         assert result_dict["success"] is False
 
-    @pytest.mark.asyncio
-    async def test_json_ensure_ascii_false(self):
+    def test_json_ensure_ascii_false(self):
         """Test that JSON is generated with ensure_ascii=False."""
         # Setup mock context
         mock_context = MagicMock()
@@ -311,7 +299,7 @@ class TestExecutePythonCodeJSONFormatting:
         mock_context.request_context.lifespan_context.python_session = mock_session
 
         # Execute code
-        result = await execute_python_code(mock_context, "print('über test')")
+        result = execute_python_code(mock_context, "print('über test')")
 
         # Verify result can be parsed and contains proper characters
         result_dict = json.loads(result)
