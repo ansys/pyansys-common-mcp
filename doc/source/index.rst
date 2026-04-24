@@ -38,7 +38,7 @@ servers for PyAnsys libraries.
         Understand the architecture, advanced patterns, and best practices
         for building robust MCP servers.
 
-    .. grid-item-card:: :faEe` Examples
+    .. grid-item-card:: :fa:`code` Examples
         :link: ref_examples
         :link-type: ref
 
