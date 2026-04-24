@@ -287,7 +287,9 @@ def create_custom_plot(
                 else:
                     # Unexpected output format
                     if not skip_history:
-                        app_context.command_history.append(["plot_code", False, sanitized_plot_code])
+                        app_context.command_history.append(
+                            ["plot_code", False, sanitized_plot_code]
+                        )
                     return [
                         TextContent(
                             type="text",
@@ -331,7 +333,9 @@ def create_custom_plot(
         return [TextContent(type="text", text=error_msg)]
 
 
-def restart_python_session(ctx: Context, run_successful_history_commands: bool = True, run_all_history: bool = False) -> str:
+def restart_python_session(
+    ctx: Context, run_successful_history_commands: bool = True, run_all_history: bool = False
+) -> str:
     """Restart the persistent Python session.
 
     Parameters
@@ -339,10 +343,11 @@ def restart_python_session(ctx: Context, run_successful_history_commands: bool =
     ctx : Context
         MCP context containing server session and application context.
     run_successful_history_commands : bool, optional
-        Whether to run the commands that executed successfully after restarting the Python session,
-        default is True.
+        Whether to run the commands that executed successfully after restarting the Python
+        session, default is True.
     run_all_history : bool, optional
-        Whether to run the all command history after restarting the Python session, default is False.
+        Whether to run the all command history after restarting the Python session, default is
+        False.
 
     Returns
     -------
@@ -355,7 +360,7 @@ def restart_python_session(ctx: Context, run_successful_history_commands: bool =
 
     if not session:
         return "Error: No Python session to restart."
-    
+
     run_history = run_all_history or run_successful_history_commands
 
     try:
@@ -377,6 +382,7 @@ def restart_python_session(ctx: Context, run_successful_history_commands: bool =
     except Exception as e:
         logger.error(f"Failed to restart Python session: {e}")
         return f"Error restarting Python session: {e}"
+
 
 __all__ = [
     "execute_python_code",

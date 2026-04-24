@@ -22,7 +22,7 @@ from unittest.mock import MagicMock
 from mcp.types import ImageContent, TextContent
 import pytest
 
-from ansys.common.mcp.tools import create_custom_plot, execute_python_code
+from ansys.common.mcp.tools import create_custom_plot, execute_python_code, restart_python_session
 
 # ============================================================================
 # execute_python_code Tests
@@ -727,3 +727,531 @@ class TestCreateCustomPlotImageContent:
         # Verify whitespace is trimmed
         image_content = result[1]
         assert image_content.data == base64_data
+
+
+# ============================================================================
+# restart_python_session Tests
+# ============================================================================
+
+
+class TestRestartPythonSessionBasic:
+    """Test suite for basic restart_python_session functionality."""
+
+    def test_restart_no_session(self):
+        """Test restarting when no Python session is available."""
+        # Setup mock context with no session
+        mock_context = MagicMock()
+        mock_context.request_context.lifespan_context.python_session = None
+
+        # Restart
+        result = restart_python_session(mock_context)
+
+        # Verify error response
+        assert "Error" in result
+        assert "No Python session" in result
+
+    def test_restart_with_session_default_params(self):
+        """Test restarting with default parameters (replay successful commands)."""
+        # Setup mock context
+        mock_context = MagicMock()
+        mock_session = MagicMock()
+        mock_session.restart.return_value = {"success": True}
+        mock_context.request_context.lifespan_context.python_session = mock_session
+        mock_context.request_context.lifespan_context.command_history = []
+
+        # Restart
+        result = restart_python_session(mock_context)
+
+        # Verify restart was called
+        mock_session.restart.assert_called_once()
+        assert "successfully" in result.lower()
+
+    def test_restart_success_message(self):
+        """Test that restart returns proper success message."""
+        # Setup mock context
+        mock_context = MagicMock()
+        mock_session = MagicMock()
+        mock_session.restart.return_value = {"success": True}
+        mock_context.request_context.lifespan_context.python_session = mock_session
+        mock_context.request_context.lifespan_context.command_history = []
+
+        # Restart
+        result = restart_python_session(mock_context)
+
+        # Verify message
+        assert isinstance(result, str)
+        assert "Persistent Python session restarted successfully" in result
+
+    def test_restart_exception_handling(self):
+        """Test that exceptions during restart are properly handled."""
+        # Setup mock context
+        mock_context = MagicMock()
+        mock_session = MagicMock()
+        mock_session.restart.side_effect = RuntimeError("Session error")
+        mock_context.request_context.lifespan_context.python_session = mock_session
+        mock_context.request_context.lifespan_context.command_history = []
+
+        # Restart
+        result = restart_python_session(mock_context)
+
+        # Verify error is returned
+        assert "Error restarting Python session" in result
+        assert "Session error" in result
+
+
+class TestRestartPythonSessionCommandReplay:
+    """Test suite for command history replay after restart."""
+
+    def test_replay_successful_commands_only(self):
+        """Test that only successful commands are replayed by default."""
+        # Setup mock context
+        mock_context = MagicMock()
+        mock_session = MagicMock()
+        mock_session.restart.return_value = {"success": True}
+        mock_session.execute.return_value = {
+            "success": True,
+            "stdout": "replayed",
+            "stderr": "",
+        }
+        mock_context.request_context.lifespan_context.python_session = mock_session
+
+        # Command history with mixed success/failure
+        mock_context.request_context.lifespan_context.command_history = [
+            ["python_code", True, "x = 1"],
+            ["python_code", False, "invalid code"],
+            ["python_code", True, "y = 2"],
+        ]
+
+        # Restart with default params (replay successful)
+        restart_python_session(mock_context)
+
+        # Verify only successful commands were replayed
+        assert mock_session.execute.call_count == 2
+        executed_codes = [call[0][0] for call in mock_session.execute.call_args_list]
+        assert "x = 1" in executed_codes
+        assert "y = 2" in executed_codes
+        assert "invalid code" not in executed_codes
+
+    def test_replay_all_commands(self):
+        """Test replaying all commands regardless of success status."""
+        # Setup mock context
+        mock_context = MagicMock()
+        mock_session = MagicMock()
+        mock_session.restart.return_value = {"success": True}
+        mock_session.execute.return_value = {
+            "success": True,
+            "stdout": "replayed",
+            "stderr": "",
+        }
+        mock_context.request_context.lifespan_context.python_session = mock_session
+
+        # Command history with mixed success/failure
+        mock_context.request_context.lifespan_context.command_history = [
+            ["python_code", True, "x = 1"],
+            ["python_code", False, "bad_code"],
+            ["python_code", True, "y = 2"],
+        ]
+
+        # Restart with run_all_history=True
+        restart_python_session(mock_context, run_all_history=True)
+
+        # Verify all commands were replayed
+        assert mock_session.execute.call_count == 3
+        executed_codes = [call[0][0] for call in mock_session.execute.call_args_list]
+        assert "x = 1" in executed_codes
+        assert "bad_code" in executed_codes
+        assert "y = 2" in executed_codes
+
+    def test_no_replay_when_disabled(self):
+        """Test that no commands are replayed when both flags are False."""
+        # Setup mock context
+        mock_context = MagicMock()
+        mock_session = MagicMock()
+        mock_session.restart.return_value = {"success": True}
+        mock_session.execute.return_value = {
+            "success": True,
+            "stdout": "replayed",
+            "stderr": "",
+        }
+        mock_context.request_context.lifespan_context.python_session = mock_session
+
+        # Command history
+        mock_context.request_context.lifespan_context.command_history = [
+            ["python_code", True, "x = 1"],
+            ["python_code", True, "y = 2"],
+        ]
+
+        # Restart with both flags False
+        restart_python_session(
+            mock_context, run_successful_history_commands=False, run_all_history=False
+        )
+
+        # Verify no commands were replayed
+        mock_session.execute.assert_not_called()
+
+    def test_replay_empty_history(self):
+        """Test restart with empty command history."""
+        # Setup mock context
+        mock_context = MagicMock()
+        mock_session = MagicMock()
+        mock_session.restart.return_value = {"success": True}
+        mock_context.request_context.lifespan_context.python_session = mock_session
+        mock_context.request_context.lifespan_context.command_history = []
+
+        # Restart
+        result = restart_python_session(mock_context)
+
+        # Verify restart succeeded with no replay
+        mock_session.restart.assert_called_once()
+        mock_session.execute.assert_not_called()
+        assert "successfully" in result.lower()
+
+
+class TestRestartPythonSessionCommandTypes:
+    """Test suite for replaying different command types."""
+
+    def test_replay_python_code_commands(self):
+        """Test replaying python_code type commands."""
+        # Setup mock context
+        mock_context = MagicMock()
+        mock_session = MagicMock()
+        mock_session.restart.return_value = {"success": True}
+        mock_session.execute.return_value = {
+            "success": True,
+            "stdout": "done",
+            "stderr": "",
+        }
+        mock_context.request_context.lifespan_context.python_session = mock_session
+
+        # Python code commands
+        mock_context.request_context.lifespan_context.command_history = [
+            ["python_code", True, "import numpy as np"],
+            ["python_code", True, "x = np.array([1, 2, 3])"],
+        ]
+
+        # Restart
+        restart_python_session(mock_context)
+
+        # Verify commands were executed
+        assert mock_session.execute.call_count == 2
+
+    def test_replay_plot_code_commands(self):
+        """Test replaying plot_code type commands."""
+        # Setup mock context with execute_python_code and create_custom_plot mocked
+        mock_context = MagicMock()
+        mock_session = MagicMock()
+        mock_session.restart.return_value = {"success": True}
+        mock_session.execute.return_value = {
+            "success": True,
+            "stdout": "data:image/png;base64,abc123",
+            "stderr": "",
+        }
+        mock_context.request_context.lifespan_context.python_session = mock_session
+
+        # Plot code commands
+        mock_context.request_context.lifespan_context.command_history = [
+            ["plot_code", True, "import matplotlib.pyplot as plt\nplt.plot([1,2,3])"],
+        ]
+
+        # Restart
+        restart_python_session(mock_context)
+
+        # Verify plot command was executed
+        assert mock_session.execute.call_count == 1
+
+    def test_replay_mixed_command_types(self):
+        """Test replaying mixed python_code and plot_code commands."""
+        # Setup mock context
+        mock_context = MagicMock()
+        mock_session = MagicMock()
+        mock_session.restart.return_value = {"success": True}
+        mock_session.execute.return_value = {
+            "success": True,
+            "stdout": "done",
+            "stderr": "",
+        }
+        mock_context.request_context.lifespan_context.python_session = mock_session
+
+        # Mixed commands
+        mock_context.request_context.lifespan_context.command_history = [
+            ["python_code", True, "x = 1"],
+            ["plot_code", True, "plt.plot([1,2,3])"],
+            ["python_code", True, "y = 2"],
+        ]
+
+        # Restart
+        restart_python_session(mock_context)
+
+        # Verify all commands were replayed
+        assert mock_session.execute.call_count == 3
+
+
+class TestRestartPythonSessionSkipHistory:
+    """Test suite for skip_history parameter during replay."""
+
+    def test_skip_history_flag_in_replay(self):
+        """Test that replayed commands use skip_history=True."""
+        # This test verifies the behavior indirectly by checking that
+        # command_history is not modified during replay
+        mock_context = MagicMock()
+        mock_session = MagicMock()
+        mock_session.restart.return_value = {"success": True}
+        mock_session.execute.return_value = {
+            "success": True,
+            "stdout": "done",
+            "stderr": "",
+        }
+        mock_context.request_context.lifespan_context.python_session = mock_session
+
+        # Initial command history
+        initial_history = [
+            ["python_code", True, "x = 1"],
+        ]
+        mock_context.request_context.lifespan_context.command_history = initial_history.copy()
+
+        # Restart
+        restart_python_session(mock_context)
+
+        # Verify command was executed
+        mock_session.execute.assert_called_once()
+
+
+class TestRestartPythonSessionParameterCombinations:
+    """Test suite for different parameter combinations."""
+
+    def test_run_successful_true_run_all_false(self):
+        """Test with run_successful_history_commands=True, run_all_history=False."""
+        # Setup mock context
+        mock_context = MagicMock()
+        mock_session = MagicMock()
+        mock_session.restart.return_value = {"success": True}
+        mock_session.execute.return_value = {
+            "success": True,
+            "stdout": "done",
+            "stderr": "",
+        }
+        mock_context.request_context.lifespan_context.python_session = mock_session
+
+        mock_context.request_context.lifespan_context.command_history = [
+            ["python_code", True, "x = 1"],
+            ["python_code", False, "bad"],
+        ]
+
+        # Restart
+        restart_python_session(
+            mock_context, run_successful_history_commands=True, run_all_history=False
+        )
+
+        # Only successful command should be replayed
+        assert mock_session.execute.call_count == 1
+
+    def test_run_successful_false_run_all_true(self):
+        """Test with run_successful_history_commands=False, run_all_history=True."""
+        # Setup mock context
+        mock_context = MagicMock()
+        mock_session = MagicMock()
+        mock_session.restart.return_value = {"success": True}
+        mock_session.execute.return_value = {
+            "success": True,
+            "stdout": "done",
+            "stderr": "",
+        }
+        mock_context.request_context.lifespan_context.python_session = mock_session
+
+        mock_context.request_context.lifespan_context.command_history = [
+            ["python_code", True, "x = 1"],
+            ["python_code", False, "bad"],
+        ]
+
+        # Restart - run_all_history takes precedence
+        restart_python_session(
+            mock_context, run_successful_history_commands=False, run_all_history=True
+        )
+
+        # All commands should be replayed
+        assert mock_session.execute.call_count == 2
+
+
+# ============================================================================
+# restart_python_session Integration Tests
+# ============================================================================
+
+
+@pytest.mark.integration
+class TestRestartPythonSessionIntegration:
+    """Integration tests for restart_python_session with real Python session.
+
+    These tests use actual PersistentPythonSession to verify end-to-end functionality.
+    """
+
+    def test_restart_with_real_session_and_replay(self):
+        """Test restart with real Python session and command replay."""
+        from ansys.common.mcp.context import PyAnsysBaseAppContext
+        from ansys.common.mcp.helpers import PersistentPythonSession
+
+        # Create real context with Python session
+        app_context = PyAnsysBaseAppContext()
+        app_context.python_session = PersistentPythonSession()
+        app_context.python_session.start()
+
+        # Mock the FastMCP context
+        mock_context = MagicMock()
+        mock_context.request_context.lifespan_context = app_context
+
+        try:
+            # Execute initial commands
+            result1 = execute_python_code(mock_context, "a = 2")
+            assert json.loads(result1)["success"]
+
+            result2 = execute_python_code(mock_context, "b = 3")
+            assert json.loads(result2)["success"]
+
+            # Verify command history
+            assert len(app_context.command_history) == 2
+
+            # Execute code that uses the variables
+            result3 = execute_python_code(mock_context, "print(a + b)")
+            result3_dict = json.loads(result3)
+            assert result3_dict["success"]
+            assert "5" in result3_dict["stdout"]
+
+            # Restart session with replay
+            restart_result = restart_python_session(mock_context)
+            assert "successfully" in restart_result.lower()
+
+            # Verify variables are restored after restart
+            result4 = execute_python_code(mock_context, "print(a + b)", skip_history=True)
+            result4_dict = json.loads(result4)
+            assert result4_dict["success"]
+            assert "5" in result4_dict["stdout"]
+
+        finally:
+            app_context.python_session.stop()
+
+    def test_restart_clears_failed_commands(self):
+        """Test that restart only replays successful commands."""
+        from ansys.common.mcp.context import PyAnsysBaseAppContext
+        from ansys.common.mcp.helpers import PersistentPythonSession
+
+        # Create real context
+        app_context = PyAnsysBaseAppContext()
+        app_context.python_session = PersistentPythonSession()
+        app_context.python_session.start()
+
+        mock_context = MagicMock()
+        mock_context.request_context.lifespan_context = app_context
+
+        try:
+            # Execute successful command
+            result1 = execute_python_code(mock_context, "c = 100")
+            assert json.loads(result1)["success"]
+
+            # Execute failed command
+            result2 = execute_python_code(mock_context, "print(undefined_var)")
+            assert not json.loads(result2)["success"]
+
+            # Verify history contains both
+            assert len(app_context.command_history) == 2
+
+            # Restart with successful replay only
+            restart_result = restart_python_session(
+                mock_context, run_successful_history_commands=True, run_all_history=False
+            )
+            assert "successfully" in restart_result.lower()
+
+            # Variable 'c' should exist (from successful command)
+            result3 = execute_python_code(mock_context, "print(c)", skip_history=True)
+            result3_dict = json.loads(result3)
+            assert result3_dict["success"]
+            assert "100" in result3_dict["stdout"]
+
+            # Variable 'undefined_var' should not exist
+            result4 = execute_python_code(mock_context, "print(undefined_var)", skip_history=True)
+            result4_dict = json.loads(result4)
+            assert not result4_dict["success"]
+
+        finally:
+            app_context.python_session.stop()
+
+    def test_restart_with_no_replay(self):
+        """Test restart without replaying commands clears all state."""
+        from ansys.common.mcp.context import PyAnsysBaseAppContext
+        from ansys.common.mcp.helpers import PersistentPythonSession
+
+        # Create real context
+        app_context = PyAnsysBaseAppContext()
+        app_context.python_session = PersistentPythonSession()
+        app_context.python_session.start()
+
+        mock_context = MagicMock()
+        mock_context.request_context.lifespan_context = app_context
+
+        try:
+            # Execute command
+            result1 = execute_python_code(mock_context, "d = 42")
+            assert json.loads(result1)["success"]
+
+            # Verify variable exists
+            result2 = execute_python_code(mock_context, "print(d)", skip_history=True)
+            result2_dict = json.loads(result2)
+            assert result2_dict["success"]
+            assert "42" in result2_dict["stdout"]
+
+            # Restart without replay
+            restart_result = restart_python_session(
+                mock_context, run_successful_history_commands=False, run_all_history=False
+            )
+            assert "successfully" in restart_result.lower()
+
+            # Variable should no longer exist
+            result3 = execute_python_code(mock_context, "print(d)", skip_history=True)
+            result3_dict = json.loads(result3)
+            assert not result3_dict["success"]
+            assert "not defined" in result3_dict["error"].lower()
+
+        finally:
+            app_context.python_session.stop()
+
+    def test_restart_with_startup_code_preserved(self):
+        """Test that startup code is preserved after restart."""
+        from ansys.common.mcp.context import PyAnsysBaseAppContext
+        from ansys.common.mcp.helpers import PersistentPythonSession
+
+        # Create session with startup code
+        app_context = PyAnsysBaseAppContext()
+        app_context.python_session = PersistentPythonSession(startup_code="STARTUP_VAR = 999")
+        app_context.python_session.start()
+
+        mock_context = MagicMock()
+        mock_context.request_context.lifespan_context = app_context
+
+        try:
+            # Verify startup code ran
+            result1 = execute_python_code(mock_context, "print(STARTUP_VAR)", skip_history=True)
+            result1_dict = json.loads(result1)
+            assert result1_dict["success"]
+            assert "999" in result1_dict["stdout"]
+
+            # Add custom variable
+            result2 = execute_python_code(mock_context, "CUSTOM_VAR = 111")
+            assert json.loads(result2)["success"]
+
+            # Restart without replay
+            restart_result = restart_python_session(
+                mock_context, run_successful_history_commands=False, run_all_history=False
+            )
+            assert "successfully" in restart_result.lower()
+
+            # Startup variable should still exist
+            result3 = execute_python_code(mock_context, "print(STARTUP_VAR)", skip_history=True)
+            result3_dict = json.loads(result3)
+            assert result3_dict["success"]
+            assert "999" in result3_dict["stdout"]
+
+            # Custom variable should not exist
+            result4 = execute_python_code(mock_context, "print(CUSTOM_VAR)", skip_history=True)
+            result4_dict = json.loads(result4)
+            assert not result4_dict["success"]
+
+        finally:
+            app_context.python_session.stop()

@@ -71,4 +71,6 @@ class PyAnsysBaseAppContext:
     python_executable: Optional[Any] = None
     python_session: Optional[Any] = None  # PersistentPythonSession instance
     metadata: dict[str, Any] = field(default_factory=dict)
-    command_history: list[list[str, bool, str]] = field(default_factory=list) # Keep track of successful commands executed in the session
+    command_history: list[list[str | bool]] = field(
+        default_factory=list
+    )  # Keep track of successful commands executed in the session

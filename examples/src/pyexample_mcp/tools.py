@@ -208,8 +208,11 @@ def run_python_code(ctx: Context, code: str) -> str:
     """
     return execute_python_code(ctx, code)
 
+
 @app.tool()
-def restart_python(ctx: Context, run_successful_history_commands: bool = True, run_all_history: bool = False ) -> str:
+def restart_python(
+    ctx: Context, run_successful_history_commands: bool = True, run_all_history: bool = False
+) -> str:
     """Restart the Python execution environment.
 
     This can be useful for clearing state or reloading modules.
@@ -228,5 +231,5 @@ def restart_python(ctx: Context, run_successful_history_commands: bool = True, r
     return restart_python_session(
         ctx=ctx,
         run_successful_history_commands=run_successful_history_commands,
-        run_all_history=run_all_history
+        run_all_history=run_all_history,
     )
