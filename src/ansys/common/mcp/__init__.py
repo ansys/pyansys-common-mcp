@@ -44,5 +44,6 @@ __all__ = [
     "get_logger",
     "execute_python_code",
     "create_custom_plot",
+    "restart_python_session",
     "__version__",
 ]

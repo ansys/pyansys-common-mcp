@@ -139,7 +139,9 @@ class TestCreateModelTool:
 
         assert "param_model" in result
         assert "created successfully" in result
-        assert "CREATE MODEL" in mock_fastmcp_context.fastmcp._lifespan_result.command_history[-1]
+        assert (
+            "CREATE MODEL" in mock_fastmcp_context.fastmcp._lifespan_result.command_history[-1][2]
+        )
 
 
 class TestRunSimulationTool:
@@ -209,7 +211,11 @@ class TestGetCommandHistoryTool:
     def test_get_history_list_format(self, mock_fastmcp_context):
         """Test getting history in list format."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
-        context.command_history = ["CMD1", "CMD2", "CMD3"]
+        context.command_history = [
+            ["example_command", True, "CMD1"],
+            ["example_command", True, "CMD2"],
+            ["example_command", True, "CMD3"],
+        ]
 
         result = get_command_history(ctx=mock_fastmcp_context, format="list")
 
@@ -220,7 +226,10 @@ class TestGetCommandHistoryTool:
     def test_get_history_numbered_format(self, mock_fastmcp_context):
         """Test getting history in numbered format."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
-        context.command_history = ["CMD1", "CMD2"]
+        context.command_history = [
+            ["plot_command", True, "CMD1"],
+            ["plot_command", True, "CMD2"],
+        ]
 
         result = get_command_history(ctx=mock_fastmcp_context, format="numbered")
 
@@ -230,13 +239,18 @@ class TestGetCommandHistoryTool:
     def test_get_history_json_format(self, mock_fastmcp_context):
         """Test getting history in JSON format."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
-        context.command_history = ["CMD1", "CMD2"]
+        context.command_history = [
+            ["python_code", True, "CMD1"],
+            ["python_code", True, "CMD2"],
+        ]
 
         result = get_command_history(ctx=mock_fastmcp_context, format="json")
 
         # Should be valid JSON
         parsed = json.loads(result)
-        assert parsed == ["CMD1", "CMD2"]
+        assert isinstance(parsed, list)
+        assert parsed[0]["command"] == "CMD1"
+        assert parsed[1]["command"] == "CMD2"
 
     def test_get_history_empty(self, mock_fastmcp_context):
         """Test getting history when no commands executed."""
@@ -407,7 +421,9 @@ class TestRestartPythonTool:
             ["python_code", True, "b = 2"],
         ]
 
-        restart_python(ctx=mock_fastmcp_context, run_successful_history_commands=True, run_all_history=True)
+        restart_python(
+            ctx=mock_fastmcp_context, run_successful_history_commands=True, run_all_history=True
+        )
 
         # Should replay all commands (3 calls)
         assert context.python_session.execute.call_count == 3

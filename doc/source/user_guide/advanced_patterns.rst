@@ -83,31 +83,26 @@ This approach allows you to reset the session state without losing previous comm
 
 .. code-block:: python
 
+    from ansys.common.mcp.tools import restart_python_session
+
    @mcp.tool()
-   def restart_session(ctx: Context, replay_history: bool = True) -> str:
+   def restart_session(ctx: Context, replay_successful_history: bool, replay_all_history: bool) -> str:
        """Restart the Python session and optionally replay commands.
 
        Parameters
        ----------
        ctx : Context
            MCP context (automatically injected).
-       replay_history : bool, default: True
-           Whether to replay command history.
+        replay_successful_history : bool, default: True
+           Whether to replay only successful command history.
+       replay_all_history : bool, default: True
+           Whether to replay all command history.
        """
-       app_context = ctx.request_context.lifespan_context
-
-       history = app_context.command_history.copy()
-       result = app_context.python_session.restart()
-
-       if not result["success"]:
-           return f"Restart failed: {result['error']}"
-
-       if replay_history and history:
-           for cmd in history:
-               app_context.python_session.execute(cmd)
-           return f"Restarted and replayed {len(history)} commands"
-
-       return "Session restarted"
+       return restart_python_session(
+           ctx,
+           run_successful_history=replay_successful_history,
+           run_all_history=replay_all_history
+       )
 
 Track command history
 =====================

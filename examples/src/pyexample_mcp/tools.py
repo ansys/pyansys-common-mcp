@@ -99,9 +99,10 @@ def create_model(
     params = parameters or {}
     model = app_context.example_instance.create_model(name, model_type, **params)
 
-    # Update command history
     command = f"CREATE MODEL {name} TYPE {model_type}"
-    app_context.command_history.append(command)
+    # Update command history
+    # format: [code_type, success_flag, command_output]
+    app_context.command_history.append(["example_command", True, command])
 
     logger.info(f"Created model: {name} (type: {model_type})")
     return f"Model '{name}' created successfully\n{model}"
@@ -147,14 +148,16 @@ def run_simulation(
     if save_results:
         app_context.simulation_results[target_model] = {"status": "completed", "summary": result}
 
-    app_context.command_history.append(command)
+    # Update command history    
+    # format: [code_type, success_flag, command_output]
+    app_context.command_history.append(["example_command", True, command])
     logger.info(f"Simulation completed for model: {target_model}")
 
     return f"Simulation completed for '{target_model}'\n{result}"
 
 
 @app.tool()
-def get_command_history(ctx: Context, format: str = "list") -> str:
+def get_command_history(ctx: Context, format: str = "list", code_type: str = "all") -> str:
     """Retrieve command execution history.
 
     Parameters
@@ -163,6 +166,8 @@ def get_command_history(ctx: Context, format: str = "list") -> str:
         The FastMCP context
     format : str
         Output format: 'list', 'numbered', or 'json'
+    code_type : str
+        Filter by code type (e.g., 'plot_code', 'python_code', or 'all')
 
     Returns
     -------
@@ -175,15 +180,29 @@ def get_command_history(ctx: Context, format: str = "list") -> str:
     if not app_context.command_history:
         return "No commands executed yet"
 
-    if format == "numbered":
-        lines = [f"{i + 1}. {cmd}" for i, cmd in enumerate(app_context.command_history)]
-        return "\n".join(lines)
+    # Filter by code type if specified
+    if code_type != "all":
+        filtered_history = [entry for entry in app_context.command_history if entry[0] == code_type]
+    else:
+        filtered_history = app_context.command_history
+
+    # Format output
+    if format == "list":
+        return "\n".join([entry[2] for entry in filtered_history])
+
+    elif format == "numbered":
+        return "\n".join([f"{idx + 1}. {entry[2]}" for idx, entry in enumerate(filtered_history)])
 
     elif format == "json":
-        return json.dumps(app_context.command_history, indent=2)
-
-    else:  # list format
-        return "\n".join(app_context.command_history)
+        return json.dumps(
+            [
+                {"code_type": entry[0], "success": entry[1], "command": entry[2]}
+                for entry in filtered_history
+            ],
+            indent=2,
+        )
+    else:
+        return "Error: Invalid format specified. Use 'list', 'numbered', or 'json'."
 
 
 @app.tool()
