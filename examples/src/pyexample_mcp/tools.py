@@ -148,7 +148,7 @@ def run_simulation(
     if save_results:
         app_context.simulation_results[target_model] = {"status": "completed", "summary": result}
 
-    # Update command history    
+    # Update command history
     # format: [code_type, success_flag, command_output]
     app_context.command_history.append(["example_command", True, command])
     logger.info(f"Simulation completed for model: {target_model}")
