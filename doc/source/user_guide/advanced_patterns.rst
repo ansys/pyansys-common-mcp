@@ -93,7 +93,7 @@ This approach allows you to reset the session state without losing previous comm
        ----------
        ctx : Context
            MCP context (automatically injected).
-        replay_successful_history : bool, default: True
+       replay_successful_history : bool, default: True
            Whether to replay only successful command history.
        replay_all_history : bool, default: True
            Whether to replay all command history.
