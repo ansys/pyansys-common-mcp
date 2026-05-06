@@ -1,10 +1,10 @@
 .. _user_guide_advanced_patterns:
 
-=================
-Advanced patterns
-=================
+===============
+Common patterns
+===============
 
-This page explains advanced techniques for building robust MCP servers.
+This page explains common patterns for building robust MCP servers.
 
 .. note::
 
@@ -49,6 +49,108 @@ code runs again, ensuring that all imports and configurations are
 reestablished. This approach is particularly useful when resetting the session state
 while maintaining necessary dependencies.
 
+Command history
+===============
+
+The ``command_history`` attribute in ``PyAnsysBaseAppContext`` tracks all commands executed 
+during the MCP session. This history is used for session replay when restarting the Python 
+environment.
+
+.. note::
+
+   If you are upgrading from a previous version where ``command_history`` was a simple 
+   list of strings, see the :ref:`migration_guide` for step-by-step migration instructions.
+
+Format structure
+----------------
+
+Each entry in ``command_history`` is a list with three elements:
+
+.. code-block:: python
+
+    [command_type, success_flag, code_content]
+
+Where:
+
+- **command_type** (str): The type of command executed. Common values include:
+  
+  - ``"python_code"``: Python code executed via ``execute_python_code()``
+  - ``"plot_code"``: Plot code executed via ``create_custom_plot()``
+  - Custom types defined by product-specific implementations (e.g., ``"example_command"``)
+
+- **success_flag** (bool): Whether the command executed successfully (``True``) or failed (``False``)
+
+- **code_content** (str): The actual code or command that was executed
+
+Example usage
+-------------
+
+Accessing command history:
+
+.. code-block:: python
+
+    from ansys.common.mcp import PyAnsysBaseAppContext
+
+    app_context = PyAnsysBaseAppContext()
+    
+    # After executing commands, the history might look like:
+    # [
+    #     ["python_code", True, "import numpy as np"],
+    #     ["python_code", True, "x = np.array([1, 2, 3])"],
+    #     ["python_code", False, "print(undefined_variable)"],
+    #     ["plot_code", True, "plt.plot([1, 2, 3])"]
+    # ]
+
+Adding entries to command history:
+
+.. code-block:: python
+
+    # For successful execution
+    app_context.command_history.append(["python_code", True, "result = 42"])
+    
+    # For failed execution
+    app_context.command_history.append(["python_code", False, "bad_syntax)"])
+
+Filtering command history:
+
+.. code-block:: python
+
+    # Get only successful commands
+    successful_commands = [
+        entry for entry in app_context.command_history 
+        if entry[1] == True
+    ]
+    
+    # Get only python_code commands
+    python_commands = [
+        entry for entry in app_context.command_history 
+        if entry[0] == "python_code"
+    ]
+    
+    # Get the actual code from all commands
+    all_code = [entry[2] for entry in app_context.command_history]
+
+Best practices
+--------------
+
+1. **Always include all three elements**: Ensure your custom tools follow the format 
+   ``[type, success, code]`` when appending to command history.
+
+2. **Use descriptive command types**: Choose clear, consistent names for your command 
+   types to make filtering easier.
+
+3. **Update success flag accurately**: Set the success flag based on actual execution 
+   results, not just whether an exception was raised.
+
+4. **Use skip_history parameter**: When replaying commands during restart, use 
+   ``skip_history=True`` in ``execute_python_code()`` and ``create_custom_plot()`` 
+   to avoid duplicate history entries:
+
+   .. code-block:: python
+
+       # During restart, skip adding to history
+       execute_python_code(ctx, command[2], skip_history=True)
+
 Run Python code from tools
 --------------------------
 
@@ -56,13 +158,16 @@ The ``execute_python_code`` tool lets you run arbitrary Python code in the persi
 Because the code runs in the context of the session, it has access to all imports and variables
 defined in the startup code.
 
+The function automatically tracks all executed code in the ``command_history`` (see 
+:ref:`Command history` above), recording both successful and failed executions.
+
 .. code-block:: python
 
    from mcp.server.fastmcp import Context
    from ansys.common.mcp.tools import execute_python_code
 
    @mcp.tool()
-   async def run_python_code(ctx: Context, code: str) -> str:
+   def run_python_code(ctx: Context, code: str, timeout: int = 60, skip_history: bool = False) -> str:
        """Run Python code in the persistent session.
 
        Parameters
@@ -71,86 +176,49 @@ defined in the startup code.
            MCP context (automatically injected).
        code : str
            Python code to run.
+        timeout : int, default: 60
+            Maximum time in seconds to allow for code execution before timing out.
+        skip_history : bool, default: False
+            If True, the executed code will not be added to the command history. This is useful
+            when replaying commands during a session restart to avoid duplicate entries.
        """
-       # Add additional execution logic here (such as logging and error handling)
-       await return execute_python_code(ctx=ctx, code=code)
+       # execute_python_code automatically adds to command_history
+       # You can add additional logic here (such as logging and error handling)
+       return execute_python_code(ctx=ctx, code=code, timeout=timeout, skip_history=skip_history)
 
 Restart a session with history
 ------------------------------
 
-You can create a tool to restart the Python session while optionally replaying the command history.
-This approach allows you to reset the session state without losing previous commands.
+You can create a tool to restart the Python session while optionally replaying the command history
+(see :ref:`Command history format` above). This approach allows you to reset the session state 
+while preserving and optionally replaying previous commands.
 
 .. code-block:: python
 
     from ansys.common.mcp.tools import restart_python_session
 
    @mcp.tool()
-   def restart_session(ctx: Context, replay_successful_history: bool, replay_all_history: bool) -> str:
+   def restart_session(
+       ctx: Context,
+       run_successful_history_commands: bool = True,
+       run_all_history: bool = False
+   ) -> str:
        """Restart the Python session and optionally replay commands.
 
        Parameters
        ----------
        ctx : Context
            MCP context (automatically injected).
-       replay_successful_history : bool, default: True
+       run_successful_history_commands : bool, default: True
            Whether to replay only successful command history.
-       replay_all_history : bool, default: True
+       run_all_history : bool, default: False
            Whether to replay all command history.
        """
        return restart_python_session(
            ctx,
-           run_successful_history=replay_successful_history,
-           run_all_history=replay_all_history
+           run_successful_history_commands=run_successful_history_commands,
+           run_all_history=run_all_history
        )
-
-Track command history
-=====================
-
-Create and export command history
----------------------------------
-
-You can maintain a command history in the application context and provide tools
-to export it in various formats.
-
-.. code-block:: python
-
-   from mcp.server.fastmcp import Context
-
-   @mcp.tool()
-   def execute_command(ctx: Context, command: str) -> str:
-       """Run and track a command.
-
-       Parameters
-       ----------
-       ctx : Context
-           MCP context (automatically injected).
-       command : str
-           Command to run.
-       """
-       app_context = ctx.request_context.lifespan_context
-       result = app_context.product_instance.run(command)
-       if result["success"]:
-           app_context.command_history.append(command)
-       return result
-
-   @mcp.tool()
-   def export_history(ctx: Context, format: str = "json") -> str:
-       """Export the command history as JSON or text.
-
-       Parameters
-       ----------
-       ctx : Context
-           MCP context (automatically injected).
-       format : str, default: 'json'
-           Export format ('json' or 'text').
-       """
-       app_context = ctx.request_context.lifespan_context
-
-       if format == "json":
-           import json
-           return json.dumps(app_context.command_history, indent=2)
-       return "\n".join(app_context.command_history)
 
 Handle errors
 =============

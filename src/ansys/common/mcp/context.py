@@ -45,7 +45,7 @@ class PyAnsysBaseAppContext:
         Python session.
     metadata : dict
         Dictionary for storing arbitrary metadata related to the context.
-    command_history : list of list of str, default: []
+    command_history : list[list[str | bool]], default: []
         List to keep track of executed commands in the session with the
         following format: [[type_of_code (str), success (bool), code (str)]]
 

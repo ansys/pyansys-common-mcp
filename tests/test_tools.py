@@ -22,7 +22,12 @@ from unittest.mock import MagicMock
 from mcp.types import ImageContent, TextContent
 import pytest
 
-from ansys.common.mcp.tools import create_custom_plot, execute_python_code, restart_python_session
+from ansys.common.mcp.tools import (
+    create_custom_plot,
+    execute_python_code,
+    export_history,
+    restart_python_session,
+)
 
 # ============================================================================
 # execute_python_code Tests
@@ -1255,3 +1260,84 @@ class TestRestartPythonSessionIntegration:
 
         finally:
             app_context.python_session.stop()
+
+
+# ============================================================================
+# export_history Tests
+# ============================================================================
+
+
+class TestExportHistoryBasic:
+    """Test suite for basic export_history functionality."""
+
+    def test_export_history_json_format(self):
+        """Test exporting history in JSON format."""
+        # Setup mock context
+        mock_context = MagicMock()
+        mock_context.request_context.lifespan_context.command_history = [
+            ["python_code", True, "x = 1"],
+            ["python_code", True, "y = 2"],
+            ["plot_code", False, "bad_plot"],
+        ]
+
+        # Export as JSON
+        result = export_history(mock_context, format="json")
+
+        # Verify result
+        assert isinstance(result, str)
+        parsed = json.loads(result)
+        assert len(parsed) == 3
+        assert parsed[0]["type"] == "python_code"
+        assert parsed[0]["success"] is True
+        assert parsed[0]["command"] == "x = 1"
+        assert parsed[2]["type"] == "plot_code"
+        assert parsed[2]["success"] is False
+
+    def test_export_history_text_format(self):
+        """Test exporting history in text format."""
+        # Setup mock context
+        mock_context = MagicMock()
+        mock_context.request_context.lifespan_context.command_history = [
+            ["python_code", True, "import numpy"],
+            ["python_code", True, "arr = np.array([1,2,3])"],
+        ]
+
+        # Export as text
+        result = export_history(mock_context, format="text")
+
+        # Verify result
+        assert isinstance(result, str)
+        assert "import numpy" in result
+        assert "arr = np.array([1,2,3])" in result
+        assert "\n" in result  # Multiple commands should be separated by newlines
+
+    def test_export_history_default_format(self):
+        """Test that default format is JSON."""
+        # Setup mock context
+        mock_context = MagicMock()
+        mock_context.request_context.lifespan_context.command_history = [
+            ["python_code", True, "test = 1"],
+        ]
+
+        # Export with no format specified (should default to JSON)
+        result = export_history(mock_context)
+
+        # Verify it's valid JSON
+        parsed = json.loads(result)
+        assert isinstance(parsed, list)
+        assert len(parsed) == 1
+
+    def test_export_history_empty(self):
+        """Test exporting empty history."""
+        # Setup mock context with empty history
+        mock_context = MagicMock()
+        mock_context.request_context.lifespan_context.command_history = []
+
+        # Export as JSON
+        result_json = export_history(mock_context, format="json")
+        parsed = json.loads(result_json)
+        assert parsed == []
+
+        # Export as text
+        result_text = export_history(mock_context, format="text")
+        assert result_text == ""
