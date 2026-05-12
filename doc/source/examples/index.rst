@@ -32,6 +32,6 @@ Next steps
 ----------
 
 - Study the :ref:`user_guide_architecture` to understand how PyAnsys Common MCP works.
-- Review :ref:`user_guide_advanced_patterns` for more techniques.
+- Review :ref:`user_guide_common_patterns` for more techniques.
 - Clone `PyMAPDL-MCP <pymapdl_mcp_>`_ to see a real implementation.
 - Build your own MCP server for your PyAnsys library.

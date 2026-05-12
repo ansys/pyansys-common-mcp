@@ -36,7 +36,7 @@ servers for PyAnsys libraries.
         :link: ref_user_guide
         :link-type: ref
 
-        Understand the architecture, advanced patterns, and best practices
+        Understand the architecture, common patterns, and best practices
         for building robust MCP servers.
 
     .. grid-item-card:: :fa:`code` Examples

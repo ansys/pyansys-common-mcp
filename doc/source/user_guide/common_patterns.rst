@@ -1,4 +1,4 @@
-.. _user_guide_advanced_patterns:
+.. _user_guide_common_patterns:
 
 ===============
 Common patterns

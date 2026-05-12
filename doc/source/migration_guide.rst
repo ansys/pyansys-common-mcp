@@ -6,7 +6,7 @@ Migration guide
 
 This guide helps you migrate from older versions of ``pyansys-common-mcp`` to the latest version.
 
-Version 0.2.x to 0.3.0 - Command history format change
+Version v0.2.x to v0.3.0 - Command history format change
 ======================================================
 
 Overview
