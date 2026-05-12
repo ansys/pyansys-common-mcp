@@ -140,6 +140,6 @@ class TestAddToHistory:
 
         entry = context.command_history[0]
         assert len(entry) == 3
-        assert isinstance(entry[0], str)   # command_type
+        assert isinstance(entry[0], str)  # command_type
         assert isinstance(entry[1], bool)  # success
-        assert isinstance(entry[2], str)   # command
+        assert isinstance(entry[2], str)  # command
