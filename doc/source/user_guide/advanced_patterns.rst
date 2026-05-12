@@ -159,7 +159,7 @@ Because the code runs in the context of the session, it has access to all import
 defined in the startup code.
 
 The function automatically tracks all executed code in the ``command_history`` (see
-:ref:`Command history` above), recording both successful and failed executions.
+`Command history_` above), recording both successful and failed executions.
 
 .. code-block:: python
 
@@ -190,7 +190,7 @@ Restart a session with history
 ------------------------------
 
 You can create a tool to restart the Python session while optionally replaying the command history
-(see :ref:`Command history format` above). This approach allows you to reset the session state
+(see `Format structure`_ above). This approach allows you to reset the session state
 while preserving and optionally replaying previous commands.
 
 .. code-block:: python

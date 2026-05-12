@@ -264,4 +264,4 @@ If you encounter issues during migration:
 1. Check the ``examples`` directory for reference implementations
 2. Review the test files in ``tests/test_pyexample/`` for usage patterns
 3. Open an issue on the GitHub repository with your specific use case
-4. See the :ref:`user_guide` for more detailed examples
+4. See the :ref:`ref_user_guide` for more detailed examples
