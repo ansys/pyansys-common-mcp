@@ -74,3 +74,28 @@ class PyAnsysBaseAppContext:
     command_history: list[list[str | bool]] = field(
         default_factory=list
     )  # Keep track of successful commands executed in the session
+
+    def add_to_history(self, command_type: str, success: bool, command: str) -> None:
+        """Add a command entry to the command history.
+
+        Parameters
+        ----------
+        command_type : str
+            Type of command, e.g. ``"python_code"``, ``"plot_code"``, or a custom type.
+        success : bool
+            Whether the command executed successfully.
+        command : str
+            The actual code or command that was executed.
+
+        Examples
+        --------
+        Record a successful command:
+
+        >>> app_context.add_to_history("python_code", True, "import numpy as np")
+
+        Record a failed command:
+
+        >>> app_context.add_to_history("python_code", False, "import unknown_package")
+
+        """
+        self.command_history.append([command_type, success, command])

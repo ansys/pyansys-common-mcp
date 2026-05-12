@@ -7,7 +7,7 @@ Migration guide
 This guide helps you migrate from older versions of ``pyansys-common-mcp`` to the latest version.
 
 Version 0.2.x to 0.3.0 - Command history format change
-===================================================
+======================================================
 
 Overview
 --------
@@ -65,7 +65,12 @@ Migration steps
 ---------------
 
 Step 1: Update context initialization
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note::
+
+   This step only applies if you explicitly set ``command_history`` during initialization.
+   If you do not, skip to Step 2.
 
 If you manually initialize ``command_history``:
 
@@ -85,9 +90,9 @@ If you manually initialize ``command_history``:
     )
 
 Step 2: Update history appends
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Update all code that appends to ``command_history``:
+Update all code that appends to ``command_history`` to use the new ``add_to_history()`` method:
 
 .. code-block:: python
 
@@ -95,7 +100,7 @@ Update all code that appends to ``command_history``:
     app_context.command_history.append(command)
 
     # NEW
-    app_context.command_history.append(["command_type", True, command])
+    app_context.add_to_history("command_type", True, command)
 
 For example, in a custom tool:
 
@@ -113,14 +118,14 @@ For example, in a custom tool:
     def my_tool(ctx: Context, command: str):
         try:
             result = execute_command(command)
-            app_context.command_history.append(["my_tool", True, command])
+            app_context.add_to_history("my_tool", True, command)
             return result
         except Exception as e:
-            app_context.command_history.append(["my_tool", False, command])
+            app_context.add_to_history("my_tool", False, command)
             raise
 
 Step 3: Update history reading
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Update code that reads from ``command_history``:
 
@@ -141,8 +146,13 @@ Update code that reads from ``command_history``:
         command = entry[2]
         print(f"Type: {command_type}, Success: {success}, Command: {command}")
 
-Step 4: Update get_command_history tool
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Step 4: Update ``get_command_history`` tool
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note::
+
+   This step only applies if you implemented a custom ``get_command_history`` tool.
+   If you did not, skip to Step 5.
 
 If you implemented a custom ``get_command_history`` tool:
 
@@ -175,11 +185,11 @@ If you implemented a custom ``get_command_history`` tool:
             return json.dumps([
                 {"code_type": e[0], "success": e[1], "command": e[2]}
                 for e in filtered
-            indent=2)
+            ], indent=2)
         return "\n".join([entry[2] for entry in filtered])
 
 Step 5: Update session restart logic
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you have custom restart logic:
 
@@ -207,54 +217,46 @@ If you have custom restart logic:
             run_all_history=False
         )
 
+Step 6: Record custom commands with ``add_to_history()``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If your custom tools run commands outside of ``execute_python_code()`` or
+``create_custom_plot()`` (for example, direct API calls to an Ansys product), you must
+record those commands in the history manually. Use the ``add_to_history()`` method on
+the context so that session restart can replay them correctly.
+
+.. code-block:: python
+
+    @app.tool()
+    def run_product_command(ctx: Context, command: str) -> str:
+        app_context = ctx.request_context.lifespan_context
+        try:
+            result = app_context.product_instance.run(command)
+            app_context.add_to_history("product_command", True, command)
+            return str(result)
+        except Exception as e:
+            app_context.add_to_history("product_command", False, command)
+            raise
+
+.. note::
+
+   Commands that are not added to the history will not be replayed on session restart,
+   which may leave the session in an inconsistent state.
+
 Breaking changes checklist
----------------------------
+--------------------------
 
 Review this checklist to ensure your migration is complete:
 
-- [ ] Updated all ``command_history.append()`` calls to use three-element list format
+- [ ] Updated all ``command_history.append()`` calls to use ``add_to_history()``
 - [ ] Updated all code that reads ``command_history`` to handle the new structure
 - [ ] Updated custom history retrieval tools to extract the command content (index 2)
 - [ ] Added command type classification for all custom tools
 - [ ] Added success/failure tracking to all command executions
+- [ ] Recorded all custom commands via ``add_to_history()`` (not only Python/plot commands)
 - [ ] Updated any session restart logic to use the new format
 - [ ] Updated tests that check ``command_history`` content
 - [ ] Updated any custom replay logic to handle command types
-
-Example: Complete before/after
--------------------------------
-
-**Before (v0.x)**
-
-.. code-block:: python
-
-    @app.tool()
-    def execute_command(ctx: Context, command: str) -> str:
-        app_context = ctx.fastmcp._lifespan_result
-
-        result = app_context.example_instance.run_command(command)
-        app_context.command_history.append(command)
-
-        return str(result)
-
-**After (v3.0+)**
-
-.. code-block:: python
-
-    @app.tool()
-    def execute_command(ctx: Context, command: str) -> str:
-        app_context = ctx.fastmcp._lifespan_result
-
-        try:
-            result = app_context.example_instance.run_command(command)
-            # New format: [type, success, command]
-            app_context.command_history.append(["example_command", True, command])
-            return str(result)
-        except Exception as e:
-            # Track failures too
-            app_context.command_history.append(["example_command", False, command])
-            logger.error(f"Command failed: {e}")
-            return f"Error: {e}"
 
 Getting help
 ------------

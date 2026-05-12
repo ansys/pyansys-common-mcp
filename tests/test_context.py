@@ -37,7 +37,10 @@ class TestPyAnsysBaseAppContext:
         """Test context initialization with provided values."""
         session = PersistentPythonSession()
         metadata = {"key": "value"}
-        history = ["cmd1", "cmd2"]
+        history = [
+            ["python_code", True, "cmd1"],
+            ["python_code", True, "cmd2"],
+        ]
 
         context = PyAnsysBaseAppContext(
             product_instance="test_product",
@@ -59,13 +62,13 @@ class TestPyAnsysBaseAppContext:
 
         # Add state
         context.metadata["session_id"] = "session_123"
-        context.command_history.append("import numpy")
-        context.command_history.append("x = 10")
+        context.add_to_history("python_code", True, "import numpy")
+        context.add_to_history("python_code", True, "x = 10")
 
         # Retrieve state
         assert context.metadata["session_id"] == "session_123"
         assert len(context.command_history) == 2
-        assert context.command_history[0] == "import numpy"
+        assert context.command_history[0] == ["python_code", True, "import numpy"]
 
 
 class TestContextExtension:
@@ -90,3 +93,53 @@ class TestContextExtension:
         assert context.custom_field == "test_value"
         assert context.custom_config == {}
         assert context.product_instance is None  # Inherited from base
+
+
+class TestAddToHistory:
+    """Tests for PyAnsysBaseAppContext.add_to_history()."""
+
+    def test_add_successful_command(self):
+        """Test adding a successful command to the history."""
+        context = PyAnsysBaseAppContext()
+        context.add_to_history("python_code", True, "import numpy as np")
+
+        assert len(context.command_history) == 1
+        assert context.command_history[0] == ["python_code", True, "import numpy as np"]
+
+    def test_add_failed_command(self):
+        """Test adding a failed command to the history."""
+        context = PyAnsysBaseAppContext()
+        context.add_to_history("python_code", False, "import unknown_package")
+
+        assert len(context.command_history) == 1
+        assert context.command_history[0] == ["python_code", False, "import unknown_package"]
+
+    def test_add_multiple_commands(self):
+        """Test adding multiple commands preserves order."""
+        context = PyAnsysBaseAppContext()
+        context.add_to_history("python_code", True, "x = 1")
+        context.add_to_history("python_code", False, "bad code")
+        context.add_to_history("plot_code", True, "plt.plot([1,2,3])")
+
+        assert len(context.command_history) == 3
+        assert context.command_history[0] == ["python_code", True, "x = 1"]
+        assert context.command_history[1] == ["python_code", False, "bad code"]
+        assert context.command_history[2] == ["plot_code", True, "plt.plot([1,2,3])"]
+
+    def test_add_custom_command_type(self):
+        """Test adding a command with a custom type."""
+        context = PyAnsysBaseAppContext()
+        context.add_to_history("mapdl_command", True, "/PREP7")
+
+        assert context.command_history[0][0] == "mapdl_command"
+
+    def test_history_entry_structure(self):
+        """Test that each entry has exactly three elements with correct types."""
+        context = PyAnsysBaseAppContext()
+        context.add_to_history("python_code", True, "x = 42")
+
+        entry = context.command_history[0]
+        assert len(entry) == 3
+        assert isinstance(entry[0], str)   # command_type
+        assert isinstance(entry[1], bool)  # success
+        assert isinstance(entry[2], str)   # command

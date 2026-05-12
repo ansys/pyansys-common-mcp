@@ -54,7 +54,8 @@ Command history
 
 The ``command_history`` attribute in ``PyAnsysBaseAppContext`` tracks all commands executed
 during the MCP session. This history is used for session replay when restarting the Python
-environment.
+environment with the ``restart_python_session()`` tool. Each entry in the history includes the command type,
+execution success status, and the actual code or command executed.
 
 .. note::
 
@@ -106,10 +107,10 @@ Adding entries to command history:
 .. code-block:: python
 
     # For successful execution
-    app_context.command_history.append(["python_code", True, "result = 42"])
+    app_context.add_to_history("python_code", True, "result = 42")
 
     # For failed execution
-    app_context.command_history.append(["python_code", False, "bad_syntax)"])
+    app_context.add_to_history("python_code", False, "bad_syntax)")
 
 Filtering command history:
 
@@ -133,8 +134,9 @@ Filtering command history:
 Best practices
 --------------
 
-1. **Always include all three elements**: Ensure your custom tools follow the format
-   ``[type, success, code]`` when appending to command history.
+1. **Always use** ``add_to_history()``: Use ``app_context.add_to_history(type, success, code)``
+   instead of appending directly to ``command_history``. This ensures the correct
+   three-element format and makes future format changes easier to handle.
 
 2. **Use descriptive command types**: Choose clear, consistent names for your command
    types to make filtering easier.
@@ -159,7 +161,7 @@ Because the code runs in the context of the session, it has access to all import
 defined in the startup code.
 
 The function automatically tracks all executed code in the ``command_history`` (see
-`Command history_` above), recording both successful and failed executions.
+`Command history`_ above), recording both successful and failed executions.
 
 .. code-block:: python
 
@@ -176,11 +178,11 @@ The function automatically tracks all executed code in the ``command_history`` (
            MCP context (automatically injected).
        code : str
            Python code to run.
-        timeout : int, default: 60
-            Maximum time in seconds to allow for code execution before timing out.
-        skip_history : bool, default: False
-            If True, the executed code will not be added to the command history. This is useful
-            when replaying commands during a session restart to avoid duplicate entries.
+       timeout : int, default: 60
+           Maximum time in seconds to allow for code execution before timing out.
+       skip_history : bool, default: False
+           If True, the executed code will not be added to the command history. This is useful
+           when replaying commands during a session restart to avoid duplicate entries.
        """
        # execute_python_code automatically adds to command_history
        # You can add additional logic here (such as logging and error handling)

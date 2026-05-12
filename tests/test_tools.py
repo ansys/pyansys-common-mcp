@@ -48,7 +48,6 @@ class TestExecutePythonCodeBasic:
             "stderr": "",
         }
         mock_context.request_context.lifespan_context.python_session = mock_session
-        mock_context.request_context.lifespan_context.command_history = []
 
         # Execute code
         code = "print(42)"
@@ -60,6 +59,9 @@ class TestExecutePythonCodeBasic:
         assert result_dict["success"] is True
         assert "42" in result_dict["stdout"]
         mock_session.execute.assert_called_once_with(code, timeout=60)
+        mock_context.request_context.lifespan_context.add_to_history.assert_called_once_with(
+            "python_code", True, code
+        )
 
     def test_execute_code_with_custom_timeout(self):
         """Test executing code with custom timeout."""
@@ -119,6 +121,9 @@ class TestExecutePythonCodeBasic:
         result_dict = json.loads(result)
         assert result_dict["success"] is False
         assert "ZeroDivisionError" in result_dict["error"]
+        mock_context.request_context.lifespan_context.add_to_history.assert_called_once_with(
+            "python_code", False, code
+        )
 
     def test_execute_code_with_stdout_and_stderr(self):
         """Test executing code that produces both stdout and stderr."""
@@ -346,6 +351,9 @@ class TestCreateCustomPlotBasic:
         assert isinstance(result[1], ImageContent)
         assert result[1].mimeType == "image/png"
         assert result[1].data == base64_data
+        mock_context.request_context.lifespan_context.add_to_history.assert_called_once_with(
+            "plot_code", True, plot_code
+        )
 
     def test_create_pyvista_plot_success(self):
         """Test creating a pyvista plot successfully."""
@@ -480,6 +488,9 @@ class TestCreateCustomPlotOutputFormats:
         assert isinstance(result[0], TextContent)
         assert "Error creating custom" in result[0].text
         assert "NameError" in result[0].text
+        mock_context.request_context.lifespan_context.add_to_history.assert_called_once_with(
+            "plot_code", False, plot_code
+        )
 
 
 class TestCreateCustomPlotSanitization:

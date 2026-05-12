@@ -115,7 +115,7 @@ def execute_python_code(
 
             if result.get("success"):
                 if not skip_history:
-                    app_context.command_history.append(["python_code", True, sanitized_code])
+                    app_context.add_to_history("python_code", True, sanitized_code)
                 return json.dumps(
                     {
                         "success": True,
@@ -128,7 +128,7 @@ def execute_python_code(
                 )
             else:
                 if not skip_history:
-                    app_context.command_history.append(["python_code", False, sanitized_code])
+                    app_context.add_to_history("python_code", False, sanitized_code)
                 # Execution failed - generate rule if enabled
                 error_msg = result.get("error", "Unknown error occurred.")
                 error_msg = _sanitize_output(error_msg)
@@ -145,7 +145,7 @@ def execute_python_code(
                 )
         else:
             if not skip_history:
-                app_context.command_history.append(["python_code", False, sanitized_code])
+                app_context.add_to_history("python_code", False, sanitized_code)
             # Fallback if result is not a dict
             return json.dumps(
                 {
@@ -160,7 +160,7 @@ def execute_python_code(
 
     except TimeoutError:
         if not skip_history:
-            app_context.command_history.append(["python_code", False, sanitized_code])
+            app_context.add_to_history("python_code", False, sanitized_code)
         error_dict = {
             "success": False,
             "error": f"Python code execution timed out after {timeout} seconds.",
@@ -170,7 +170,7 @@ def execute_python_code(
 
     except Exception as e:
         if not skip_history:
-            app_context.command_history.append(["python_code", False, sanitized_code])
+            app_context.add_to_history("python_code", False, sanitized_code)
         error_dict = {"success": False, "error": f"Error executing Python code: {str(e)}"}
         logger.error(error_dict["error"])
         return json.dumps(error_dict, ensure_ascii=False)
@@ -266,7 +266,7 @@ def create_custom_plot(
 
             if result.get("success"):
                 if not skip_history:
-                    app_context.command_history.append(["plot_code", True, sanitized_plot_code])
+                    app_context.add_to_history("plot_code", True, sanitized_plot_code)
                 # Try to extract plot data from stdout
                 # The helper functions return data URI format:
                 # "data:image/png;base64,<base64_string>"
@@ -295,9 +295,7 @@ def create_custom_plot(
                 else:
                     # Unexpected output format
                     if not skip_history:
-                        app_context.command_history.append(
-                            ["plot_code", False, sanitized_plot_code]
-                        )
+                        app_context.add_to_history("plot_code", False, sanitized_plot_code)
                     return [
                         TextContent(
                             type="text",
@@ -306,7 +304,7 @@ def create_custom_plot(
                     ]
             else:
                 if not skip_history:
-                    app_context.command_history.append(["plot_code", False, sanitized_plot_code])
+                    app_context.add_to_history("plot_code", False, sanitized_plot_code)
                 error_msg = result.get("error", "Unknown error occurred.")
                 error_msg = _sanitize_output(error_msg)
                 return [
@@ -317,7 +315,7 @@ def create_custom_plot(
                 ]
         else:
             if not skip_history:
-                app_context.command_history.append(["plot_code", False, sanitized_plot_code])
+                app_context.add_to_history("plot_code", False, sanitized_plot_code)
             # Fallback if result is not a dict
             return [
                 TextContent(
@@ -328,14 +326,14 @@ def create_custom_plot(
 
     except TimeoutError:
         if not skip_history:
-            app_context.command_history.append(["plot_code", False, sanitized_plot_code])
+            app_context.add_to_history("plot_code", False, sanitized_plot_code)
         error_msg = f"Plot creation timed out after {timeout} seconds."
         logger.error(error_msg)
         return [TextContent(type="text", text=error_msg)]
 
     except Exception as e:
         if not skip_history:
-            app_context.command_history.append(["plot_code", False, sanitized_plot_code])
+            app_context.add_to_history("plot_code", False, sanitized_plot_code)
         error_msg = f"Error creating custom plot: {str(e)}"
         logger.error(error_msg)
         return [TextContent(type="text", text=error_msg)]
