@@ -52,13 +52,13 @@ while maintaining necessary dependencies.
 Command history
 ===============
 
-The ``command_history`` attribute in ``PyAnsysBaseAppContext`` tracks all commands executed 
-during the MCP session. This history is used for session replay when restarting the Python 
+The ``command_history`` attribute in ``PyAnsysBaseAppContext`` tracks all commands executed
+during the MCP session. This history is used for session replay when restarting the Python
 environment.
 
 .. note::
 
-   If you are upgrading from a previous version where ``command_history`` was a simple 
+   If you are upgrading from a previous version where ``command_history`` was a simple
    list of strings, see the :ref:`migration_guide` for step-by-step migration instructions.
 
 Format structure
@@ -73,7 +73,7 @@ Each entry in ``command_history`` is a list with three elements:
 Where:
 
 - **command_type** (str): The type of command executed. Common values include:
-  
+
   - ``"python_code"``: Python code executed via ``execute_python_code()``
   - ``"plot_code"``: Plot code executed via ``create_custom_plot()``
   - Custom types defined by product-specific implementations (e.g., ``"example_command"``)
@@ -92,7 +92,7 @@ Accessing command history:
     from ansys.common.mcp import PyAnsysBaseAppContext
 
     app_context = PyAnsysBaseAppContext()
-    
+
     # After executing commands, the history might look like:
     # [
     #     ["python_code", True, "import numpy as np"],
@@ -107,7 +107,7 @@ Adding entries to command history:
 
     # For successful execution
     app_context.command_history.append(["python_code", True, "result = 42"])
-    
+
     # For failed execution
     app_context.command_history.append(["python_code", False, "bad_syntax)"])
 
@@ -117,33 +117,33 @@ Filtering command history:
 
     # Get only successful commands
     successful_commands = [
-        entry for entry in app_context.command_history 
+        entry for entry in app_context.command_history
         if entry[1] == True
     ]
-    
+
     # Get only python_code commands
     python_commands = [
-        entry for entry in app_context.command_history 
+        entry for entry in app_context.command_history
         if entry[0] == "python_code"
     ]
-    
+
     # Get the actual code from all commands
     all_code = [entry[2] for entry in app_context.command_history]
 
 Best practices
 --------------
 
-1. **Always include all three elements**: Ensure your custom tools follow the format 
+1. **Always include all three elements**: Ensure your custom tools follow the format
    ``[type, success, code]`` when appending to command history.
 
-2. **Use descriptive command types**: Choose clear, consistent names for your command 
+2. **Use descriptive command types**: Choose clear, consistent names for your command
    types to make filtering easier.
 
-3. **Update success flag accurately**: Set the success flag based on actual execution 
+3. **Update success flag accurately**: Set the success flag based on actual execution
    results, not just whether an exception was raised.
 
-4. **Use skip_history parameter**: When replaying commands during restart, use 
-   ``skip_history=True`` in ``execute_python_code()`` and ``create_custom_plot()`` 
+4. **Use skip_history parameter**: When replaying commands during restart, use
+   ``skip_history=True`` in ``execute_python_code()`` and ``create_custom_plot()``
    to avoid duplicate history entries:
 
    .. code-block:: python
@@ -158,7 +158,7 @@ The ``execute_python_code`` tool lets you run arbitrary Python code in the persi
 Because the code runs in the context of the session, it has access to all imports and variables
 defined in the startup code.
 
-The function automatically tracks all executed code in the ``command_history`` (see 
+The function automatically tracks all executed code in the ``command_history`` (see
 :ref:`Command history` above), recording both successful and failed executions.
 
 .. code-block:: python
@@ -190,7 +190,7 @@ Restart a session with history
 ------------------------------
 
 You can create a tool to restart the Python session while optionally replaying the command history
-(see :ref:`Command history format` above). This approach allows you to reset the session state 
+(see :ref:`Command history format` above). This approach allows you to reset the session state
 while preserving and optionally replaying previous commands.
 
 .. code-block:: python

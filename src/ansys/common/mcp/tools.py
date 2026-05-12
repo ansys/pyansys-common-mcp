@@ -54,7 +54,8 @@ def execute_python_code(
         Maximum time in seconds to allow for code execution.
     skip_history : bool, default: False
         Whether to skip adding this code snippet to the history. This can be useful to prevent
-        certain code snippets from being re-run during session restart or for keeping the history clean.
+        certain code snippets from being re-run during session restart or for keeping the history
+        clean.
 
     Returns
     -------
@@ -198,7 +199,8 @@ def create_custom_plot(
         Maximum time in seconds for plot generation.
     skip_history : bool, default: False
         Whether to skip adding this plot code snippet to the history. This can be useful to prevent
-        certain code snippets from being re-run during session restart or for keeping the history clean.
+        certain code snippets from being re-run during session restart or for keeping the history
+        clean.
 
     Returns
     -------
@@ -404,14 +406,13 @@ def export_history(ctx: Context, format: str = "json") -> str:
 
     if format == "json":
         # Export with structured format
-        return json.dumps([
-            {
-                "type": entry[0],
-                "success": entry[1],
-                "command": entry[2]
-            }
-            for entry in app_context.command_history
-        ], indent=2)
+        return json.dumps(
+            [
+                {"type": entry[0], "success": entry[1], "command": entry[2]}
+                for entry in app_context.command_history
+            ],
+            indent=2,
+        )
     # For text format, just return the commands
     return "\n".join([entry[2] for entry in app_context.command_history])
 

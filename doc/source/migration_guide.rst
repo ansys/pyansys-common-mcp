@@ -12,8 +12,8 @@ Version 0.2.x to 0.3.0 - Command history format change
 Overview
 --------
 
-The format of the ``command_history`` attribute in ``PyAnsysBaseAppContext`` has changed 
-to support more advanced session management features, including selective command replay 
+The format of the ``command_history`` attribute in ``PyAnsysBaseAppContext`` has changed
+to support more advanced session management features, including selective command replay
 and better error tracking.
 
 What changed
@@ -26,7 +26,7 @@ What changed
 .. code-block:: python
 
     command_history: list[str] = field(default_factory=list)
-    
+
     # Example:
     app_context.command_history = ["import numpy", "x = 10", "print(x)"]
 
@@ -37,7 +37,7 @@ What changed
 .. code-block:: python
 
     command_history: list[list[str | bool]] = field(default_factory=list)
-    
+
     # Example:
     app_context.command_history = [
         ["python_code", True, "import numpy"],
@@ -75,7 +75,7 @@ If you manually initialize ``command_history``:
     context = PyAnsysBaseAppContext(
         command_history=["cmd1", "cmd2"]
     )
-    
+
     # NEW
     context = PyAnsysBaseAppContext(
         command_history=[
@@ -93,7 +93,7 @@ Update all code that appends to ``command_history``:
 
     # OLD
     app_context.command_history.append(command)
-    
+
     # NEW
     app_context.command_history.append(["command_type", True, command])
 
@@ -107,7 +107,7 @@ For example, in a custom tool:
         result = execute_command(command)
         app_context.command_history.append(command)
         return result
-    
+
     # NEW
     @app.tool()
     def my_tool(ctx: Context, command: str):
@@ -129,11 +129,11 @@ Update code that reads from ``command_history``:
     # OLD - Direct iteration over strings
     for command in app_context.command_history:
         print(f"Command: {command}")
-    
+
     # NEW - Unpack the list structure
     for command_type, success, command in app_context.command_history:
         print(f"Type: {command_type}, Success: {success}, Command: {command}")
-    
+
     # Or access by index
     for entry in app_context.command_history:
         command_type = entry[0]
@@ -152,22 +152,22 @@ If you implemented a custom ``get_command_history`` tool:
     @app.tool()
     def get_command_history(ctx: Context, format: str = "list") -> str:
         app_context = ctx.fastmcp._lifespan_result
-        
+
         if format == "numbered":
             return "\n".join([f"{i + 1}. {cmd}" for i, cmd in enumerate(app_context.command_history)])
         return "\n".join(app_context.command_history)
-    
+
     # NEW
     @app.tool()
     def get_command_history(ctx: Context, format: str = "list", code_type: str = "all") -> str:
         app_context = ctx.fastmcp._lifespan_result
-        
+
         # Filter by code type if specified
         if code_type != "all":
             filtered = [entry for entry in app_context.command_history if entry[0] == code_type]
         else:
             filtered = app_context.command_history
-        
+
         # Format output - extract just the command content (index 2)
         if format == "numbered":
             return "\n".join([f"{i + 1}. {entry[2]}" for i, entry in enumerate(filtered)])
@@ -190,15 +190,15 @@ If you have custom restart logic:
     def restart_session(ctx: Context, replay_history: bool = True) -> str:
         app_context = ctx.request_context.lifespan_context
         app_context.python_session.restart()
-        
+
         if replay_history:
             for cmd in app_context.command_history:
                 app_context.python_session.execute(cmd)
         return "Restarted"
-    
+
     # NEW - Use the built-in function
     from ansys.common.mcp.tools import restart_python_session
-    
+
     @app.tool()
     def restart_session(ctx: Context, replay_successful: bool = True) -> str:
         return restart_python_session(
@@ -231,10 +231,10 @@ Example: Complete before/after
     @app.tool()
     def execute_command(ctx: Context, command: str) -> str:
         app_context = ctx.fastmcp._lifespan_result
-        
+
         result = app_context.example_instance.run_command(command)
         app_context.command_history.append(command)
-        
+
         return str(result)
 
 **After (v3.0+)**
@@ -244,7 +244,7 @@ Example: Complete before/after
     @app.tool()
     def execute_command(ctx: Context, command: str) -> str:
         app_context = ctx.fastmcp._lifespan_result
-        
+
         try:
             result = app_context.example_instance.run_command(command)
             # New format: [type, success, command]
