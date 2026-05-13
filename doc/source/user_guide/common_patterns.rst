@@ -96,10 +96,10 @@ Accessing command history:
 
     # After executing commands, the history might look like:
     # [
-    #     ["python_code", True, "import numpy as np"],
-    #     ["python_code", True, "x = np.array([1, 2, 3])"],
-    #     ["python_code", False, "print(undefined_variable)"],
-    #     ["plot_code", True, "plt.plot([1, 2, 3])"]
+    #     ("python_code", True, "import numpy as np"),
+    #     ("python_code", True, "x = np.array([1, 2, 3])"),
+    #     ("python_code", False, "print(undefined_variable)"),
+    #     ("plot_code", True, "plt.plot([1, 2, 3])")
     # ]
 
 Adding entries to command history:

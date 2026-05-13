@@ -38,8 +38,8 @@ class TestPyAnsysBaseAppContext:
         session = PersistentPythonSession()
         metadata = {"key": "value"}
         history = [
-            ["python_code", True, "cmd1"],
-            ["python_code", True, "cmd2"],
+            ("python_code", True, "cmd1"),
+            ("python_code", True, "cmd2"),
         ]
 
         context = PyAnsysBaseAppContext(

@@ -833,9 +833,9 @@ class TestRestartPythonSessionCommandReplay:
 
         # Command history with mixed success/failure
         mock_context.request_context.lifespan_context.command_history = [
-            ["python_code", True, "x = 1"],
-            ["python_code", False, "invalid code"],
-            ["python_code", True, "y = 2"],
+            ("python_code", True, "x = 1"),
+            ("python_code", False, "invalid code"),
+            ("python_code", True, "y = 2"),
         ]
 
         # Restart with default params (replay successful)
@@ -863,9 +863,9 @@ class TestRestartPythonSessionCommandReplay:
 
         # Command history with mixed success/failure
         mock_context.request_context.lifespan_context.command_history = [
-            ["python_code", True, "x = 1"],
-            ["python_code", False, "bad_code"],
-            ["python_code", True, "y = 2"],
+            ("python_code", True, "x = 1"),
+            ("python_code", False, "bad_code"),
+            ("python_code", True, "y = 2"),
         ]
 
         # Restart with run_all_history=True
@@ -893,8 +893,8 @@ class TestRestartPythonSessionCommandReplay:
 
         # Command history
         mock_context.request_context.lifespan_context.command_history = [
-            ["python_code", True, "x = 1"],
-            ["python_code", True, "y = 2"],
+            ("python_code", True, "x = 1"),
+            ("python_code", True, "y = 2"),
         ]
 
         # Restart with both flags False
@@ -941,8 +941,8 @@ class TestRestartPythonSessionCommandTypes:
 
         # Python code commands
         mock_context.request_context.lifespan_context.command_history = [
-            ["python_code", True, "import numpy as np"],
-            ["python_code", True, "x = np.array([1, 2, 3])"],
+            ("python_code", True, "import numpy as np"),
+            ("python_code", True, "x = np.array([1, 2, 3])"),
         ]
 
         # Restart
@@ -966,7 +966,7 @@ class TestRestartPythonSessionCommandTypes:
 
         # Plot code commands
         mock_context.request_context.lifespan_context.command_history = [
-            ["plot_code", True, "import matplotlib.pyplot as plt\nplt.plot([1,2,3])"],
+            ("plot_code", True, "import matplotlib.pyplot as plt\nplt.plot([1,2,3])"),
         ]
 
         # Restart
@@ -990,9 +990,9 @@ class TestRestartPythonSessionCommandTypes:
 
         # Mixed commands
         mock_context.request_context.lifespan_context.command_history = [
-            ["python_code", True, "x = 1"],
-            ["plot_code", True, "plt.plot([1,2,3])"],
-            ["python_code", True, "y = 2"],
+            ("python_code", True, "x = 1"),
+            ("plot_code", True, "plt.plot([1,2,3])"),
+            ("python_code", True, "y = 2"),
         ]
 
         # Restart
@@ -1021,7 +1021,7 @@ class TestRestartPythonSessionSkipHistory:
 
         # Initial command history
         initial_history = [
-            ["python_code", True, "x = 1"],
+            ("python_code", True, "x = 1"),
         ]
         mock_context.request_context.lifespan_context.command_history = initial_history.copy()
 
@@ -1049,8 +1049,8 @@ class TestRestartPythonSessionParameterCombinations:
         mock_context.request_context.lifespan_context.python_session = mock_session
 
         mock_context.request_context.lifespan_context.command_history = [
-            ["python_code", True, "x = 1"],
-            ["python_code", False, "bad"],
+            ("python_code", True, "x = 1"),
+            ("python_code", False, "bad"),
         ]
 
         # Restart
@@ -1075,8 +1075,8 @@ class TestRestartPythonSessionParameterCombinations:
         mock_context.request_context.lifespan_context.python_session = mock_session
 
         mock_context.request_context.lifespan_context.command_history = [
-            ["python_code", True, "x = 1"],
-            ["python_code", False, "bad"],
+            ("python_code", True, "x = 1"),
+            ("python_code", False, "bad"),
         ]
 
         # Restart - run_all_history takes precedence
@@ -1286,9 +1286,9 @@ class TestExportHistoryBasic:
         # Setup mock context
         mock_context = MagicMock()
         mock_context.request_context.lifespan_context.command_history = [
-            ["python_code", True, "x = 1"],
-            ["python_code", True, "y = 2"],
-            ["plot_code", False, "bad_plot"],
+            ("python_code", True, "x = 1"),
+            ("python_code", True, "y = 2"),
+            ("plot_code", False, "bad_plot"),
         ]
 
         # Export as JSON
@@ -1309,8 +1309,8 @@ class TestExportHistoryBasic:
         # Setup mock context
         mock_context = MagicMock()
         mock_context.request_context.lifespan_context.command_history = [
-            ["python_code", True, "import numpy"],
-            ["python_code", True, "arr = np.array([1,2,3])"],
+            ("python_code", True, "import numpy"),
+            ("python_code", True, "arr = np.array([1,2,3])"),
         ]
 
         # Export as text
@@ -1327,7 +1327,7 @@ class TestExportHistoryBasic:
         # Setup mock context
         mock_context = MagicMock()
         mock_context.request_context.lifespan_context.command_history = [
-            ["python_code", True, "test = 1"],
+            ("python_code", True, "test = 1"),
         ]
 
         # Export with no format specified (should default to JSON)

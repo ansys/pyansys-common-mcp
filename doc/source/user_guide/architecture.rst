@@ -75,7 +75,7 @@ PyAnsysBaseAppContext
        python_executable: Optional[Any] = None
        python_session: Optional[Any] = None  # PersistentPythonSession
        metadata: dict = field(default_factory=dict)
-       command_history: list[list[str | bool]] = field(default_factory=list)
+       command_history: list[tuple[str, bool, str]] = field(default_factory=list)
 
 **Extending the context:**
 
