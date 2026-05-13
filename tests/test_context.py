@@ -68,7 +68,7 @@ class TestPyAnsysBaseAppContext:
         # Retrieve state
         assert context.metadata["session_id"] == "session_123"
         assert len(context.command_history) == 2
-        assert context.command_history[0] == ["python_code", True, "import numpy"]
+        assert context.command_history[0] == ("python_code", True, "import numpy")
 
 
 class TestContextExtension:
@@ -104,7 +104,7 @@ class TestAddToHistory:
         context.add_to_history("python_code", True, "import numpy as np")
 
         assert len(context.command_history) == 1
-        assert context.command_history[0] == ["python_code", True, "import numpy as np"]
+        assert context.command_history[0] == ("python_code", True, "import numpy as np")
 
     def test_add_failed_command(self):
         """Test adding a failed command to the history."""
@@ -112,7 +112,7 @@ class TestAddToHistory:
         context.add_to_history("python_code", False, "import unknown_package")
 
         assert len(context.command_history) == 1
-        assert context.command_history[0] == ["python_code", False, "import unknown_package"]
+        assert context.command_history[0] == ("python_code", False, "import unknown_package")
 
     def test_add_multiple_commands(self):
         """Test adding multiple commands preserves order."""
@@ -122,9 +122,9 @@ class TestAddToHistory:
         context.add_to_history("plot_code", True, "plt.plot([1,2,3])")
 
         assert len(context.command_history) == 3
-        assert context.command_history[0] == ["python_code", True, "x = 1"]
-        assert context.command_history[1] == ["python_code", False, "bad code"]
-        assert context.command_history[2] == ["plot_code", True, "plt.plot([1,2,3])"]
+        assert context.command_history[0] == ("python_code", True, "x = 1")
+        assert context.command_history[1] == ("python_code", False, "bad code")
+        assert context.command_history[2] == ("plot_code", True, "plt.plot([1,2,3])")
 
     def test_add_custom_command_type(self):
         """Test adding a command with a custom type."""

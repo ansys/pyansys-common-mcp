@@ -212,9 +212,9 @@ class TestGetCommandHistoryTool:
         """Test getting history in list format."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
         context.command_history = [
-            ["example_command", True, "CMD1"],
-            ["example_command", True, "CMD2"],
-            ["example_command", True, "CMD3"],
+            ("example_command", True, "CMD1"),
+            ("example_command", True, "CMD2"),
+            ("example_command", True, "CMD3"),
         ]
 
         result = get_command_history(ctx=mock_fastmcp_context, format="list")
@@ -227,8 +227,8 @@ class TestGetCommandHistoryTool:
         """Test getting history in numbered format."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
         context.command_history = [
-            ["plot_command", True, "CMD1"],
-            ["plot_command", True, "CMD2"],
+            ("plot_command", True, "CMD1"),
+            ("plot_command", True, "CMD2"),
         ]
 
         result = get_command_history(ctx=mock_fastmcp_context, format="numbered")
@@ -240,8 +240,8 @@ class TestGetCommandHistoryTool:
         """Test getting history in JSON format."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
         context.command_history = [
-            ["python_code", True, "CMD1"],
-            ["python_code", True, "CMD2"],
+            ("python_code", True, "CMD1"),
+            ("python_code", True, "CMD2"),
         ]
 
         result = get_command_history(ctx=mock_fastmcp_context, format="json")
@@ -364,7 +364,7 @@ class TestRestartPythonTool:
             }
         )
         context.command_history = [
-            ["python_code", True, "x = 10"],
+            ("python_code", True, "x = 10"),
         ]
 
         result = restart_python(ctx=mock_fastmcp_context)
@@ -394,9 +394,9 @@ class TestRestartPythonTool:
             }
         )
         context.command_history = [
-            ["python_code", True, "a = 1"],
-            ["python_code", False, "bad_code"],
-            ["python_code", True, "b = 2"],
+            ("python_code", True, "a = 1"),
+            ("python_code", False, "bad_code"),
+            ("python_code", True, "b = 2"),
         ]
 
         restart_python(ctx=mock_fastmcp_context)
@@ -416,9 +416,9 @@ class TestRestartPythonTool:
             }
         )
         context.command_history = [
-            ["python_code", True, "a = 1"],
-            ["python_code", False, "bad_code"],
-            ["python_code", True, "b = 2"],
+            ("python_code", True, "a = 1"),
+            ("python_code", False, "bad_code"),
+            ("python_code", True, "b = 2"),
         ]
 
         restart_python(
@@ -440,7 +440,7 @@ class TestRestartPythonTool:
             }
         )
         context.command_history = [
-            ["python_code", True, "x = 1"],
+            ("python_code", True, "x = 1"),
         ]
 
         restart_python(
@@ -462,9 +462,9 @@ class TestRestartPythonTool:
             }
         )
         context.command_history = [
-            ["python_code", True, "x = 1"],
-            ["python_code", False, "bad"],
-            ["python_code", True, "y = 2"],
+            ("python_code", True, "x = 1"),
+            ("python_code", False, "bad"),
+            ("python_code", True, "y = 2"),
         ]
 
         restart_python(ctx=mock_fastmcp_context, run_all_history=True)

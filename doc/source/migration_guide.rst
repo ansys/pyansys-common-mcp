@@ -28,21 +28,21 @@ What changed
     command_history: list[str] = field(default_factory=list)
 
     # Example:
-    app_context.command_history = ["import numpy", "x = 10", "print(x)"]
+    app_context.command_history = ("import numpy", "x = 10", "print(x)")
 
 **New Format (v0.3.0+)**
 
-``command_history`` is now a list of lists with three elements:
+``command_history`` is now a list of tuples with three elements:
 
 .. code-block:: python
 
-    command_history: list[list[str | bool]] = field(default_factory=list)
+    command_history: list[tuple[str, bool, str]] = field(default_factory=list)
 
     # Example:
     app_context.command_history = [
-        ["python_code", True, "import numpy"],
-        ["python_code", True, "x = 10"],
-        ["python_code", True, "print(x)"]
+        ("python_code", True, "import numpy"),
+        ("python_code", True, "x = 10"),
+        ("python_code", True, "print(x)")
     ]
 
 Each entry contains:
@@ -84,8 +84,8 @@ If you manually initialize ``command_history``:
     # NEW
     context = PyAnsysBaseAppContext(
         command_history=[
-            ["python_code", True, "cmd1"],
-            ["python_code", True, "cmd2"]
+            ("python_code", True, "cmd1"),
+            ("python_code", True, "cmd2")
         ]
     )
 

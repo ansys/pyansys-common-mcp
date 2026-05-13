@@ -45,9 +45,9 @@ class PyAnsysBaseAppContext:
         Python session.
     metadata : dict
         Dictionary for storing arbitrary metadata related to the context.
-    command_history : list[list[str | bool]], default: []
+    command_history : list[tuple[str, bool, str]], default: []
         List to keep track of executed commands in the session with the
-        following format: [[type_of_code (str), success (bool), code (str)]]
+        following format: [(type_of_code (str), success (bool), code (str))]
 
     Examples
     --------
@@ -71,7 +71,7 @@ class PyAnsysBaseAppContext:
     python_executable: Optional[Any] = None
     python_session: Optional[Any] = None  # PersistentPythonSession instance
     metadata: dict[str, Any] = field(default_factory=dict)
-    command_history: list[tuple(str, bool, str)] = field(
+    command_history: list[tuple[str, bool, str]] = field(
         default_factory=list
     )  # Keep track of successful commands executed in the session
 
@@ -98,4 +98,4 @@ class PyAnsysBaseAppContext:
         >>> app_context.add_to_history("python_code", False, "import unknown_package")
 
         """
-        self.command_history.append([command_type, success, command])
+        self.command_history.append((command_type, success, command))

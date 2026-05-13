@@ -114,66 +114,54 @@ def execute_python_code(
             stderr = _sanitize_output(result.get("stderr", ""))
 
             if result.get("success"):
-                if not skip_history:
-                    app_context.add_to_history("python_code", True, sanitized_code)
-                return json.dumps(
-                    {
-                        "success": True,
-                        "stdout": stdout,
-                        "stderr": stderr,
-                        "message": "Python code executed successfully.",
-                    },
-                    ensure_ascii=False,
-                    indent=2,
-                )
+                success = True
+                message = "Python code executed successfully."
             else:
-                if not skip_history:
-                    app_context.add_to_history("python_code", False, sanitized_code)
-                # Execution failed - generate rule if enabled
-                error_msg = result.get("error", "Unknown error occurred.")
-                error_msg = _sanitize_output(error_msg)
-
-                return json.dumps(
-                    {
-                        "success": False,
-                        "stdout": stdout,
-                        "stderr": stderr,
-                        "error": error_msg,
-                    },
-                    ensure_ascii=False,
-                    indent=2,
-                )
+                success = False
+                error_message = result.get("error", "Unknown error occurred.")
+                error_message = _sanitize_output(error_message)
         else:
-            if not skip_history:
-                app_context.add_to_history("python_code", False, sanitized_code)
-            # Fallback if result is not a dict
-            return json.dumps(
-                {
-                    "success": False,
-                    "stdout": _sanitize_output(str(result)) if result else "",
-                    "stderr": "",
-                    "message": "Python code executed with unexpected result format.",
-                },
-                ensure_ascii=False,
-                indent=2,
-            )
+            success = False
+            stdout = _sanitize_output(str(result))
+            stderr = ""
+            error_message = "Python code executed with unexpected result format."
 
     except TimeoutError:
-        if not skip_history:
-            app_context.add_to_history("python_code", False, sanitized_code)
-        error_dict = {
-            "success": False,
-            "error": f"Python code execution timed out after {timeout} seconds.",
-        }
-        logger.error(error_dict["error"])
-        return json.dumps(error_dict, ensure_ascii=False)
+        success = False
+        error_message = f"Python code execution timed out after {timeout} seconds."
+        logger.error(error_message)
 
     except Exception as e:
-        if not skip_history:
-            app_context.add_to_history("python_code", False, sanitized_code)
-        error_dict = {"success": False, "error": f"Error executing Python code: {str(e)}"}
-        logger.error(error_dict["error"])
-        return json.dumps(error_dict, ensure_ascii=False)
+        success = False
+        error_message = f"Error executing Python code: {str(e)}"
+        logger.error(error_message)
+    
+    if not success:
+        output = json.dumps(
+            {
+                "success": success,
+                "error": error_message,
+                "stdout": stdout if 'stdout' in locals() else "",
+                "stderr": stderr if 'stderr' in locals() else "",
+            },
+            ensure_ascii=False,
+        )
+
+    else:
+        output = json.dumps(
+            {
+                "success": success,
+                "message": message,
+                "stdout": stdout if 'stdout' in locals() else "",
+                "stderr": stderr if 'stderr' in locals() else "",
+            },
+            ensure_ascii=False,
+        )
+    if not skip_history:
+        # Store the code execution in history with success status
+        app_context.add_to_history("python_code", success, code)
+    
+    return output
 
 
 def create_custom_plot(
@@ -265,8 +253,7 @@ def create_custom_plot(
             stderr = _sanitize_output(result.get("stderr", ""))
 
             if result.get("success"):
-                if not skip_history:
-                    app_context.add_to_history("plot_code", True, sanitized_plot_code)
+                success = True
                 # Try to extract plot data from stdout
                 # The helper functions return data URI format:
                 # "data:image/png;base64,<base64_string>"
@@ -277,7 +264,7 @@ def create_custom_plot(
                     # Extract the base64 part
                     base64_data = plot_data.split("data:image/png;base64,")[1].strip()
 
-                    return [
+                    output = [
                         TextContent(
                             type="text",
                             text=f"Custom {plot_type} plot created successfully",
@@ -286,7 +273,7 @@ def create_custom_plot(
                     ]
                 elif plot_data.startswith("Plot saved to"):
                     # File path returned
-                    return [
+                    output = [
                         TextContent(
                             type="text",
                             text=f"Custom {plot_type} plot created successfully\n{plot_data}",
@@ -294,30 +281,27 @@ def create_custom_plot(
                     ]
                 else:
                     # Unexpected output format
-                    if not skip_history:
-                        app_context.add_to_history("plot_code", False, sanitized_plot_code)
-                    return [
+                    success = False
+                    output = [
                         TextContent(
                             type="text",
                             text=f"Plot created but unexpected output format:\n{stdout}",
                         )
                     ]
             else:
-                if not skip_history:
-                    app_context.add_to_history("plot_code", False, sanitized_plot_code)
+                success = False
                 error_msg = result.get("error", "Unknown error occurred.")
                 error_msg = _sanitize_output(error_msg)
-                return [
+                output = [
                     TextContent(
                         type="text",
                         text=f"Error creating custom {plot_type} plot: {error_msg}\nStdout: {stdout}\nStderr: {stderr}",  # noqa: E501
                     )
                 ]
         else:
-            if not skip_history:
-                app_context.add_to_history("plot_code", False, sanitized_plot_code)
+            success = False
             # Fallback if result is not a dict
-            return [
+            output = [
                 TextContent(
                     type="text",
                     text=f"Unexpected result format: {_sanitize_output(str(result)) if result else 'No result'}",  # noqa: E501
@@ -325,19 +309,22 @@ def create_custom_plot(
             ]
 
     except TimeoutError:
-        if not skip_history:
-            app_context.add_to_history("plot_code", False, sanitized_plot_code)
+        success = False
         error_msg = f"Plot creation timed out after {timeout} seconds."
         logger.error(error_msg)
-        return [TextContent(type="text", text=error_msg)]
+        output = [TextContent(type="text", text=error_msg)]
 
     except Exception as e:
-        if not skip_history:
-            app_context.add_to_history("plot_code", False, sanitized_plot_code)
+        success = False
         error_msg = f"Error creating custom plot: {str(e)}"
         logger.error(error_msg)
-        return [TextContent(type="text", text=error_msg)]
+        output = [TextContent(type="text", text=error_msg)]
+    
+    if not skip_history:
+        # Store the plot code execution in history with success status
+        app_context.add_to_history("plot_code", success, plot_code)
 
+    return output
 
 def restart_python_session(
     ctx: Context, run_successful_history_commands: bool = True, run_all_history: bool = False
