@@ -135,14 +135,14 @@ def execute_python_code(
         success = False
         error_message = f"Error executing Python code: {str(e)}"
         logger.error(error_message)
-    
+
     if not success:
         output = json.dumps(
             {
                 "success": success,
                 "error": error_message,
-                "stdout": stdout if 'stdout' in locals() else "",
-                "stderr": stderr if 'stderr' in locals() else "",
+                "stdout": stdout if "stdout" in locals() else "",
+                "stderr": stderr if "stderr" in locals() else "",
             },
             ensure_ascii=False,
         )
@@ -152,15 +152,15 @@ def execute_python_code(
             {
                 "success": success,
                 "message": message,
-                "stdout": stdout if 'stdout' in locals() else "",
-                "stderr": stderr if 'stderr' in locals() else "",
+                "stdout": stdout if "stdout" in locals() else "",
+                "stderr": stderr if "stderr" in locals() else "",
             },
             ensure_ascii=False,
         )
     if not skip_history:
         # Store the code execution in history with success status
         app_context.add_to_history("python_code", success, code)
-    
+
     return output
 
 
@@ -319,12 +319,13 @@ def create_custom_plot(
         error_msg = f"Error creating custom plot: {str(e)}"
         logger.error(error_msg)
         output = [TextContent(type="text", text=error_msg)]
-    
+
     if not skip_history:
         # Store the plot code execution in history with success status
         app_context.add_to_history("plot_code", success, plot_code)
 
     return output
+
 
 def restart_python_session(
     ctx: Context, run_successful_history_commands: bool = True, run_all_history: bool = False
