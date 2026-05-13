@@ -56,10 +56,13 @@ def execute_command(ctx: Context, command: str) -> str:
 
     try:
         result = app_context.example_instance.run_command(command)
-        app_context.command_history.append(command)
+        # Update command history with success
+        app_context.add_to_history("example_command", True, command)
         logger.info(f"Executed command: {command}")
         return str(result)
     except Exception as e:
+        # Update command history with failure
+        app_context.add_to_history("example_command", False, command)
         logger.error(f"Command execution failed: {e}")
         return f"Error: {e}"
 
@@ -97,12 +100,17 @@ def create_model(
 
     # Create model (simulated)
     params = parameters or {}
-    model = app_context.example_instance.create_model(name, model_type, **params)
-
     command = f"CREATE MODEL {name} TYPE {model_type}"
-    # Update command history
-    # format: [code_type, success_flag, command_output]
-    app_context.command_history.append(["example_command", True, command])
+
+    try:
+        model = app_context.example_instance.create_model(name, model_type, **params)
+        # Update command history with success
+        app_context.add_to_history("example_command", True, command)
+    except Exception as e:
+        # Update command history with failure
+        app_context.add_to_history("example_command", False, command)
+        logger.error(f"Model creation failed: {e}")
+        return f"Error: {e}"
 
     logger.info(f"Created model: {name} (type: {model_type})")
     return f"Model '{name}' created successfully\n{model}"
@@ -142,15 +150,21 @@ def run_simulation(
 
     # Run simulation (simulated)
     command = f"SOLVE MODEL {target_model}"
-    result = app_context.example_instance.run_command(command)
+
+    try:
+        result = app_context.example_instance.run_command(command)
+        # Update command history with success
+        app_context.add_to_history("example_command", True, command)
+    except Exception as e:
+        # Update command history with failure
+        app_context.add_to_history("example_command", False, command)
+        logger.error(f"Simulation failed for model: {target_model}, Error: {e}")
+        return f"Error: {e}"
 
     # Save results if requested
     if save_results:
         app_context.simulation_results[target_model] = {"status": "completed", "summary": result}
 
-    # Update command history
-    # format: [code_type, success_flag, command_output]
-    app_context.command_history.append(["example_command", True, command])
     logger.info(f"Simulation completed for model: {target_model}")
 
     return f"Simulation completed for '{target_model}'\n{result}"
@@ -240,12 +254,21 @@ def restart_python(
     ----------
     ctx : Context
         The FastMCP context
+    run_successful_history_commands : bool, default: True
+        Whether to rerun only successful commands from history after restart
+    run_all_history : bool, default: False
+        Whether to rerun all commands from history regardless of success after restart
 
     Returns
     -------
     str
         Status message
 
+    Notes
+    -----
+    This function will only rerun the ``python_code`` and the ``plot_code`` entries in the 
+    history. The ``example_command`` entries will not be rerun as they are specific to the
+    PyExample instance.
     """
     return restart_python_session(
         ctx=ctx,

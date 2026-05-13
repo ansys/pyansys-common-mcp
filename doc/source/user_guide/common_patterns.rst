@@ -135,8 +135,8 @@ Best practices
 --------------
 
 1. **Always use** ``add_to_history()``: Use ``app_context.add_to_history(type, success, code)``
-   instead of appending directly to ``command_history``. This ensures the correct
-   three-element format and makes future format changes easier to handle.
+   instead of appending directly to ``command_history``. This method ensures consistent
+   formatting and allows for future enhancements.
 
 2. **Use descriptive command types**: Choose clear, consistent names for your command
    types to make filtering easier.
@@ -221,6 +221,46 @@ while preserving and optionally replaying previous commands.
            run_successful_history_commands=run_successful_history_commands,
            run_all_history=run_all_history
        )
+
+.. note::
+
+   ``restart_python_session()`` only replays commands of type ``"python_code"`` and
+   ``"plot_code"``. Commands recorded with a custom type (such as ``"example_command"``
+   or any product-specific type) are silently skipped.
+
+   If you need to replay custom commands on restart, you must extend
+   ``restart_python_session()`` with your own logic. For example:
+
+   .. code-block:: python
+
+       from ansys.common.mcp.tools import restart_python_session
+
+       @mcp.tool()
+       def restart_session(ctx: Context) -> str:
+           """Restart and replay all command types."""
+           app_context = ctx.request_context.lifespan_context
+
+           # Let the built-in function handle python_code and plot_code
+           result = restart_python_session(ctx)
+
+           # Replay custom command types manually
+           for command_type, success, command in app_context.command_history:
+               if command_type == "example_command" and success:
+                   app_context.example_instance.run_command(command)
+
+           return result
+
+   .. warning::
+
+      With this approach, the original execution order is not preserved.
+      All ``"python_code"`` and ``"plot_code"`` commands are replayed first by
+      ``restart_python_session()``, and ``"example_command"`` entries are replayed
+      afterwards. If your custom commands depend on state set by Python code, this
+      ordering is fine, but if Python code depends on a product state set by a custom
+      command, the replay will fail.
+
+      To preserve the original order, implement the full replay loop yourself instead
+      of calling ``restart_python_session()``.
 
 Handle errors
 =============
