@@ -75,8 +75,8 @@ class TestExecuteCommandTool:
 
         context = mock_fastmcp_context.fastmcp._lifespan_result
         assert len(context.command_history) == 2
-        assert "CREATE MODEL test1" in context.command_history
-        assert "CREATE MODEL test2" in context.command_history
+        assert "CREATE MODEL test1" in context.command_history[0][2]
+        assert "CREATE MODEL test2" in context.command_history[1][2]
 
     def test_execute_command_no_connection(self, mock_fastmcp_context):
         """Test execute_command when PyExample not connected."""
