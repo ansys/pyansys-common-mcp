@@ -266,7 +266,7 @@ def restart_python(
 
     Notes
     -----
-    This function will only rerun the ``python_code`` and the ``plot_code`` entries in the 
+    This function will only rerun the ``python_code`` and the ``plot_code`` entries in the
     history. The ``example_command`` entries will not be rerun as they are specific to the
     PyExample instance.
     """
