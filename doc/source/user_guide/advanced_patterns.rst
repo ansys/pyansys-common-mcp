@@ -296,3 +296,45 @@ Manage user preferences
        if value is None:
            return f"Preference '{key}' is not set."
        return value
+
+Expose tool sets
+================
+
+A **tool set** groups tools under a named tag.
+
+.. important::
+
+   Registering the ``toolset://list`` resource is **required** for integration with
+   some Ansys products, as it allows the product to discover and display available
+   tool sets in the user interface.
+
+
+Use ``@app.tool(tags={...})`` to assign a tool to one or more sets, and
+``@app.resource("toolset://list")`` to expose the tag-to-description mapping.
+
+Register the resource:
+
+.. literalinclude:: ../../../examples/src/pyexample_mcp/tools.py
+   :language: python
+   :pyobject: list_tool_sets
+
+Tag a tool with the ``structures`` set:
+
+.. literalinclude:: ../../../examples/src/pyexample_mcp/tools.py
+   :language: python
+   :pyobject: create_model
+
+Tag a tool with the ``post_processing`` set:
+
+.. literalinclude:: ../../../examples/src/pyexample_mcp/tools.py
+   :language: python
+   :pyobject: get_command_history
+
+A tool can belong to multiple sets by listing several tags:
+
+.. code-block:: python
+
+   @app.tool(tags={"structures", "post_processing"})
+   def get_stress_report(ctx: Context, model_name: str) -> str:
+       """Generate a stress report."""
+       ...

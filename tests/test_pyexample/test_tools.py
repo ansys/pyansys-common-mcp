@@ -20,16 +20,18 @@ These tests validate the MCP tool implementations and their interaction
 with the PyExample instance and context.
 """
 
+import asyncio
 import json
 from unittest.mock import MagicMock
 
-from pyexample_mcp import PyExampleContext
+from pyexample_mcp import PyExampleContext, app
 from pyexample_mcp.mock_pyexample import PyExample
 from pyexample_mcp.tools import (
     create_model,
     execute_command,
     execute_python_code,
     get_command_history,
+    list_tool_sets,
     run_simulation,
 )
 import pytest
@@ -330,3 +332,64 @@ class TestToolsIntegration:
         assert len(context.simulation_results) == 2
         assert "model1" in context.simulation_results
         assert "model2" in context.simulation_results
+
+
+class TestToolSets:
+    """Tests for the tool sets resource and tool tag assignments."""
+
+    def test_list_tool_sets_returns_dict(self):
+        """Test that list_tool_sets returns a dictionary."""
+        result = list_tool_sets()
+
+        assert isinstance(result, dict)
+
+    def test_list_tool_sets_contains_expected_keys(self):
+        """Test that all expected tool set keys are present."""
+        result = list_tool_sets()
+
+        assert "structures" in result
+        assert "post_processing" in result
+
+    def test_list_tool_sets_values_are_strings(self):
+        """Test that all tool set descriptions are non-empty strings."""
+        result = list_tool_sets()
+
+        for key, value in result.items():
+            assert isinstance(value, str), f"Description for '{key}' must be a string"
+            assert value, f"Description for '{key}' must not be empty"
+
+    def test_structures_tools_have_correct_tag(self):
+        """Test that structural tools are tagged with 'structures'."""
+        tools = {t.name: t for t in asyncio.run(app.list_tools())}
+
+        assert "structures" in tools["create_model"].tags
+        assert "structures" in tools["run_simulation"].tags
+
+    def test_post_processing_tools_have_correct_tag(self):
+        """Test that post-processing tools are tagged with 'post_processing'."""
+        tools = {t.name: t for t in asyncio.run(app.list_tools())}
+
+        assert "post_processing" in tools["get_command_history"].tags
+        assert "post_processing" in tools["execute_python_code"].tags
+
+    def test_untagged_tools_have_no_tags(self):
+        """Test that tools without a tag assignment have an empty tag set."""
+        tools = {t.name: t for t in asyncio.run(app.list_tools())}
+
+        assert tools["execute_command"].tags == set()
+
+    def test_toolset_resource_is_registered(self):
+        """Test that the toolset://list resource is registered on the app."""
+        resources = asyncio.run(app.list_resources())
+        uris = [str(r.uri) for r in resources]
+
+        assert "toolset://list" in uris
+
+    def test_toolset_keys_match_used_tags(self):
+        """Test that every tag used by a tool has an entry in list_tool_sets."""
+        tool_sets = list_tool_sets()
+        tools = asyncio.run(app.list_tools())
+        all_tags = {tag for t in tools for tag in t.tags}
+
+        for tag in all_tags:
+            assert tag in tool_sets, f"Tag '{tag}' is used but not described in list_tool_sets"
