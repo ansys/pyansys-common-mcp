@@ -122,7 +122,7 @@ Filtering command history:
         if entry[1] == True
     ]
 
-    # Get only python_code commands
+    # Get only python_code tool calls
     python_commands = [
         entry for entry in app_context.command_history
         if entry[0] == "python_code"
@@ -134,7 +134,7 @@ Filtering command history:
 Best practices
 --------------
 
-1. **Always use** ``add_to_history()``: Use ``app_context.add_to_history(type, success, code)``
+1. **Always use** ``add_to_history()``: Use ``app_context.add_to_history(tool, success, tool_arguments)``
    instead of appending directly to ``command_history``. This method ensures consistent
    formatting and allows for future enhancements.
 
