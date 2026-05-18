@@ -300,7 +300,7 @@ class TestExecutePythonCodeTool:
         context.python_session.execute = MagicMock(
             return_value={
                 "success": False,
-                "error": "NameError: name 'undefined' is not defined",
+                "message": "NameError: name 'undefined' is not defined",
             }
         )
 
@@ -555,7 +555,7 @@ class TestRestartPythonIntegration:
             result2 = execute_python_code(mock_fastmcp_context, "print(temp_var)")
             result2_dict = json.loads(result2)
             assert not result2_dict["success"]
-            assert "not defined" in result2_dict["error"].lower()
+            assert "not defined" in result2_dict["message"].lower()
 
         finally:
             context.python_session.stop()

@@ -94,7 +94,7 @@ def execute_python_code(
         return json.dumps(
             {
                 "success": False,
-                "error": "No Python session available. The persistent Python session was not initialized.",  # noqa: E501
+                "message": "No Python session available. The persistent Python session was not initialized.",  # noqa: E501
             },
             ensure_ascii=False,
         )
@@ -118,50 +118,39 @@ def execute_python_code(
                 message = "Python code executed successfully."
             else:
                 success = False
-                error_message = result.get("error", "Unknown error occurred.")
-                error_message = _sanitize_output(error_message)
+                error_output = result.get("error", "")
+                message_output = result.get("message", "Unknown error occurred.")
+                message = error_output if error_output else message_output
+                message = _sanitize_output(message)
         else:
             success = False
             stdout = _sanitize_output(str(result))
             stderr = ""
-            error_message = "Python code executed with unexpected result format."
+            message = "Python code executed with unexpected result format."
 
     except TimeoutError:
         success = False
-        error_message = f"Python code execution timed out after {timeout} seconds."
-        logger.error(error_message)
+        message = f"Python code execution timed out after {timeout} seconds."
+        logger.error(message)
 
     except Exception as e:
         success = False
-        error_message = f"Error executing Python code: {str(e)}"
-        logger.error(error_message)
+        message = f"Error executing Python code: {str(e)}"
+        logger.error(message)
 
-    if not success:
-        output = json.dumps(
-            {
-                "success": success,
-                "error": error_message,
-                "stdout": stdout if "stdout" in locals() else "",
-                "stderr": stderr if "stderr" in locals() else "",
-            },
-            ensure_ascii=False,
-        )
-
-    else:
-        output = json.dumps(
-            {
-                "success": success,
-                "message": message,
-                "stdout": stdout if "stdout" in locals() else "",
-                "stderr": stderr if "stderr" in locals() else "",
-            },
-            ensure_ascii=False,
-        )
     if not skip_history:
         # Store the code execution in history with success status
         app_context.add_to_history("python_code", success, code)
 
-    return output
+    return json.dumps(
+        {
+            "success": success,
+            "message": message,
+            "stdout": stdout if "stdout" in locals() else "",
+            "stderr": stderr if "stderr" in locals() else "",
+        },
+        ensure_ascii=False,
+    )
 
 
 def create_custom_plot(
@@ -290,7 +279,7 @@ def create_custom_plot(
                     ]
             else:
                 success = False
-                error_msg = result.get("error", "Unknown error occurred.")
+                error_msg = result.get("message", "Unknown error occurred.")
                 error_msg = _sanitize_output(error_msg)
                 output = [
                     TextContent(

@@ -98,7 +98,7 @@ class TestExecutePythonCodeBasic:
         # Verify error response
         result_dict = json.loads(result)
         assert result_dict["success"] is False
-        assert "No Python session available" in result_dict["error"]
+        assert "No Python session available" in result_dict["message"]
 
     def test_execute_code_with_error(self):
         """Test executing code that produces an error."""
@@ -109,7 +109,7 @@ class TestExecutePythonCodeBasic:
             "success": False,
             "stdout": "",
             "stderr": "ZeroDivisionError: division by zero",
-            "error": "ZeroDivisionError: division by zero",
+            "message": "ZeroDivisionError: division by zero",
         }
         mock_context.request_context.lifespan_context.python_session = mock_session
 
@@ -120,7 +120,7 @@ class TestExecutePythonCodeBasic:
         # Verify error is returned
         result_dict = json.loads(result)
         assert result_dict["success"] is False
-        assert "ZeroDivisionError" in result_dict["error"]
+        assert "ZeroDivisionError" in result_dict["message"]
         mock_context.request_context.lifespan_context.add_to_history.assert_called_once_with(
             "python_code", False, code
         )
@@ -209,8 +209,8 @@ class TestExecutePythonCodeExceptionHandling:
         # Verify timeout error is returned
         result_dict = json.loads(result)
         assert result_dict["success"] is False
-        assert "timed out" in result_dict["error"].lower()
-        assert "30 seconds" in result_dict["error"]
+        assert "timed out" in result_dict["message"].lower()
+        assert "30 seconds" in result_dict["message"]
 
     def test_general_exception(self):
         """Test handling of general exceptions."""
@@ -226,15 +226,15 @@ class TestExecutePythonCodeExceptionHandling:
         # Verify exception is caught and returned
         result_dict = json.loads(result)
         assert result_dict["success"] is False
-        assert "Error executing Python code" in result_dict["error"]
-        assert "Unexpected error" in result_dict["error"]
+        assert "Error executing Python code" in result_dict["message"]
+        assert "Unexpected error" in result_dict["message"]
 
     def test_non_dict_result(self):
         """Test handling when session returns non-dict result."""
         # Setup mock context
         mock_context = MagicMock()
         mock_session = MagicMock()
-        mock_session.execute.return_value = "unexpected string result"
+        mock_session.execute.return_value = "unexpected result format"
         mock_context.request_context.lifespan_context.python_session = mock_session
 
         # Execute code
@@ -243,7 +243,7 @@ class TestExecutePythonCodeExceptionHandling:
         # Verify fallback handling
         result_dict = json.loads(result)
         assert result_dict["success"] is False
-        assert "unexpected string result" in result_dict["stdout"]
+        assert "unexpected result format" in result_dict["message"].lower()
 
 
 class TestExecutePythonCodeJSONFormatting:
@@ -281,7 +281,7 @@ class TestExecutePythonCodeJSONFormatting:
             "success": False,
             "stdout": "",
             "stderr": "Error message",
-            "error": "Error message",
+            "message": "Error message",
         }
         mock_context.request_context.lifespan_context.python_session = mock_session
 
@@ -293,7 +293,7 @@ class TestExecutePythonCodeJSONFormatting:
         assert "success" in result_dict
         assert "stdout" in result_dict
         assert "stderr" in result_dict
-        assert "error" in result_dict
+        assert "message" in result_dict
         assert result_dict["success"] is False
 
     def test_json_ensure_ascii_false(self):
@@ -474,7 +474,7 @@ class TestCreateCustomPlotOutputFormats:
             "success": False,
             "stdout": "",
             "stderr": "NameError: name 'plt' is not defined",
-            "error": "NameError: name 'plt' is not defined",
+            "message": "NameError: name 'plt' is not defined",
         }
         mock_context.request_context.lifespan_context.python_session = mock_session
 
@@ -546,7 +546,7 @@ class TestCreateCustomPlotSanitization:
             "success": False,
             "stdout": "",
             "stderr": "Error with ✗ cross",
-            "error": "Error with ✗ cross",
+            "message": "Error with ✗ cross",
         }
         mock_context.request_context.lifespan_context.python_session = mock_session
 
@@ -603,7 +603,7 @@ class TestCreateCustomPlotExceptionHandling:
         # Setup mock context
         mock_context = MagicMock()
         mock_session = MagicMock()
-        mock_session.execute.return_value = "unexpected string result"
+        mock_session.execute.return_value = "unexpected result format"
         mock_context.request_context.lifespan_context.python_session = mock_session
 
         # Create plot
@@ -1223,7 +1223,7 @@ class TestRestartPythonSessionIntegration:
             result3 = execute_python_code(mock_context, "print(d)", skip_history=True)
             result3_dict = json.loads(result3)
             assert not result3_dict["success"]
-            assert "not defined" in result3_dict["error"].lower()
+            assert "not defined" in result3_dict["message"].lower()
 
         finally:
             app_context.python_session.stop()
