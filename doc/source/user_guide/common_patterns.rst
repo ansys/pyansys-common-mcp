@@ -69,7 +69,7 @@ Each entry in ``command_history`` is a list with three elements:
 
 .. code-block:: python
 
-    [command_type, success_flag, code_content]
+    [tool, success_flag, tool_arguments]
 
 Where:
 
