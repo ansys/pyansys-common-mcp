@@ -27,13 +27,23 @@ from pyexample_mcp import app
 logger = get_logger(__name__)
 
 
-@app.resource("toolset://list")
-def list_tool_sets() -> dict:
-    """List available tool sets and their descriptions."""
-    return {
-        "structures": "Tools for creating and running structural models",
-        "post_processing": "Tools for processing and exporting simulation results",
-    }
+@app.resource("toolsets://definition")
+def list_tool_sets() -> list[dict]:
+    """Toolset definitions."""
+    return [
+        {
+            "name": "structures",
+            "description": "Tools for creating and running structural models",
+            "skill": "Use these tools to set up and solve structural simulations. Start with create_model to define the model, then use run_simulation to execute the analysis.",
+            "tools": ["create_model", "run_simulation"],
+        },
+        {
+            "name": "post_processing",
+            "description": "Tools for processing and exporting simulation results",
+            "skill": "Use these tools to inspect results and run custom analyses after a simulation. Use get_command_history to review past commands and execute_python_code for custom post-processing scripts.",
+            "tools": ["get_command_history", "execute_python_code"],
+        },
+    ]
 
 
 # Define tools for interacting with PyExample instance
