@@ -47,7 +47,7 @@ class PyAnsysBaseAppContext:
         Dictionary for storing arbitrary metadata related to the context.
     command_history : list[tuple[str, bool, str]], default: []
         List to keep track of executed commands in the session with the
-        following format: [(type_of_code (str), success (bool), code (str))]
+        following format: [(tool (str), success (bool), code (str))]
 
     Examples
     --------
@@ -75,13 +75,13 @@ class PyAnsysBaseAppContext:
         default_factory=list
     )  # Keep track of successful commands executed in the session
 
-    def add_to_history(self, command_type: str, success: bool, command: str) -> None:
+    def add_to_history(self, tool: str, success: bool, command: str) -> None:
         """Add a command entry to the command history.
 
         Parameters
         ----------
-        command_type : str
-            Type of command, e.g. ``"python_code"``, ``"plot_code"``, or a custom type.
+        tool : str
+            Name of the tool that executed the command such as "mapdl.tools.run_python_code".
         success : bool
             Whether the command executed successfully.
         command : str
@@ -91,11 +91,11 @@ class PyAnsysBaseAppContext:
         --------
         Record a successful command:
 
-        >>> app_context.add_to_history("python_code", True, "import numpy as np")
+        >>> app_context.add_to_history("ansys.mapdl.mcp.tools.run_python_code", True, "import numpy as np")
 
         Record a failed command:
 
-        >>> app_context.add_to_history("python_code", False, "import unknown_package")
+        >>> app_context.add_to_history("ansys.mapdl.mcp.tools.run_python_code", False, "import unknown_package")
 
         """
-        self.command_history.append((command_type, success, command))
+        self.command_history.append((tool, success, command))

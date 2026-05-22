@@ -122,10 +122,10 @@ Filtering command history:
         if entry[1] == True
     ]
 
-    # Get only python_code tool calls
-    python_commands = [
+    # Get specific tool calls
+    custom_tool_commands = [
         entry for entry in app_context.command_history
-        if entry[0] == "python_code"
+        if entry[0] == "my_custom_tool"
     ]
 
     # Get the actual code from all commands
