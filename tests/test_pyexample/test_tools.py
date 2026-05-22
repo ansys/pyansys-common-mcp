@@ -367,7 +367,9 @@ class TestToolSets:
 
         for item in result:
             for field in ("name", "description", "skill"):
-                assert isinstance(item[field], str), f"'{field}' in '{item['name']}' must be a string"
+                assert isinstance(item[field], str), (
+                    f"'{field}' in '{item['name']}' must be a string"
+                )
                 assert item[field], f"'{field}' in '{item['name']}' must not be empty"
 
     def test_list_tool_sets_tools_field_is_list_of_strings(self):
