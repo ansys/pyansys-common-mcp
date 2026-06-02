@@ -65,7 +65,7 @@ doc = [
     "parse==1.22.0",
     "pypandoc==1.17",
     "pytest-sphinx==0.7.1",
-    "regex==2026.4.4",
+    "regex==2026.5.9",
     "sphinx-autobuild==2024.10.3",
     "sphinx-autodoc-typehints==3.2.0",
     "sphinx-copybutton==0.5.2",
