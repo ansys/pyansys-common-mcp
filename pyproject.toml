@@ -50,7 +50,7 @@ tests = [
     "pytest-cov==7.1.0",
     "pytest-mock==3.15.1",
     "mcp==1.27.1",
-    "fastmcp==3.2.4",
+    "fastmcp==3.3.1",
 ]
 doc = [
     "Sphinx==8.2.3",
