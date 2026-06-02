@@ -20,16 +20,18 @@ These tests validate the MCP tool implementations and their interaction
 with the PyExample instance and context.
 """
 
+import asyncio
 import json
 from unittest.mock import MagicMock
 
-from pyexample_mcp import PyExampleContext
+from pyexample_mcp import PyExampleContext, app
 from pyexample_mcp.mock_pyexample import PyExample
 from pyexample_mcp.tools import (
     create_model,
     execute_command,
     execute_python_code,
     get_command_history,
+    list_tool_sets,
     run_simulation,
 )
 import pytest
@@ -330,3 +332,89 @@ class TestToolsIntegration:
         assert len(context.simulation_results) == 2
         assert "model1" in context.simulation_results
         assert "model2" in context.simulation_results
+
+
+class TestToolSets:
+    """Tests for the tool sets resource and tool tag assignments."""
+
+    def test_list_tool_sets_returns_list(self):
+        """Test that list_tool_sets returns a list."""
+        result = list_tool_sets()
+
+        assert isinstance(result, list)
+
+    def test_list_tool_sets_contains_expected_names(self):
+        """Test that all expected tool set names are present."""
+        result = list_tool_sets()
+        names = [item["name"] for item in result]
+
+        assert "structures" in names
+        assert "post_processing" in names
+
+    def test_list_tool_sets_items_have_required_keys(self):
+        """Test that each tool set item has name, description, skill, and tools keys."""
+        result = list_tool_sets()
+
+        for item in result:
+            assert "name" in item, f"Item {item} is missing 'name'"
+            assert "description" in item, f"Item {item} is missing 'description'"
+            assert "skill" in item, f"Item {item} is missing 'skill'"
+            assert "tools" in item, f"Item {item} is missing 'tools'"
+
+    def test_list_tool_sets_string_fields_are_non_empty(self):
+        """Test that name, description, and skill fields are non-empty strings."""
+        result = list_tool_sets()
+
+        for item in result:
+            for field in ("name", "description", "skill"):
+                assert isinstance(item[field], str), (
+                    f"'{field}' in '{item['name']}' must be a string"
+                )
+                assert item[field], f"'{field}' in '{item['name']}' must not be empty"
+
+    def test_list_tool_sets_tools_field_is_list_of_strings(self):
+        """Test that the tools field is a non-empty list of strings."""
+        result = list_tool_sets()
+
+        for item in result:
+            assert isinstance(item["tools"], list), f"'tools' in '{item['name']}' must be a list"
+            assert item["tools"], f"'tools' in '{item['name']}' must not be empty"
+            for tool_name in item["tools"]:
+                assert isinstance(tool_name, str), f"Tool names in '{item['name']}' must be strings"
+
+    def test_structures_tools_have_correct_tag(self):
+        """Test that structural tools are tagged with 'structures'."""
+        tools = {t.name: t for t in asyncio.run(app.list_tools())}
+
+        assert "structures" in tools["create_model"].tags
+        assert "structures" in tools["run_simulation"].tags
+
+    def test_post_processing_tools_have_correct_tag(self):
+        """Test that post-processing tools are tagged with 'post_processing'."""
+        tools = {t.name: t for t in asyncio.run(app.list_tools())}
+
+        assert "post_processing" in tools["get_command_history"].tags
+        assert "post_processing" in tools["execute_python_code"].tags
+
+    def test_untagged_tools_have_no_tags(self):
+        """Test that tools without a tag assignment have an empty tag set."""
+        tools = {t.name: t for t in asyncio.run(app.list_tools())}
+
+        assert tools["execute_command"].tags == set()
+
+    def test_toolset_resource_is_registered(self):
+        """Test that the toolsets://definition resource is registered on the app."""
+        resources = asyncio.run(app.list_resources())
+        uris = [str(r.uri) for r in resources]
+
+        assert "toolsets://definition" in uris
+
+    def test_toolset_names_match_used_tags(self):
+        """Test that every tag used by a tool has an entry in list_tool_sets."""
+        tool_sets = list_tool_sets()
+        tool_set_names = {item["name"] for item in tool_sets}
+        tools = asyncio.run(app.list_tools())
+        all_tags = {tag for t in tools for tag in t.tags}
+
+        for tag in all_tags:
+            assert tag in tool_set_names, f"Tag '{tag}' is used but not described in list_tool_sets"
