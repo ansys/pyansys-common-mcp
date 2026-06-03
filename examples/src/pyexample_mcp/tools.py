@@ -31,6 +31,33 @@ from pyexample_mcp import app
 logger = get_logger(__name__)
 
 
+@app.resource("toolsets://definition")
+def list_tool_sets() -> list[dict]:
+    """Toolset definitions."""
+    return [
+        {
+            "name": "structures",
+            "description": "Tools for creating and running structural models",
+            "skill": (
+                "Use these tools to set up and solve structural simulations. "
+                "Start with create_model to define the model, then use "
+                "run_simulation to execute the analysis."
+            ),
+            "tools": ["create_model", "run_simulation"],
+        },
+        {
+            "name": "post_processing",
+            "description": "Tools for processing and exporting simulation results",
+            "skill": (
+                "Use these tools to inspect results and run custom analyses after a simulation. "
+                "Use get_command_history to review past commands and execute_python_code "
+                "for custom post-processing scripts."
+            ),
+            "tools": ["get_command_history", "execute_python_code"],
+        },
+    ]
+
+
 # Define tools for interacting with PyExample instance
 @app.tool()
 def execute_command(ctx: Context, command: str) -> str:
@@ -67,7 +94,7 @@ def execute_command(ctx: Context, command: str) -> str:
         return f"Error: {e}"
 
 
-@app.tool()
+@app.tool(tags={"structures"})
 def create_model(
     ctx: Context,
     name: str,
@@ -116,7 +143,7 @@ def create_model(
     return f"Model '{name}' created successfully\n{model}"
 
 
-@app.tool()
+@app.tool(tags={"structures"})
 def run_simulation(
     ctx: Context, model_name: Optional[str] = None, save_results: bool = True
 ) -> str:
@@ -170,7 +197,7 @@ def run_simulation(
     return f"Simulation completed for '{target_model}'\n{result}"
 
 
-@app.tool()
+@app.tool(tags={"post_processing"})
 def get_command_history(ctx: Context, format: str = "list", code_type: str = "all") -> str:
     """Retrieve command execution history.
 
@@ -219,7 +246,7 @@ def get_command_history(ctx: Context, format: str = "list", code_type: str = "al
         return "Error: Invalid format specified. Use 'list', 'numbered', or 'json'."
 
 
-@app.tool()
+@app.tool(tags={"post_processing"})
 def run_python_code(ctx: Context, code: str) -> str:
     """Run Python code in the persistent session.
 
