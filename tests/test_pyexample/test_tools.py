@@ -29,10 +29,10 @@ from pyexample_mcp.mock_pyexample import PyExample
 from pyexample_mcp.tools import (
     create_model,
     execute_command,
-    run_python_code,
     get_command_history,
     list_tool_sets,
     restart_python,
+    run_python_code,
     run_simulation,
 )
 import pytest
@@ -340,9 +340,7 @@ class TestToolsIntegration:
         assert "SOLVE MODEL" in history
 
         # Execute Python code
-        code_result = run_python_code(
-            ctx=mock_fastmcp_context, code="print('Analysis complete')"
-        )
+        code_result = run_python_code(ctx=mock_fastmcp_context, code="print('Analysis complete')")
         assert "Analysis complete" in code_result
 
         # Verify context state

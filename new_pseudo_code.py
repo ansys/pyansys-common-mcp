@@ -1,16 +1,19 @@
 # ansys.common.mcp
 from importlib import import_module
+from typing import List, Tuple
 
-commands_hisotory = []  # List to keep track of executed commands in the session with the following format: [(tool (str), success (bool), code (str))]
+# List of tuples containing (tool_name, success, command)
+commands_history: List[Tuple[str, bool, str]] = []
 
 
 def get_tool_function(tool_name: str):
     """Get the function associated with a tool name.
-    
+
     Parameters
     ----------
     tool_name : str
-        Name of the tool to retrieve the function for, such as "ansys.mapdl.mcp.tools.run_python_code".
+        Name of the tool to retrieve the function for, such as
+        "ansys.mapdl.mcp.tools.run_python_code".
 
     Returns
     -------
@@ -31,10 +34,11 @@ def get_tool_function(tool_name: str):
 
 def rerun_history():
     """Rerun the command history."""
-    for tool, success, command in commands_hisotory:
+    for tool, success, command in commands_history:
         if success:
             print(f"Rerunning command from tool {tool}: {command}")
             tool_function = get_tool_function(tool)
             tool_function(command)
+
 
 ########################################################################

@@ -91,11 +91,15 @@ class PyAnsysBaseAppContext:
         --------
         Record a successful command:
 
-        >>> app_context.add_to_history("ansys.mapdl.mcp.tools.run_python_code", True, "import numpy as np")
+        >>> app_context.add_to_history(
+        ...     "ansys.mapdl.mcp.tools.run_python_code", True, "import numpy as np"
+        ... )
 
         Record a failed command:
 
-        >>> app_context.add_to_history("ansys.mapdl.mcp.tools.run_python_code", False, "import unknown_package")
+        >>> app_context.add_to_history(
+        ...     "ansys.mapdl.mcp.tools.run_python_code", False, "import unknown_package"
+        ... )
 
         """
         self.command_history.append((tool, success, command))
