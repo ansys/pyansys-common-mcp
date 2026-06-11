@@ -9,6 +9,88 @@ This document contains the release notes for the PyAnsys Common MCP project.
 
 .. towncrier release notes start
 
+`0.3.1 <https://github.com/ansys/pyansys-common-mcp/releases/tag/v0.3.1>`_ - June 11, 2026
+==========================================================================================
+
+.. tab-set::
+
+
+  .. tab-item:: Fixed
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Uncomment version switcher
+          - `#78 <https://github.com/ansys/pyansys-common-mcp/pull/78>`_
+
+
+  .. tab-item:: Documentation
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Update \`\`CONTRIBUTORS.md\`\` with the latest contributors
+          - `#84 <https://github.com/ansys/pyansys-common-mcp/pull/84>`_
+
+        * - Adding tool sets mention
+          - `#89 <https://github.com/ansys/pyansys-common-mcp/pull/89>`_
+
+
+  .. tab-item:: Dependencies
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Bump actions/upload-artifact from 7.0.0 to 7.0.1
+          - `#79 <https://github.com/ansys/pyansys-common-mcp/pull/79>`_
+
+        * - Bump sphinx-gallery from 0.20.0 to 0.21.0
+          - `#80 <https://github.com/ansys/pyansys-common-mcp/pull/80>`_
+
+        * - Bump ansys/actions from 10.2.12 to 10.3.0
+          - `#81 <https://github.com/ansys/pyansys-common-mcp/pull/81>`_
+
+        * - Bump parse from 1.21.1 to 1.22.0
+          - `#83 <https://github.com/ansys/pyansys-common-mcp/pull/83>`_
+
+        * - Bump ansys/actions from 10.3.0 to 10.3.1
+          - `#85 <https://github.com/ansys/pyansys-common-mcp/pull/85>`_
+
+        * - Bump mcp from 1.27.0 to 1.27.1
+          - `#86 <https://github.com/ansys/pyansys-common-mcp/pull/86>`_
+
+        * - Bump actions/labeler from 6.0.1 to 6.1.0
+          - `#87 <https://github.com/ansys/pyansys-common-mcp/pull/87>`_
+
+        * - Bump regex from 2026.4.4 to 2026.5.9
+          - `#90 <https://github.com/ansys/pyansys-common-mcp/pull/90>`_
+
+        * - Bump fastmcp from 3.2.4 to 3.3.1
+          - `#91 <https://github.com/ansys/pyansys-common-mcp/pull/91>`_
+
+        * - Bump ansys-sphinx-theme from 1.7.2 to 1.8.2
+          - `#95 <https://github.com/ansys/pyansys-common-mcp/pull/95>`_
+
+        * - Bump pytest-asyncio from 1.3.0 to 1.4.0
+          - `#100 <https://github.com/ansys/pyansys-common-mcp/pull/100>`_
+
+
+  .. tab-item:: Maintenance
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Update CHANGELOG for v0.3.0
+          - `#75 <https://github.com/ansys/pyansys-common-mcp/pull/75>`_
+
+        * - Update license metadata in pyproject.toml
+          - `#96 <https://github.com/ansys/pyansys-common-mcp/pull/96>`_
+
+
 `0.3.0 <https://github.com/ansys/pyansys-common-mcp/releases/tag/v0.3.0>`_ - April 22, 2026
 ===========================================================================================
 
