@@ -203,6 +203,72 @@ implemented, the system raises runtime errors:
    # TypeError: Can't instantiate abstract class MyProductMCP with abstract methods
    # product_cleanup() and product_startup()
 
+Configuring Python session management
+--------------------------------------
+
+The ``need_python`` property controls whether the server automatically manages a persistent
+Python session during the lifecycle. By default, this is enabled (``True``).
+
+**When to use Python sessions:**
+
+A persistent Python session is useful when your MCP tools need to execute Python code and
+maintain state between executions. For example:
+
+- Running generated Python scripts that interact with your product
+- Maintaining Python objects or connections across multiple tool calls
+- Executing complex calculations or data processing pipelines
+
+**When to disable Python sessions:**
+
+If your MCP server primarily exposes product functionality through direct API calls and does not
+need to execute arbitrary Python code, you can disable the Python session to reduce overhead:
+
+.. code-block:: python
+
+   from ansys.common.mcp import PyAnsysBaseMCP
+
+   class MyProductMCP(PyAnsysBaseMCP):
+       """MCP server that does not use Python sessions."""
+
+       def __init__(self, *args, **kwargs):
+           super().__init__(*args, **kwargs)
+           # Disable Python session management
+           self.need_python = False
+
+       def product_startup(self):
+           """Initialize product without Python session."""
+           self.context.product_instance = MyProduct()
+
+       def product_cleanup(self):
+           """Clean up product."""
+           if self.context.product_instance:
+               self.context.product_instance.close()
+
+**Configuring the Python session:**
+
+When Python sessions are enabled, you can customize the Python environment using constructor
+parameters:
+
+.. code-block:: python
+
+   import sys
+
+   # Use custom Python executable
+   server = MyProductMCP(
+       python_executable="/path/to/python/executable",
+       working_directory="/custom/working/dir"
+   )
+
+   # Use current interpreter
+   server = MyProductMCP()  # Uses sys.executable by default
+
+The Python session is automatically configured with:
+
+- Non-interactive matplotlib backend (Agg) to prevent blocking
+- PyVista off-screen rendering
+- Helper functions for saving plots (both PyVista and Matplotlib)
+- Access through ``context.python_session`` in your tools
+
 **Asynchronous lifecycle:**
 
 FastMCP uses async/await for all operations because the MCP protocol is inherently asynchronous.

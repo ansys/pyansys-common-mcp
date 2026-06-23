@@ -58,8 +58,31 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         # Store parameters before calling super().__init__
         self.python_executable = python_executable
         self.working_directory = working_directory
+        self._need_python = True
 
         super().__init__(*args, lifespan=self.product_lifespan, **kwargs)
+
+    @property
+    def need_python(self) -> bool:
+        """Whether a persistent Python session needs to be started.
+
+        Returns
+        -------
+        bool
+            True if a persistent Python session needs to be started, False otherwise.
+        """
+        return self._need_python
+
+    @need_python.setter
+    def need_python(self, value: bool):
+        """Set whether a persistent Python session needs to be started.
+
+        Parameters
+        ----------
+        value : bool
+            True if a persistent Python session needs to be started, False otherwise.
+        """
+        self._need_python = value
 
     @abstractmethod
     def product_cleanup(self):
@@ -255,11 +278,13 @@ print("PyVista configured for off-screen rendering.")
         self.context = self.create_context()
 
         try:
-            self.start_python_session()
+            if self.need_python:
+                self.start_python_session()
             self.product_startup()
 
             yield self.context
 
         finally:
-            self.cleanup_python_session()
+            if self.need_python:
+                self.cleanup_python_session()
             self.product_cleanup()
