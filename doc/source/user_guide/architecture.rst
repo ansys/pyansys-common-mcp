@@ -206,7 +206,7 @@ implemented, the system raises runtime errors:
 Configuring Python session management
 --------------------------------------
 
-The ``need_python`` property controls whether the server automatically manages a persistent
+The ``need_python`` parameter controls whether the server automatically manages a persistent
 Python session during the lifecycle. By default, this is enabled (``True``).
 
 **When to use Python sessions:**
@@ -221,7 +221,8 @@ maintain state between executions. For example:
 **When to disable Python sessions:**
 
 If your MCP server primarily exposes product functionality through direct API calls and does not
-need to execute arbitrary Python code, you can disable the Python session to reduce overhead:
+need to execute arbitrary Python code, you can disable the Python session to reduce overhead.
+Pass ``need_python=False`` to the constructor:
 
 .. code-block:: python
 
@@ -231,9 +232,7 @@ need to execute arbitrary Python code, you can disable the Python session to red
        """MCP server that does not use Python sessions."""
 
        def __init__(self, *args, **kwargs):
-           super().__init__(*args, **kwargs)
-           # Disable Python session management
-           self.need_python = False
+           super().__init__(*args, need_python=False, **kwargs)
 
        def product_startup(self):
            """Initialize product without Python session."""
@@ -244,6 +243,16 @@ need to execute arbitrary Python code, you can disable the Python session to red
            if self.context.product_instance:
                self.context.product_instance.close()
 
+Alternatively, you can pass it directly when instantiating:
+
+.. code-block:: python
+
+   # Disable Python session
+   server = MyProductMCP(need_python=False)
+
+   # Enable Python session (default)
+   server = MyProductMCP(need_python=True)
+
 **Configuring the Python session:**
 
 When Python sessions are enabled, you can customize the Python environment using constructor
@@ -253,14 +262,15 @@ parameters:
 
    import sys
 
-   # Use custom Python executable
+   # Use custom Python executable and working directory
    server = MyProductMCP(
        python_executable="/path/to/python/executable",
-       working_directory="/custom/working/dir"
+       working_directory="/custom/working/dir",
+       need_python=True  # Enable Python session (default)
    )
 
-   # Use current interpreter
-   server = MyProductMCP()  # Uses sys.executable by default
+   # Use current interpreter with Python session disabled
+   server = MyProductMCP(need_python=False)
 
 The Python session is automatically configured with:
 

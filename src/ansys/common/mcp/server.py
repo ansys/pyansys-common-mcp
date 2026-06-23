@@ -37,6 +37,7 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         self,
         python_executable: Optional[str] = None,
         working_directory: Optional[str] = None,
+        need_python: bool = True,
         *args,
         **kwargs,
     ):  # noqa: D403
@@ -49,6 +50,9 @@ class PyAnsysBaseMCP(FastMCP, ABC):
             If ``None``, the current Python interpreter (sys.executable) is used.
         working_directory : str, default: None
             Working directory to use for the Python session.
+        need_python : bool, default: True
+            Whether to start a persistent Python session during server initialization.
+            Set to ``False`` if your MCP server does not need to execute Python code.
         *args : tuple
             Additional positional arguments passed to FastMCP
         **kwargs : dict
@@ -58,31 +62,9 @@ class PyAnsysBaseMCP(FastMCP, ABC):
         # Store parameters before calling super().__init__
         self.python_executable = python_executable
         self.working_directory = working_directory
-        self._need_python = True
+        self._need_python = need_python
 
         super().__init__(*args, lifespan=self.product_lifespan, **kwargs)
-
-    @property
-    def need_python(self) -> bool:
-        """Whether a persistent Python session needs to be started.
-
-        Returns
-        -------
-        bool
-            True if a persistent Python session needs to be started, False otherwise.
-        """
-        return self._need_python
-
-    @need_python.setter
-    def need_python(self, value: bool):
-        """Set whether a persistent Python session needs to be started.
-
-        Parameters
-        ----------
-        value : bool
-            True if a persistent Python session needs to be started, False otherwise.
-        """
-        self._need_python = value
 
     @abstractmethod
     def product_cleanup(self):
@@ -278,13 +260,13 @@ print("PyVista configured for off-screen rendering.")
         self.context = self.create_context()
 
         try:
-            if self.need_python:
+            if self._need_python:
                 self.start_python_session()
             self.product_startup()
 
             yield self.context
 
         finally:
-            if self.need_python:
+            if self._need_python:
                 self.cleanup_python_session()
             self.product_cleanup()

@@ -407,41 +407,28 @@ class TestPyAnsysBaseMCPNeedPython:
         """Test that need_python defaults to True."""
         with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
             mcp = MockMCP()
-            assert mcp.need_python is True
+            assert mcp._need_python is True
 
     def test_need_python_can_be_set_to_false(self):
         """Test that need_python can be set to False."""
         with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
-            mcp = MockMCP()
-            mcp.need_python = False
-            assert mcp.need_python is False
-
-    def test_need_python_can_be_set_to_true(self):
-        """Test that need_python can be set to True."""
-        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
-            mcp = MockMCP()
-            mcp.need_python = False
-            mcp.need_python = True
-            assert mcp.need_python is True
-
-    def test_need_python_property_getter(self):
-        """Test that need_python property getter returns _need_python."""
-        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
-            mcp = MockMCP()
-            # Check internal state
-            assert mcp._need_python is True
-            # Check property getter
-            assert mcp.need_python is True
-
-    def test_need_python_property_setter(self):
-        """Test that need_python property setter updates _need_python."""
-        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
-            mcp = MockMCP()
-            mcp.need_python = False
-            # Check internal state
+            mcp = MockMCP(need_python=False)
             assert mcp._need_python is False
-            # Check property getter
-            assert mcp.need_python is False
+
+    def test_need_python_internal_state(self):
+        """Test that _need_python internal state is set correctly."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            # Test default (True)
+            mcp_default = MockMCP()
+            assert mcp_default._need_python is True
+
+            # Test explicit True
+            mcp_true = MockMCP(need_python=True)
+            assert mcp_true._need_python is True
+
+            # Test explicit False
+            mcp_false = MockMCP(need_python=False)
+            assert mcp_false._need_python is False
 
     @pytest.mark.asyncio
     async def test_lifespan_starts_python_session_when_need_python_true(self):
@@ -449,8 +436,7 @@ class TestPyAnsysBaseMCPNeedPython:
         with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
             with patch("ansys.common.mcp.server.PersistentPythonSession"):
                 with patch("ansys.common.mcp.server.logger"):
-                    mcp = MockMCP()
-                    mcp.need_python = True
+                    mcp = MockMCP(need_python=True)
 
                     mock_server = MagicMock()
 
@@ -467,8 +453,7 @@ class TestPyAnsysBaseMCPNeedPython:
         with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
             with patch("ansys.common.mcp.server.PersistentPythonSession"):
                 with patch("ansys.common.mcp.server.logger"):
-                    mcp = MockMCP()
-                    mcp.need_python = False
+                    mcp = MockMCP(need_python=False)
 
                     mock_server = MagicMock()
 
@@ -485,8 +470,7 @@ class TestPyAnsysBaseMCPNeedPython:
         with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
             with patch("ansys.common.mcp.server.PersistentPythonSession"):
                 with patch("ansys.common.mcp.server.logger"):
-                    mcp = MockMCP()
-                    mcp.need_python = True
+                    mcp = MockMCP(need_python=True)
 
                     mock_server = MagicMock()
 
@@ -503,8 +487,7 @@ class TestPyAnsysBaseMCPNeedPython:
         with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
             with patch("ansys.common.mcp.server.PersistentPythonSession"):
                 with patch("ansys.common.mcp.server.logger"):
-                    mcp = MockMCP()
-                    mcp.need_python = False
+                    mcp = MockMCP(need_python=False)
 
                     mock_server = MagicMock()
 
@@ -524,15 +507,13 @@ class TestPyAnsysBaseMCPNeedPython:
                     mock_server = MagicMock()
 
                     # Test with need_python = True
-                    mcp_true = MockMCP()
-                    mcp_true.need_python = True
+                    mcp_true = MockMCP(need_python=True)
                     async with mcp_true.product_lifespan(mock_server):
                         pass
                     assert mcp_true.product_startup_called
 
                     # Test with need_python = False
-                    mcp_false = MockMCP()
-                    mcp_false.need_python = False
+                    mcp_false = MockMCP(need_python=False)
                     async with mcp_false.product_lifespan(mock_server):
                         pass
                     assert mcp_false.product_startup_called
@@ -546,29 +527,26 @@ class TestPyAnsysBaseMCPNeedPython:
                     mock_server = MagicMock()
 
                     # Test with need_python = True
-                    mcp_true = MockMCP()
-                    mcp_true.need_python = True
+                    mcp_true = MockMCP(need_python=True)
                     async with mcp_true.product_lifespan(mock_server):
                         pass
                     assert mcp_true.product_cleanup_called
 
                     # Test with need_python = False
-                    mcp_false = MockMCP()
-                    mcp_false.need_python = False
+                    mcp_false = MockMCP(need_python=False)
                     async with mcp_false.product_lifespan(mock_server):
                         pass
                     assert mcp_false.product_cleanup_called
 
     def test_need_python_can_be_set_in_subclass_init(self):
-        """Test that need_python can be configured in subclass __init__."""
+        """Test that need_python can be configured via constructor parameter in subclass."""
         with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
 
             class CustomMCP(PyAnsysBaseMCP):
                 """Custom MCP that disables Python session."""
 
                 def __init__(self, *args, **kwargs):
-                    super().__init__(*args, **kwargs)
-                    self.need_python = False
+                    super().__init__(*args, need_python=False, **kwargs)
 
                 def product_startup(self):
                     pass
@@ -577,18 +555,40 @@ class TestPyAnsysBaseMCPNeedPython:
                     pass
 
             mcp = CustomMCP()
-            assert mcp.need_python is False
+            assert mcp._need_python is False
 
-    def test_need_python_python_executable_parameter(self):
+    def test_need_python_with_python_executable_parameter(self):
         """Test need_python with python_executable parameter."""
         with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
             executable = "/custom/python"
-            mcp = MockMCP(python_executable=executable)
+            mcp = MockMCP(python_executable=executable, need_python=False)
 
-            assert mcp.need_python is True  # Default behavior
+            assert mcp._need_python is False
             assert mcp.python_executable == executable
 
-            mcp.need_python = False
-            assert mcp.need_python is False
-            # python_executable should still be stored even when need_python is False
+    def test_need_python_as_constructor_parameter_true(self):
+        """Test that need_python can be passed as constructor parameter (True)."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            mcp = MockMCP(need_python=True)
+            assert mcp._need_python is True
+
+    def test_need_python_as_constructor_parameter_false(self):
+        """Test that need_python can be passed as constructor parameter (False)."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            mcp = MockMCP(need_python=False)
+            assert mcp._need_python is False
+
+    def test_need_python_constructor_parameter_with_other_args(self):
+        """Test need_python constructor parameter with other parameters."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            executable = "/custom/python"
+            work_dir = "/tmp/test"
+            mcp = MockMCP(
+                python_executable=executable,
+                working_directory=work_dir,
+                need_python=False,
+            )
+
             assert mcp.python_executable == executable
+            assert mcp.working_directory == work_dir
+            assert mcp._need_python is False
