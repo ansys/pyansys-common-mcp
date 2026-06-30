@@ -9,6 +9,48 @@ This document contains the release notes for the PyAnsys Common MCP project.
 
 .. towncrier release notes start
 
+`0.3.2 <https://github.com/ansys/pyansys-common-mcp/releases/tag/v0.3.2>`_ - June 24, 2026
+==========================================================================================
+
+.. tab-set::
+
+
+  .. tab-item:: Added
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Disabling python session if needed
+          - `#107 <https://github.com/ansys/pyansys-common-mcp/pull/107>`_
+
+
+  .. tab-item:: Dependencies
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Bump ansys/actions from 10.3.1 to 10.3.2
+          - `#92 <https://github.com/ansys/pyansys-common-mcp/pull/92>`_
+
+        * - Bump mcp from 1.27.1 to 1.27.2
+          - `#101 <https://github.com/ansys/pyansys-common-mcp/pull/101>`_
+
+        * - Bump parse from 1.22.0 to 1.22.1
+          - `#102 <https://github.com/ansys/pyansys-common-mcp/pull/102>`_
+
+
+  .. tab-item:: Maintenance
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Update CHANGELOG for v0.3.1
+          - `#103 <https://github.com/ansys/pyansys-common-mcp/pull/103>`_
+
+
 `0.3.1 <https://github.com/ansys/pyansys-common-mcp/releases/tag/v0.3.1>`_ - June 11, 2026
 ==========================================================================================
 
