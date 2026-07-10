@@ -256,7 +256,7 @@ class TestPersistentPythonSessionErrorHandling:
 
         # Should contain proper structure
         assert "success" in result
-        assert "error" in result or "message" in result
+        assert "message" in result
 
 
 # ============================================================================

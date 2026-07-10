@@ -31,7 +31,7 @@ What's next?
 ============
 
 - :ref:`user_guide_architecture` - Learn how the framework works.
-- :ref:`user_guide_advanced_patterns` - Explore advanced techniques and patterns.
+- :ref:`user_guide_common_patterns` - Explore common techniques and patterns.
 - :ref:`ref_examples` - Review complete working examples.
 
 .. toctree::
@@ -39,4 +39,4 @@ What's next?
    :hidden:
 
    architecture
-   advanced_patterns
+   common_patterns

@@ -63,7 +63,7 @@ handles errors.
 PyAnsysBaseAppContext
 ---------------------
 
-``PyAnsysBaseAppContent`` is the dataclass that holds the shared state accessible from all MCP tools.
+``PyAnsysBaseAppContext`` is the dataclass that holds the shared state accessible from all MCP tools.
 
 **Built-in fields:**
 
@@ -75,7 +75,7 @@ PyAnsysBaseAppContext
        python_executable: Optional[Any] = None
        python_session: Optional[Any] = None  # PersistentPythonSession
        metadata: dict = field(default_factory=dict)
-       command_history: list = field(default_factory=list)
+       command_history: list[tuple[str, bool, str]] = field(default_factory=list)
 
 **Extending the context:**
 
@@ -141,9 +141,8 @@ automatically injects it.
        # Access product instance
        result = app_context.product_instance.run(param)
 
-       # Add to command history if successful
-       if result["success"]:
-            app_context.command_history.append(param)
+       # Add to command history
+       app_context.add_to_history("my_tool", result["success"], param)
 
        return result
 
@@ -164,7 +163,7 @@ inside the tool function. This function retrieves the current context instance.
        app_context = ctx.fastmcp._lifespan_result
 
        result = app_context.product_instance.do_something(param)
-       app_context.command_history.append(f"my_tool({param})")
+       app_context.add_to_history("my_tool", result["success"], param)
        return result
 
 Tools

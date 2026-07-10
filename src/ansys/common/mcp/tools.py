@@ -32,10 +32,11 @@ from ansys.common.mcp.helpers import (
 from mcp.types import ImageContent, TextContent
 
 
-async def execute_python_code(
+def execute_python_code(
     ctx: Context,
     code: str,
     timeout: int = 60,
+    skip_history: bool = False,
 ) -> str:
     """Execute Python code in the persistent Python session with automatic rule generation.
 
@@ -51,6 +52,10 @@ async def execute_python_code(
         Python code to execute.
     timeout : int, default: 60
         Maximum time in seconds to allow for code execution.
+    skip_history : bool, default: False
+        Whether to skip adding this code snippet to the history. This can be useful to prevent
+        certain code snippets from being re-run during session restart or for keeping the history
+        clean.
 
     Returns
     -------
@@ -68,7 +73,7 @@ async def execute_python_code(
         result = sum([i**2 for i in range(10)])
         print(f"Sum of squares: {result}")
         '''
-        await execute_python_code(ctx, code)
+        execute_python_code(ctx, code)
 
 
     Execute code with automatic rule generation on failure:
@@ -76,7 +81,7 @@ async def execute_python_code(
     .. code:: python
 
         code = "result = 1/0"  # This will fail
-        await execute_python_code(ctx, code)
+        execute_python_code(ctx, code)
 
 
     Automatically adds rule like: ``{"Division Operations": ["Do not divide by zero"]}``
@@ -89,7 +94,7 @@ async def execute_python_code(
         return json.dumps(
             {
                 "success": False,
-                "error": "No Python session available. The persistent Python session was not initialized.",  # noqa: E501
+                "message": "No Python session available. The persistent Python session was not initialized.",  # noqa: E501
             },
             ensure_ascii=False,
         )
@@ -109,56 +114,43 @@ async def execute_python_code(
             stderr = _sanitize_output(result.get("stderr", ""))
 
             if result.get("success"):
-                return json.dumps(
-                    {
-                        "success": True,
-                        "stdout": stdout,
-                        "stderr": stderr,
-                        "message": "Python code executed successfully.",
-                    },
-                    ensure_ascii=False,
-                    indent=2,
-                )
+                success = True
+                message = "Python code executed successfully."
             else:
-                # Execution failed - generate rule if enabled
-                error_msg = result.get("error", "Unknown error occurred.")
-                error_msg = _sanitize_output(error_msg)
-
-                return json.dumps(
-                    {
-                        "success": False,
-                        "stdout": stdout,
-                        "stderr": stderr,
-                        "error": error_msg,
-                    },
-                    ensure_ascii=False,
-                    indent=2,
-                )
+                success = False
+                error_output = result.get("error", "")
+                message_output = result.get("message", "Unknown error occurred.")
+                message = error_output if error_output else message_output
+                message = _sanitize_output(message)
         else:
-            # Fallback if result is not a dict
-            return json.dumps(
-                {
-                    "success": True,
-                    "stdout": _sanitize_output(str(result)) if result else "",
-                    "stderr": "",
-                    "message": "Python code executed successfully.",
-                },
-                ensure_ascii=False,
-                indent=2,
-            )
+            success = False
+            stdout = _sanitize_output(str(result))
+            stderr = ""
+            message = "Python code executed with unexpected result format."
 
     except TimeoutError:
-        error_dict = {
-            "success": False,
-            "error": f"Python code execution timed out after {timeout} seconds.",
-        }
-        logger.error(error_dict["error"])
-        return json.dumps(error_dict, ensure_ascii=False)
+        success = False
+        message = f"Python code execution timed out after {timeout} seconds."
+        logger.error(message)
 
     except Exception as e:
-        error_dict = {"success": False, "error": f"Error executing Python code: {str(e)}"}
-        logger.error(error_dict["error"])
-        return json.dumps(error_dict, ensure_ascii=False)
+        success = False
+        message = f"Error executing Python code: {str(e)}"
+        logger.error(message)
+
+    if not skip_history:
+        # Store the code execution in history with success status
+        app_context.add_to_history("python_code", success, code)
+
+    return json.dumps(
+        {
+            "success": success,
+            "message": message,
+            "stdout": stdout if "stdout" in locals() else "",
+            "stderr": stderr if "stderr" in locals() else "",
+        },
+        ensure_ascii=False,
+    )
 
 
 def create_custom_plot(
@@ -166,6 +158,7 @@ def create_custom_plot(
     plot_code: str,
     plot_type: str = "matplotlib",
     timeout: int = 60,
+    skip_history: bool = False,
 ) -> list[TextContent | ImageContent] | str:
     """Create a custom plot using Matplotlib or PyVista in the persistent Python session.
 
@@ -181,6 +174,10 @@ def create_custom_plot(
         Type of plot. Options are ``"matplotlib"`` or ``"pyvista"``.
     timeout : int, default: 60
         Maximum time in seconds for plot generation.
+    skip_history : bool, default: False
+        Whether to skip adding this plot code snippet to the history. This can be useful to prevent
+        certain code snippets from being re-run during session restart or for keeping the history
+        clean.
 
     Returns
     -------
@@ -218,7 +215,8 @@ def create_custom_plot(
         create_custom_plot(ctx, plot_code, plot_type="matplotlib")
 
     """
-    session = ctx.request_context.lifespan_context.python_session
+    app_context = ctx.request_context.lifespan_context
+    session = app_context.python_session
 
     if session is None:
         return [
@@ -244,6 +242,7 @@ def create_custom_plot(
             stderr = _sanitize_output(result.get("stderr", ""))
 
             if result.get("success"):
+                success = True
                 # Try to extract plot data from stdout
                 # The helper functions return data URI format:
                 # "data:image/png;base64,<base64_string>"
@@ -254,7 +253,7 @@ def create_custom_plot(
                     # Extract the base64 part
                     base64_data = plot_data.split("data:image/png;base64,")[1].strip()
 
-                    return [
+                    output = [
                         TextContent(
                             type="text",
                             text=f"Custom {plot_type} plot created successfully",
@@ -263,7 +262,7 @@ def create_custom_plot(
                     ]
                 elif plot_data.startswith("Plot saved to"):
                     # File path returned
-                    return [
+                    output = [
                         TextContent(
                             type="text",
                             text=f"Custom {plot_type} plot created successfully\n{plot_data}",
@@ -271,24 +270,27 @@ def create_custom_plot(
                     ]
                 else:
                     # Unexpected output format
-                    return [
+                    success = False
+                    output = [
                         TextContent(
                             type="text",
                             text=f"Plot created but unexpected output format:\n{stdout}",
                         )
                     ]
             else:
-                error_msg = result.get("error", "Unknown error occurred.")
+                success = False
+                error_msg = result.get("message", "Unknown error occurred.")
                 error_msg = _sanitize_output(error_msg)
-                return [
+                output = [
                     TextContent(
                         type="text",
                         text=f"Error creating custom {plot_type} plot: {error_msg}\nStdout: {stdout}\nStderr: {stderr}",  # noqa: E501
                     )
                 ]
         else:
+            success = False
             # Fallback if result is not a dict
-            return [
+            output = [
                 TextContent(
                     type="text",
                     text=f"Unexpected result format: {_sanitize_output(str(result)) if result else 'No result'}",  # noqa: E501
@@ -296,17 +298,103 @@ def create_custom_plot(
             ]
 
     except TimeoutError:
+        success = False
         error_msg = f"Plot creation timed out after {timeout} seconds."
         logger.error(error_msg)
-        return [TextContent(type="text", text=error_msg)]
+        output = [TextContent(type="text", text=error_msg)]
 
     except Exception as e:
+        success = False
         error_msg = f"Error creating custom plot: {str(e)}"
         logger.error(error_msg)
-        return [TextContent(type="text", text=error_msg)]
+        output = [TextContent(type="text", text=error_msg)]
+
+    if not skip_history:
+        # Store the plot code execution in history with success status
+        app_context.add_to_history("plot_code", success, plot_code)
+
+    return output
+
+
+def restart_python_session(
+    ctx: Context, run_successful_history_commands: bool = True, run_all_history: bool = False
+) -> str:
+    """Restart the persistent Python session.
+
+    Parameters
+    ----------
+    ctx : Context
+        MCP context containing server session and application context.
+    run_successful_history_commands : bool, optional
+        Whether to run the commands that executed successfully after restarting the Python
+        session, default is True.
+    run_all_history : bool, optional
+        Whether to run the all command history after restarting the Python session, default is
+        False.
+
+    Returns
+    -------
+    str
+        Status message
+
+    """
+    app_context = ctx.request_context.lifespan_context
+    session = app_context.python_session
+
+    if not session:
+        return "Error: No Python session to restart."
+
+    run_history = run_all_history or run_successful_history_commands
+
+    try:
+        session.restart()
+        logger.info("Persistent Python session restarted successfully.")
+
+        if run_history:
+            logger.info("Re-running command history after session restart.")
+            for command in app_context.command_history:
+                if run_all_history or (run_successful_history_commands and command[1]):
+                    logger.info(f"Re-running command: {command[2]}")
+                    if command[0] == "python_code":
+                        # Re-run Python code commands
+                        execute_python_code(ctx, command[2], skip_history=True)
+                    elif command[0] == "plot_code":
+                        # Re-run plot code commands
+                        create_custom_plot(ctx, command[2], skip_history=True)
+        return "Persistent Python session restarted successfully."
+    except Exception as e:
+        logger.error(f"Failed to restart Python session: {e}")
+        return f"Error restarting Python session: {e}"
+
+
+def export_history(ctx: Context, format: str = "json") -> str:
+    """Export the command history as JSON or text.
+
+    Parameters
+    ----------
+    ctx : Context
+        MCP context (automatically injected).
+    format : str, default: 'json'
+        Export format ('json' or 'text').
+    """
+    app_context = ctx.request_context.lifespan_context
+
+    if format == "json":
+        # Export with structured format
+        return json.dumps(
+            [
+                {"type": entry[0], "success": entry[1], "command": entry[2]}
+                for entry in app_context.command_history
+            ],
+            indent=2,
+        )
+    # For text format, just return the commands
+    return "\n".join([entry[2] for entry in app_context.command_history])
 
 
 __all__ = [
     "execute_python_code",
     "create_custom_plot",
+    "restart_python_session",
+    "export_history",
 ]

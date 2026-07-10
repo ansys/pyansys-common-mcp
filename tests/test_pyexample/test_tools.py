@@ -29,9 +29,10 @@ from pyexample_mcp.mock_pyexample import PyExample
 from pyexample_mcp.tools import (
     create_model,
     execute_command,
-    execute_python_code,
     get_command_history,
     list_tool_sets,
+    restart_python,
+    run_python_code,
     run_simulation,
 )
 import pytest
@@ -54,6 +55,8 @@ def mock_fastmcp_context(app_context):
     context = MagicMock()
     context.request_context = MagicMock()
     context.fastmcp._lifespan_result = app_context
+    # Also set request_context.lifespan_context for tools that use it
+    context.request_context.lifespan_context = app_context
     return context
 
 
@@ -74,8 +77,8 @@ class TestExecuteCommandTool:
 
         context = mock_fastmcp_context.fastmcp._lifespan_result
         assert len(context.command_history) == 2
-        assert "CREATE MODEL test1" in context.command_history
-        assert "CREATE MODEL test2" in context.command_history
+        assert "CREATE MODEL test1" in context.command_history[0][2]
+        assert "CREATE MODEL test2" in context.command_history[1][2]
 
     def test_execute_command_no_connection(self, mock_fastmcp_context):
         """Test execute_command when PyExample not connected."""
@@ -138,7 +141,9 @@ class TestCreateModelTool:
 
         assert "param_model" in result
         assert "created successfully" in result
-        assert "CREATE MODEL" in mock_fastmcp_context.fastmcp._lifespan_result.command_history[-1]
+        assert (
+            "CREATE MODEL" in mock_fastmcp_context.fastmcp._lifespan_result.command_history[-1][2]
+        )
 
 
 class TestRunSimulationTool:
@@ -208,7 +213,11 @@ class TestGetCommandHistoryTool:
     def test_get_history_list_format(self, mock_fastmcp_context):
         """Test getting history in list format."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
-        context.command_history = ["CMD1", "CMD2", "CMD3"]
+        context.command_history = [
+            ("example_command", True, "CMD1"),
+            ("example_command", True, "CMD2"),
+            ("example_command", True, "CMD3"),
+        ]
 
         result = get_command_history(ctx=mock_fastmcp_context, format="list")
 
@@ -219,7 +228,10 @@ class TestGetCommandHistoryTool:
     def test_get_history_numbered_format(self, mock_fastmcp_context):
         """Test getting history in numbered format."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
-        context.command_history = ["CMD1", "CMD2"]
+        context.command_history = [
+            ("plot_command", True, "CMD1"),
+            ("plot_command", True, "CMD2"),
+        ]
 
         result = get_command_history(ctx=mock_fastmcp_context, format="numbered")
 
@@ -229,13 +241,18 @@ class TestGetCommandHistoryTool:
     def test_get_history_json_format(self, mock_fastmcp_context):
         """Test getting history in JSON format."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
-        context.command_history = ["CMD1", "CMD2"]
+        context.command_history = [
+            ("python_code", True, "CMD1"),
+            ("python_code", True, "CMD2"),
+        ]
 
         result = get_command_history(ctx=mock_fastmcp_context, format="json")
 
         # Should be valid JSON
         parsed = json.loads(result)
-        assert parsed == ["CMD1", "CMD2"]
+        assert isinstance(parsed, list)
+        assert parsed[0]["command"] == "CMD1"
+        assert parsed[1]["command"] == "CMD2"
 
     def test_get_history_empty(self, mock_fastmcp_context):
         """Test getting history when no commands executed."""
@@ -244,10 +261,10 @@ class TestGetCommandHistoryTool:
         assert "No commands executed" in result
 
 
-class TestExecutePythonCodeTool:
-    """Tests for the execute_python_code tool."""
+class TestRunPythonCodeTool:
+    """Tests for the run_python_code tool."""
 
-    def test_execute_python_code_success(self, mock_fastmcp_context):
+    def test_run_python_code_success(self, mock_fastmcp_context):
         """Test successful Python code execution."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
         context.python_session.execute = MagicMock(
@@ -258,11 +275,11 @@ class TestExecutePythonCodeTool:
             }
         )
 
-        result = execute_python_code(ctx=mock_fastmcp_context, code="print(42)")
+        result = run_python_code(ctx=mock_fastmcp_context, code="print(42)")
 
         assert "42" in result
 
-    def test_execute_python_code_with_warnings(self, mock_fastmcp_context):
+    def test_run_python_code_with_warnings(self, mock_fastmcp_context):
         """Test Python code execution with warnings."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
         context.python_session.execute = MagicMock(
@@ -273,23 +290,23 @@ class TestExecutePythonCodeTool:
             }
         )
 
-        result = execute_python_code(ctx=mock_fastmcp_context, code="some_code()")
+        result = run_python_code(ctx=mock_fastmcp_context, code="some_code()")
 
         assert "Result" in result
         assert "Warning" in result
         assert "deprecated" in result
 
-    def test_execute_python_code_error(self, mock_fastmcp_context):
+    def test_run_python_code_error(self, mock_fastmcp_context):
         """Test Python code execution with error."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
         context.python_session.execute = MagicMock(
             return_value={
                 "success": False,
-                "error": "NameError: name 'undefined' is not defined",
+                "message": "NameError: name 'undefined' is not defined",
             }
         )
 
-        result = execute_python_code(ctx=mock_fastmcp_context, code="undefined()")
+        result = run_python_code(ctx=mock_fastmcp_context, code="undefined()")
 
         assert "Error:" in result
         assert "NameError" in result
@@ -323,15 +340,397 @@ class TestToolsIntegration:
         assert "SOLVE MODEL" in history
 
         # Execute Python code
-        code_result = execute_python_code(
-            ctx=mock_fastmcp_context, code="print('Analysis complete')"
-        )
+        code_result = run_python_code(ctx=mock_fastmcp_context, code="print('Analysis complete')")
         assert "Analysis complete" in code_result
 
         # Verify context state
         assert len(context.simulation_results) == 2
         assert "model1" in context.simulation_results
         assert "model2" in context.simulation_results
+
+
+class TestRestartPythonTool:
+    """Tests for the restart_python tool."""
+
+    def test_restart_python_success(self, mock_fastmcp_context):
+        """Test successful Python session restart."""
+        context = mock_fastmcp_context.request_context.lifespan_context
+        context.python_session.restart = MagicMock(return_value={"success": True})
+        context.python_session.execute = MagicMock(
+            return_value={
+                "success": True,
+                "stdout": "done",
+                "stderr": "",
+            }
+        )
+        context.command_history = [
+            ("python_code", True, "x = 10"),
+        ]
+
+        result = restart_python(ctx=mock_fastmcp_context)
+
+        assert "successfully" in result.lower()
+        context.python_session.restart.assert_called_once()
+
+    def test_restart_python_no_session(self, mock_fastmcp_context):
+        """Test restart_python when no session exists."""
+        context = mock_fastmcp_context.request_context.lifespan_context
+        context.python_session = None
+
+        result = restart_python(ctx=mock_fastmcp_context)
+
+        assert "Error" in result
+        assert "No Python session" in result
+
+    def test_restart_python_replay_successful_default(self, mock_fastmcp_context):
+        """Test that restart replays successful commands by default."""
+        context = mock_fastmcp_context.request_context.lifespan_context
+        context.python_session.restart = MagicMock(return_value={"success": True})
+        context.python_session.execute = MagicMock(
+            return_value={
+                "success": True,
+                "stdout": "done",
+                "stderr": "",
+            }
+        )
+        context.command_history = [
+            ("python_code", True, "a = 1"),
+            ("python_code", False, "bad_code"),
+            ("python_code", True, "b = 2"),
+        ]
+
+        restart_python(ctx=mock_fastmcp_context)
+
+        # Should replay only successful commands (2 calls)
+        assert context.python_session.execute.call_count == 2
+
+    def test_restart_python_replay_run_all_and_successful(self, mock_fastmcp_context):
+        """Test that restart replays all commands when run_all_history=True."""
+        context = mock_fastmcp_context.request_context.lifespan_context
+        context.python_session.restart = MagicMock(return_value={"success": True})
+        context.python_session.execute = MagicMock(
+            return_value={
+                "success": True,
+                "stdout": "done",
+                "stderr": "",
+            }
+        )
+        context.command_history = [
+            ("python_code", True, "a = 1"),
+            ("python_code", False, "bad_code"),
+            ("python_code", True, "b = 2"),
+        ]
+
+        restart_python(
+            ctx=mock_fastmcp_context, run_successful_history_commands=True, run_all_history=True
+        )
+
+        # Should replay all commands (3 calls)
+        assert context.python_session.execute.call_count == 3
+
+    def test_restart_python_no_replay(self, mock_fastmcp_context):
+        """Test restart without replaying commands."""
+        context = mock_fastmcp_context.request_context.lifespan_context
+        context.python_session.restart = MagicMock(return_value={"success": True})
+        context.python_session.execute = MagicMock(
+            return_value={
+                "success": True,
+                "stdout": "done",
+                "stderr": "",
+            }
+        )
+        context.command_history = [
+            ("python_code", True, "x = 1"),
+        ]
+
+        restart_python(
+            ctx=mock_fastmcp_context, run_successful_history_commands=False, run_all_history=False
+        )
+
+        # Should not replay any commands
+        context.python_session.execute.assert_not_called()
+
+    def test_restart_python_replay_all(self, mock_fastmcp_context):
+        """Test restart replaying all commands."""
+        context = mock_fastmcp_context.request_context.lifespan_context
+        context.python_session.restart = MagicMock(return_value={"success": True})
+        context.python_session.execute = MagicMock(
+            return_value={
+                "success": True,
+                "stdout": "done",
+                "stderr": "",
+            }
+        )
+        context.command_history = [
+            ("python_code", True, "x = 1"),
+            ("python_code", False, "bad"),
+            ("python_code", True, "y = 2"),
+        ]
+
+        restart_python(ctx=mock_fastmcp_context, run_all_history=True)
+
+        # Should replay all commands (3 calls)
+        assert context.python_session.execute.call_count == 3
+
+    def test_restart_python_exception_handling(self, mock_fastmcp_context):
+        """Test restart handles exceptions gracefully."""
+        context = mock_fastmcp_context.request_context.lifespan_context
+        context.python_session.restart = MagicMock(side_effect=RuntimeError("Restart failed"))
+
+        result = restart_python(ctx=mock_fastmcp_context)
+
+        assert "Error" in result
+        assert "Restart failed" in result
+
+
+# ============================================================================
+# restart_python Integration Tests
+# ============================================================================
+
+
+@pytest.mark.integration
+class TestRestartPythonIntegration:
+    """Integration tests for restart_python with real Python session.
+
+    These tests use actual PersistentPythonSession to verify end-to-end functionality.
+    """
+
+    def test_restart_python_with_real_session(self, mock_fastmcp_context):
+        """Test restart with real Python session."""
+        from ansys.common.mcp.helpers import PersistentPythonSession
+
+        # Get both the fastmcp and request_context references
+        context = mock_fastmcp_context.fastmcp._lifespan_result
+        mock_fastmcp_context.request_context.lifespan_context = context
+
+        context.python_session = PersistentPythonSession()
+        context.python_session.start()
+
+        try:
+            # Execute initial Python code
+            result1 = run_python_code(mock_fastmcp_context, "restart_var = 100")
+            assert json.loads(result1)["success"]
+
+            # Verify variable exists
+            result2 = run_python_code(mock_fastmcp_context, "print(restart_var)")
+            result2_dict = json.loads(result2)
+            assert result2_dict["success"]
+            assert "100" in result2_dict["stdout"]
+
+            # Restart session
+            restart_result = restart_python(mock_fastmcp_context)
+            assert "successfully" in restart_result.lower()
+
+            # Verify variable is restored after restart
+            result3 = run_python_code(mock_fastmcp_context, "print(restart_var)")
+            result3_dict = json.loads(result3)
+            assert result3_dict["success"]
+            assert "100" in result3_dict["stdout"]
+
+        finally:
+            context.python_session.stop()
+
+    def test_restart_python_clears_variables_no_replay(self, mock_fastmcp_context):
+        """Test restart without replay clears all variables."""
+        from ansys.common.mcp.helpers import PersistentPythonSession
+
+        context = mock_fastmcp_context.fastmcp._lifespan_result
+        mock_fastmcp_context.request_context.lifespan_context = context
+
+        context.python_session = PersistentPythonSession()
+        context.python_session.start()
+
+        try:
+            # Execute code
+            result1 = run_python_code(mock_fastmcp_context, "temp_var = 999")
+            assert json.loads(result1)["success"]
+
+            # Restart without replay
+            restart_result = restart_python(
+                mock_fastmcp_context, run_successful_history_commands=False, run_all_history=False
+            )
+            assert "successfully" in restart_result.lower()
+
+            # Variable should not exist
+            result2 = run_python_code(mock_fastmcp_context, "print(temp_var)")
+            result2_dict = json.loads(result2)
+            assert not result2_dict["success"]
+            assert "not defined" in result2_dict["message"].lower()
+
+        finally:
+            context.python_session.stop()
+
+    def test_restart_python_with_mixed_commands(self, mock_fastmcp_context):
+        """Test restart with mixed successful and failed commands."""
+        from ansys.common.mcp.helpers import PersistentPythonSession
+
+        context = mock_fastmcp_context.fastmcp._lifespan_result
+        mock_fastmcp_context.request_context.lifespan_context = context
+
+        context.python_session = PersistentPythonSession()
+        context.python_session.start()
+
+        try:
+            # Execute successful command
+            result1 = run_python_code(mock_fastmcp_context, "success_var = 42")
+            assert json.loads(result1)["success"]
+
+            # Execute failed command
+            result2 = run_python_code(mock_fastmcp_context, "print(undefined_variable)")
+            assert not json.loads(result2)["success"]
+
+            # Execute another successful command
+            result3 = run_python_code(mock_fastmcp_context, "another_var = 24")
+            assert json.loads(result3)["success"]
+
+            # Restart with successful replay only
+            restart_result = restart_python(
+                mock_fastmcp_context, run_successful_history_commands=True, run_all_history=False
+            )
+            assert "successfully" in restart_result.lower()
+
+            # Successful variables should exist
+            result4 = run_python_code(mock_fastmcp_context, "print(success_var)")
+            result4_dict = json.loads(result4)
+            assert result4_dict["success"]
+            assert "42" in result4_dict["stdout"]
+
+            result5 = run_python_code(mock_fastmcp_context, "print(another_var)")
+            result5_dict = json.loads(result5)
+            assert result5_dict["success"]
+            assert "24" in result5_dict["stdout"]
+
+            # Undefined variable should still not exist
+            result6 = run_python_code(mock_fastmcp_context, "print(undefined_variable)")
+            result6_dict = json.loads(result6)
+            assert not result6_dict["success"]
+
+        finally:
+            context.python_session.stop()
+
+    def test_restart_python_with_pyexample_operations(self, mock_fastmcp_context):
+        """Test restart after performing PyExample operations."""
+        from ansys.common.mcp.helpers import PersistentPythonSession
+
+        context = mock_fastmcp_context.fastmcp._lifespan_result
+        mock_fastmcp_context.request_context.lifespan_context = context
+
+        context.python_session = PersistentPythonSession()
+        context.python_session.start()
+
+        try:
+            # Create PyExample models
+            create_model(ctx=mock_fastmcp_context, name="model_a")
+            create_model(ctx=mock_fastmcp_context, name="model_b")
+
+            # Execute Python code that uses PyExample data
+            result1 = run_python_code(
+                mock_fastmcp_context, "model_count = 2; print(f'Created {model_count} models')"
+            )
+            assert json.loads(result1)["success"]
+
+            # Restart session
+            restart_result = restart_python(mock_fastmcp_context)
+            assert "successfully" in restart_result.lower()
+
+            # Python variables should be restored
+            result2 = run_python_code(mock_fastmcp_context, "print(model_count)")
+            result2_dict = json.loads(result2)
+            assert result2_dict["success"]
+            assert "2" in result2_dict["stdout"]
+
+            # PyExample models should still exist (not affected by Python restart)
+            assert "model_a" in context.example_instance.models
+            assert "model_b" in context.example_instance.models
+
+        finally:
+            context.python_session.stop()
+
+    def test_restart_python_preserves_startup_code(self, mock_fastmcp_context):
+        """Test that startup code is preserved after restart."""
+        from ansys.common.mcp.helpers import PersistentPythonSession
+
+        context = mock_fastmcp_context.fastmcp._lifespan_result
+        mock_fastmcp_context.request_context.lifespan_context = context
+
+        context.python_session = PersistentPythonSession(
+            startup_code="STARTUP_CONSTANT = 'initialized'"
+        )
+        context.python_session.start()
+
+        try:
+            # Verify startup code ran
+            result1 = run_python_code(mock_fastmcp_context, "print(STARTUP_CONSTANT)")
+            result1_dict = json.loads(result1)
+            assert result1_dict["success"]
+            assert "initialized" in result1_dict["stdout"]
+
+            # Add custom variable
+            result2 = run_python_code(mock_fastmcp_context, "custom_var = 123")
+            assert json.loads(result2)["success"]
+
+            # Restart without replay
+            restart_result = restart_python(
+                mock_fastmcp_context, run_successful_history_commands=False, run_all_history=False
+            )
+            assert "successfully" in restart_result.lower()
+
+            # Startup constant should still exist
+            result3 = run_python_code(mock_fastmcp_context, "print(STARTUP_CONSTANT)")
+            result3_dict = json.loads(result3)
+            assert result3_dict["success"]
+            assert "initialized" in result3_dict["stdout"]
+
+            # Custom variable should not exist
+            result4 = run_python_code(mock_fastmcp_context, "print(custom_var)")
+            result4_dict = json.loads(result4)
+            assert not result4_dict["success"]
+
+        finally:
+            context.python_session.stop()
+
+    def test_restart_python_complete_workflow(self, mock_fastmcp_context):
+        """Test complete workflow with restart in the middle."""
+        from ansys.common.mcp.helpers import PersistentPythonSession
+
+        context = mock_fastmcp_context.fastmcp._lifespan_result
+        mock_fastmcp_context.request_context.lifespan_context = context
+
+        context.python_session = PersistentPythonSession()
+        context.python_session.start()
+
+        try:
+            # Phase 1: Initial work
+            create_model(ctx=mock_fastmcp_context, name="workflow_model")
+            result1 = run_python_code(mock_fastmcp_context, "phase = 1; data = [1, 2, 3]")
+            assert json.loads(result1)["success"]
+
+            # Phase 2: Restart to clean Python state
+            restart_result = restart_python(mock_fastmcp_context)
+            assert "successfully" in restart_result.lower()
+
+            # Phase 3: Verify state
+            # Python variables should be restored
+            result2 = run_python_code(mock_fastmcp_context, "print(phase, data)")
+            result2_dict = json.loads(result2)
+            assert result2_dict["success"]
+            assert "1" in result2_dict["stdout"]
+            assert "[1, 2, 3]" in result2_dict["stdout"]
+
+            # PyExample model should still exist
+            assert "workflow_model" in context.example_instance.models
+
+            # Phase 4: Continue working
+            result3 = run_python_code(mock_fastmcp_context, "phase = 2; data.append(4)")
+            assert json.loads(result3)["success"]
+
+            result4 = run_python_code(mock_fastmcp_context, "print(data)")
+            result4_dict = json.loads(result4)
+            assert result4_dict["success"]
+            assert "4" in result4_dict["stdout"]
+
+        finally:
+            context.python_session.stop()
 
 
 class TestToolSets:
@@ -394,7 +793,7 @@ class TestToolSets:
         tools = {t.name: t for t in asyncio.run(app.list_tools())}
 
         assert "post_processing" in tools["get_command_history"].tags
-        assert "post_processing" in tools["execute_python_code"].tags
+        assert "post_processing" in tools["run_python_code"].tags
 
     def test_untagged_tools_have_no_tags(self):
         """Test that tools without a tag assignment have an empty tag set."""

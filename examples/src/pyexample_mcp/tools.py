@@ -22,6 +22,10 @@ from typing import Optional
 from fastmcp.server import Context
 
 from ansys.common.mcp.logging_config import get_logger
+from ansys.common.mcp.tools import (
+    execute_python_code,
+    restart_python_session,
+)
 from pyexample_mcp import app
 
 logger = get_logger(__name__)
@@ -79,10 +83,13 @@ def execute_command(ctx: Context, command: str) -> str:
 
     try:
         result = app_context.example_instance.run_command(command)
-        app_context.command_history.append(command)
+        # Update command history with success
+        app_context.add_to_history("example_command", True, command)
         logger.info(f"Executed command: {command}")
         return str(result)
     except Exception as e:
+        # Update command history with failure
+        app_context.add_to_history("example_command", False, command)
         logger.error(f"Command execution failed: {e}")
         return f"Error: {e}"
 
@@ -120,11 +127,17 @@ def create_model(
 
     # Create model (simulated)
     params = parameters or {}
-    model = app_context.example_instance.create_model(name, model_type, **params)
-
-    # Update command history
     command = f"CREATE MODEL {name} TYPE {model_type}"
-    app_context.command_history.append(command)
+
+    try:
+        model = app_context.example_instance.create_model(name, model_type, **params)
+        # Update command history with success
+        app_context.add_to_history("example_command", True, command)
+    except Exception as e:
+        # Update command history with failure
+        app_context.add_to_history("example_command", False, command)
+        logger.error(f"Model creation failed: {e}")
+        return f"Error: {e}"
 
     logger.info(f"Created model: {name} (type: {model_type})")
     return f"Model '{name}' created successfully\n{model}"
@@ -164,20 +177,28 @@ def run_simulation(
 
     # Run simulation (simulated)
     command = f"SOLVE MODEL {target_model}"
-    result = app_context.example_instance.run_command(command)
+
+    try:
+        result = app_context.example_instance.run_command(command)
+        # Update command history with success
+        app_context.add_to_history("example_command", True, command)
+    except Exception as e:
+        # Update command history with failure
+        app_context.add_to_history("example_command", False, command)
+        logger.error(f"Simulation failed for model: {target_model}, Error: {e}")
+        return f"Error: {e}"
 
     # Save results if requested
     if save_results:
         app_context.simulation_results[target_model] = {"status": "completed", "summary": result}
 
-    app_context.command_history.append(command)
     logger.info(f"Simulation completed for model: {target_model}")
 
     return f"Simulation completed for '{target_model}'\n{result}"
 
 
 @app.tool(tags={"post_processing"})
-def get_command_history(ctx: Context, format: str = "list") -> str:
+def get_command_history(ctx: Context, format: str = "list", code_type: str = "all") -> str:
     """Retrieve command execution history.
 
     Parameters
@@ -186,6 +207,8 @@ def get_command_history(ctx: Context, format: str = "list") -> str:
         The FastMCP context
     format : str
         Output format: 'list', 'numbered', or 'json'
+    code_type : str
+        Filter by code type (e.g., 'plot_code', 'python_code', or 'all')
 
     Returns
     -------
@@ -198,20 +221,34 @@ def get_command_history(ctx: Context, format: str = "list") -> str:
     if not app_context.command_history:
         return "No commands executed yet"
 
-    if format == "numbered":
-        lines = [f"{i + 1}. {cmd}" for i, cmd in enumerate(app_context.command_history)]
-        return "\n".join(lines)
+    # Filter by code type if specified
+    if code_type != "all":
+        filtered_history = [entry for entry in app_context.command_history if entry[0] == code_type]
+    else:
+        filtered_history = app_context.command_history
+
+    # Format output
+    if format == "list":
+        return "\n".join([entry[2] for entry in filtered_history])
+
+    elif format == "numbered":
+        return "\n".join([f"{idx + 1}. {entry[2]}" for idx, entry in enumerate(filtered_history)])
 
     elif format == "json":
-        return json.dumps(app_context.command_history, indent=2)
-
-    else:  # list format
-        return "\n".join(app_context.command_history)
+        return json.dumps(
+            [
+                {"code_type": entry[0], "success": entry[1], "command": entry[2]}
+                for entry in filtered_history
+            ],
+            indent=2,
+        )
+    else:
+        return "Error: Invalid format specified. Use 'list', 'numbered', or 'json'."
 
 
 @app.tool(tags={"post_processing"})
-def execute_python_code(ctx: Context, code: str) -> str:
-    """Execute Python code in the persistent session.
+def run_python_code(ctx: Context, code: str) -> str:
+    """Run Python code in the persistent session.
 
     This allows for custom analysis and processing using the
     full Python ecosystem.
@@ -229,14 +266,39 @@ def execute_python_code(ctx: Context, code: str) -> str:
         Execution output
 
     """
-    app_context = ctx.fastmcp._lifespan_result
+    return execute_python_code(ctx, code)
 
-    result = app_context.python_session.execute(code)
 
-    if result["success"]:
-        output = str(result["stdout"])
-        if result["stderr"]:
-            output += f"\n\nWarnings:\n{result['stderr']}"
-        return output
-    else:
-        return f"Error: {result['error']}"
+@app.tool()
+def restart_python(
+    ctx: Context, run_successful_history_commands: bool = True, run_all_history: bool = False
+) -> str:
+    """Restart the Python execution environment.
+
+    This can be useful for clearing state or reloading modules.
+
+    Parameters
+    ----------
+    ctx : Context
+        The FastMCP context
+    run_successful_history_commands : bool, default: True
+        Whether to rerun only successful commands from history after restart
+    run_all_history : bool, default: False
+        Whether to rerun all commands from history regardless of success after restart
+
+    Returns
+    -------
+    str
+        Status message
+
+    Notes
+    -----
+    This function will only rerun the ``python_code`` and the ``plot_code`` entries in the
+    history. The ``example_command`` entries will not be rerun as they are specific to the
+    PyExample instance.
+    """
+    return restart_python_session(
+        ctx=ctx,
+        run_successful_history_commands=run_successful_history_commands,
+        run_all_history=run_all_history,
+    )
