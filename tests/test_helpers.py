@@ -396,7 +396,7 @@ print('hello')
             assert not result["success"], "Error should be caught"
             assert result["stderr"], "stderr should contain error info"
             assert "error" in result["stderr"].lower() or "exception" in result["stderr"].lower()
-            assert not ">>>" in result["stderr"]
+            assert ">>>" not in result["stderr"]
         finally:
             session.stop()
 
@@ -412,7 +412,7 @@ print('hello')
             assert not result["success"], "Error should be caught"
             assert result["stderr"], "stderr should contain error info"
             assert "error" in result["stderr"].lower() or "exception" in result["stderr"].lower()
-            assert not "..." in result["stderr"]
+            assert "..." not in result["stderr"]
         finally:
             session.stop()
 
