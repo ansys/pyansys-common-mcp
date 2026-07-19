@@ -385,7 +385,7 @@ print('hello')
             session.stop()
 
     def test_execute_with_error_no_primary_prompt(self):
-        """Test executing code that produces a runtime error is properly caught."""
+        """Test executing code that produces a runtime error is properly reported without the primary prompt."""
         session = PersistentPythonSession()
 
         try:
@@ -401,7 +401,7 @@ print('hello')
             session.stop()
 
     def test_execute_with_error_no_secondary_prompt(self):
-        """Test executing code that produces a runtime error is properly caught."""
+        """Test executing code that produces a runtime error is properly reported without the secondary prompt."""
         session = PersistentPythonSession()
 
         try:
