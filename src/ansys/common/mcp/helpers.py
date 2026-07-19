@@ -18,6 +18,7 @@
 
 from pathlib import Path
 import queue
+import re
 
 # Subprocess is needed for managing the persistent Python session
 import subprocess  # nosec B404
@@ -104,6 +105,77 @@ def _sanitize_output(text: str) -> str:
 
     return text
 
+
+def _prepare_repl_code(code: str) -> str:
+    """Prepare a snippet for running in the interactive REPL.
+
+    The persistent session uses an interactive Python interpreter to execute
+    code, sending the text to the Python interpreter's `stdin`. The REPL
+    obeys these rules:
+
+    * a blank line inside an indented block terminates it early
+    * an indented block is only executed once a blank line is encountered
+
+    Therefore the text needs to be prepared to correctly drive the REPL: 
+
+    * blank lines inside indented blocks are replaced by `#` so the block
+    does not terminate prematurely
+    * an extra blank line is inserted at the end of indented blocks to 
+    request the REPL to execute it
+
+    Parameters
+    ----------
+    code : str
+        Python source to send to the interactive session.
+
+    Returns
+    -------
+    str
+        The prepared source code.
+    """
+    lines = code.splitlines()
+    if not lines:
+        return code
+    
+    comment_pattern = re.compile(r'^\s*#')
+    indentation_pattern = re.compile(r"^([ \t]*)")
+    continuation_block_pattern = re.compile(r"^\s*(?:else|elif|except|finally)\b")
+
+    prepared_repl_code: list[str] = []
+    current_indentation = ""
+    for line in lines:
+
+        is_comment_line = comment_pattern.match(line)
+        if is_comment_line:
+            # leave comment lines as is
+            prepared_repl_code.append(line)
+            continue
+        
+        if not line.strip():
+            # empty line, change to comment
+            prepared_repl_code.append(line + "#")
+            continue
+        
+        previous_indentation = current_indentation
+
+        indentation_match = indentation_pattern.match(line)
+        if indentation_match is not None:
+            current_indentation = indentation_match.group(0)
+        else:
+            current_indentation = ""
+
+        is_end_of_block = len(previous_indentation) > len(current_indentation)
+        if is_end_of_block and not continuation_block_pattern.match(line):
+            # end of a block, insert return character if not continuation clause
+            prepared_repl_code.append("\n")
+    
+        prepared_repl_code.append(line)
+
+    if len(current_indentation) > 0:
+        # end last indented block
+        prepared_repl_code.append("\n")
+
+    return "\n".join(prepared_repl_code)
 
 class PersistentPythonSession:
     r"""Maintains a persistent Python subprocess for stateful code execution.
@@ -280,10 +352,12 @@ class PersistentPythonSession:
                 # Clear any pending output
                 self._drain_queues(timeout=0.1)
 
+                prepared_repl_code = _prepare_repl_code(code)
+
                 # Send code to Python process
                 # Use a unique marker to detect when execution is complete
                 marker = "___EXECUTION_COMPLETE___"
-                code_with_marker = f"{code}\nprint('{marker}')\n"
+                code_with_marker = f"{prepared_repl_code}\nprint('{marker}')\n"
 
                 logger.debug(f"Executing code: {code[:100]}...")
                 if self.process.stdin is None:

@@ -286,6 +286,20 @@ class TestPersistentPythonSessionIntegration:
         assert result["success"], f"Failed to stop: {result.get('error')}"
         assert not session.is_running()
 
+    def test_execute_empty_code(self):
+        """Test executing an empty Python code snippet in session."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            # Execute simple assignment
+            result = session.execute("")
+            assert result["success"], f"Execution failed: {result.get('error')}"
+            assert isinstance(result["stdout"], str)
+        finally:
+            session.stop()
+
     def test_execute_simple_code(self):
         """Test executing simple Python code in session."""
         session = PersistentPythonSession()
@@ -456,6 +470,118 @@ print('hello')
                 result = session.execute(f"print({i})")
                 assert result["success"], f"Execution {i} failed: {result.get('error')}"
                 assert str(i) in result["stdout"]
+        finally:
+            session.stop()
+
+    def test_with_one_indented_code_block(self):
+        """Test running code with an indented block."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            code = """\
+for i in range(1,5):
+    print(i)
+print('done')
+"""
+            result = session.execute(code)
+
+            assert result["success"], f"Execution failed: {result.get('error')}"
+
+            expected_result = """\
+1
+2
+3
+4
+done"""
+            assert expected_result in result["stdout"]
+        finally:
+            session.stop()
+
+    def test_with_nested_indented_code_blocks(self):
+        """Test running code with multiple nested and indented blocks."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            code = """\
+for i in range(1,5):
+    if i > 3:
+        print(i)
+    else:
+        for j in range(1, i):
+            print(j)
+print('done')
+"""
+            result = session.execute(code)
+
+            assert result["success"], f"Execution failed: {result.get('error')}"
+
+            expected_result = """\
+1
+1
+2
+4
+done"""
+            assert expected_result in result["stdout"]
+        finally:
+            session.stop()
+
+    def test_with_blank_lines_in_indented_blocks(self):
+        """Test running code with multiple nested blocks that include blank lines."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            code = """\
+for i in range(1,5):
+    if i > 3:
+
+        print(i)
+
+    else:
+        for j in range(1, i):
+
+            print(j)
+print('done')
+"""
+            result = session.execute(code)
+
+            assert result["success"], f"Execution failed: {result.get('error')}"
+
+            expected_result = """\
+1
+1
+2
+4
+done"""
+            assert expected_result in result["stdout"]
+        finally:
+            session.stop()
+
+    def test_ending_with_deep_nested_code_blocks(self):
+        """Test running code ending on a deeply indented section."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            code = """\
+for i in range(1,5):
+    if i % 2 == 0:
+        if i > 1:
+            if i == 2:
+                print(2)
+"""
+            result = session.execute(code)
+
+            assert result["success"], f"Execution failed: {result.get('error')}"
+
+            expected_result = "2"
+            assert expected_result in result["stdout"]
         finally:
             session.stop()
 
