@@ -193,13 +193,13 @@ class PersistentPythonSession:
         try:
             logger.info(f"Starting persistent Python session: {self.python_executable}")
 
-            # Prevent the interpreter from cluttering stderr with 
+            # Prevent the interpreter from cluttering stderr with
             # its primary (ps1: >>>) and secondary (ps2: ...) prompts
             turn_off_repl_prompts = "import sys; sys.ps1 = ''; sys.ps2 = ''"
 
             # Start Python in interactive mode with unbuffered I/O
             self.process = subprocess.Popen(
-                [self.python_executable, "-u", "-i", '-c', turn_off_repl_prompts],
+                [self.python_executable, "-u", "-i", "-c", turn_off_repl_prompts],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
