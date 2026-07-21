@@ -116,11 +116,11 @@ def _prepare_repl_code(code: str) -> str:
     * a blank line inside an indented block terminates it early
     * an indented block is only executed once a blank line is encountered
 
-    Therefore the text needs to be prepared to correctly drive the REPL: 
+    Therefore the text needs to be prepared to correctly drive the REPL:
 
     * blank lines inside indented blocks are replaced by `#` so the block
     does not terminate prematurely
-    * an extra blank line is inserted at the end of indented blocks to 
+    * an extra blank line is inserted at the end of indented blocks to
     request the REPL to execute it
 
     Parameters
@@ -136,26 +136,25 @@ def _prepare_repl_code(code: str) -> str:
     lines = code.splitlines()
     if not lines:
         return code
-    
-    comment_pattern = re.compile(r'^\s*#')
+
+    comment_pattern = re.compile(r"^\s*#")
     indentation_pattern = re.compile(r"^([ \t]*)")
     continuation_block_pattern = re.compile(r"^\s*(?:else|elif|except|finally)\b")
 
     prepared_repl_code: list[str] = []
     current_indentation = ""
     for line in lines:
-
         is_comment_line = comment_pattern.match(line)
         if is_comment_line:
             # leave comment lines as is
             prepared_repl_code.append(line)
             continue
-        
+
         if not line.strip():
             # empty line, change to comment
             prepared_repl_code.append(line + "#")
             continue
-        
+
         previous_indentation = current_indentation
 
         indentation_match = indentation_pattern.match(line)
@@ -168,7 +167,7 @@ def _prepare_repl_code(code: str) -> str:
         if is_end_of_block and not continuation_block_pattern.match(line):
             # end of a block, insert return character if not continuation clause
             prepared_repl_code.append("\n")
-    
+
         prepared_repl_code.append(line)
 
     if len(current_indentation) > 0:
@@ -176,6 +175,7 @@ def _prepare_repl_code(code: str) -> str:
         prepared_repl_code.append("\n")
 
     return "\n".join(prepared_repl_code)
+
 
 class PersistentPythonSession:
     r"""Maintains a persistent Python subprocess for stateful code execution.
