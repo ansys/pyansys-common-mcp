@@ -671,7 +671,7 @@ for n in range(1, 5):
     if n % 2 == 0:
         continue
     print(4*n)"""
-            
+
             result = session.execute(code)
 
             assert result["success"], f"Execution failed: {result.get('error')}"

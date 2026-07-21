@@ -140,9 +140,12 @@ def _prepare_repl_code(code: str) -> str:
     comment_pattern = re.compile(r"^\s*#")
 
     prepared_repl_code: list[str] = []
-    is_current_line_indented = False # Block of code always start without indentation
-                                     # (if not `IndentationError: unexpected indent`
-                                     # will be generated anyway)
+
+    # Block of code always start without indentation
+    # (if not `IndentationError: unexpected indent`
+    # will be generated anyway)
+    is_current_line_indented = False
+
     for line in lines:
         is_comment_line = comment_pattern.match(line)
         if is_comment_line:
@@ -159,7 +162,7 @@ def _prepare_repl_code(code: str) -> str:
 
         is_previous_line_indented = is_current_line_indented
 
-        is_current_line_indented = line.startswith((' ', '\t'))
+        is_current_line_indented = line.startswith((" ", "\t"))
 
         is_end_of_block = not is_current_line_indented and is_previous_line_indented
         if is_end_of_block:
