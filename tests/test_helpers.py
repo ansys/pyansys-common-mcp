@@ -663,9 +663,9 @@ for n in range(1, 5):
 
 for n in range(1, 5):
     if n % 2 == 0:
-    
+
         continue
-        
+
     print(3*n)
 for n in range(1, 5):
     if n % 2 == 0:
