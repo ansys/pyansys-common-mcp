@@ -120,8 +120,8 @@ def _prepare_repl_code(code: str) -> str:
 
     * blank lines inside indented blocks are replaced by `#` so the block
     does not terminate prematurely
-    * an extra blank line is inserted at the end of indented blocks to
-    request the REPL to execute it
+    * an extra blank line is inserted at the end of the last indented block
+    to trigger the execution of that block
 
     Parameters
     ----------
@@ -138,40 +138,38 @@ def _prepare_repl_code(code: str) -> str:
         return code
 
     comment_pattern = re.compile(r"^\s*#")
-    indentation_pattern = re.compile(r"^([ \t]*)")
-    continuation_block_pattern = re.compile(r"^\s*(?:else|elif|except|finally)\b")
 
     prepared_repl_code: list[str] = []
-    current_indentation = ""
+    is_current_line_indented = False # Block of code always start without indentation
+                                     # (if not `IndentationError: unexpected indent`
+                                     # will be generated anyway)
     for line in lines:
         is_comment_line = comment_pattern.match(line)
         if is_comment_line:
             # leave comment lines as is
+            # do not consider them to decide if enter is required
             prepared_repl_code.append(line)
             continue
 
         if not line.strip():
-            # empty line, change to comment
+            # empty line, change to comment to prevent
+            # inadvertent execution
             prepared_repl_code.append(line + "#")
             continue
 
-        previous_indentation = current_indentation
+        is_previous_line_indented = is_current_line_indented
 
-        indentation_match = indentation_pattern.match(line)
-        if indentation_match is not None:
-            current_indentation = indentation_match.group(0)
-        else:
-            current_indentation = ""
+        is_current_line_indented = line.startswith((' ', '\t'))
 
-        is_end_of_block = len(previous_indentation) > len(current_indentation)
-        if is_end_of_block and not continuation_block_pattern.match(line):
-            # end of a block, insert return character if not continuation clause
+        is_end_of_block = not is_current_line_indented and is_previous_line_indented
+        if is_end_of_block:
+            # end of the block, insert return character to trigger the REPL evaluation
             prepared_repl_code.append("\n")
 
         prepared_repl_code.append(line)
 
-    if len(current_indentation) > 0:
-        # end last indented block
+    if is_current_line_indented:
+        # trigger the REPL evaluation if ending on an indented block
         prepared_repl_code.append("\n")
 
     return "\n".join(prepared_repl_code)

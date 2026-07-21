@@ -531,6 +531,29 @@ done"""
         finally:
             session.stop()
 
+    def test_ending_with_one_indented_code_block(self):
+        """Test running code with an indented block."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            code = """\
+for n in range(1, 5):
+    if n % 2 == 0:
+        continue
+    print(n)"""
+            result = session.execute(code)
+
+            assert result["success"], f"Execution failed: {result.get('error')}"
+
+            expected_result = """\
+1
+3"""
+            assert expected_result in result["stdout"]
+        finally:
+            session.stop()
+
     def test_with_nested_indented_code_blocks(self):
         """Test running code with multiple nested and indented blocks."""
         session = PersistentPythonSession()
@@ -613,6 +636,55 @@ for i in range(1,5):
             assert result["success"], f"Execution failed: {result.get('error')}"
 
             expected_result = "2"
+            assert expected_result in result["stdout"]
+        finally:
+            session.stop()
+
+    def test_repeated_indented_code_blocks(self):
+        """Test running code with an indented block."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            code = """\
+for n in range(1, 5):
+    if n % 2 == 0:
+        continue
+    print(n)
+for n in range(1, 5):
+    if n % 2 == 0:
+        if n % 2 == 0:
+            if n % 2 == 0:
+                if n % 2 == 0:
+                    continue
+    print(2*n)
+
+
+for n in range(1, 5):
+    if n % 2 == 0:
+    
+        continue
+        
+    print(3*n)
+for n in range(1, 5):
+    if n % 2 == 0:
+        continue
+    print(4*n)"""
+            
+            result = session.execute(code)
+
+            assert result["success"], f"Execution failed: {result.get('error')}"
+
+            expected_result = """\
+1
+3
+2
+6
+3
+9
+4
+12"""
             assert expected_result in result["stdout"]
         finally:
             session.stop()
