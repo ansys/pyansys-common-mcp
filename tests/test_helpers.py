@@ -544,3 +544,68 @@ print('done')
             assert "done" in result["stdout"]
         finally:
             session.stop()
+
+    def test_empty_reads_default_timeout(self):
+        """Test that the default timeout (~1.2s) for empty reads fires as expected."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            # Blocks output to stdout for longer than the timeout
+            code = """
+import time
+time.sleep(1.4)
+print('done')
+"""
+            result = session.execute(code)
+
+            # Check interrupted before printing 'done'
+            assert "done" not in result["stdout"]
+
+        finally:
+            session.stop()
+
+    def test_disable_empty_reads_default_timeout(self):
+        """Test that the default timeout (~1s) for empty reads can be disabled."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            # Blocks output to stdout
+            code = """
+import time
+time.sleep(1.4)
+print('done')
+"""
+            # max_consecutive_empty_reads=-1 turns off time-out
+            result = session.execute(code, max_consecutive_empty_reads=-1)
+
+            # Check not interrupted and both values printed
+            assert "done" in result["stdout"]
+
+        finally:
+            session.stop()
+
+    def test_custom_empty_reads_default_timeout(self):
+        """Test that a custom timeout for empty reads is applied."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            # Blocks output to stdout
+            code = """
+import time
+time.sleep(1)
+print('done')
+"""
+            # max_consecutive_empty_reads=2 sets the time-out to ~0.6s
+            result = session.execute(code, max_consecutive_empty_reads=2)
+
+            # Check interrupted before printing 'done'
+            assert "done" not in result["stdout"]
+
+        finally:
+            session.stop()
