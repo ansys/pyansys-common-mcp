@@ -25,13 +25,14 @@ from pyexample_mcp import app
 import pyexample_mcp.tools  # noqa: F401
 
 
-def main():
+def main(argv=None):
     """Run the PyExample MCP server."""
     # Setup logging
     setup_logging(level="INFO")
 
-    # Run the server (app instance already has tools registered)
-    app.run()
+    # Run the server using the base-class CLI handler.
+    # Supports --transport stdio|http, --http-host, --http-port, --cors-origins.
+    app.run_cli(argv)
 
     return 0
 

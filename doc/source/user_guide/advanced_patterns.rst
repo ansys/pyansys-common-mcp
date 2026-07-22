@@ -297,6 +297,103 @@ Manage user preferences
            return f"Preference '{key}' is not set."
        return value
 
+Configure the transport protocol
+================================
+
+By default, MCP servers communicate over stdio, which is the standard transport
+for local AI client integrations. The base class also supports HTTP transport,
+which is useful for remote clients, web applications, and CORS-enabled frontends.
+
+The :meth:`~ansys.common.mcp.server.PyAnsysBaseMCP.run_cli` method handles all transport
+configuration. Call it from your package's ``__main__.py`` instead of
+calling ``app.run()`` directly:
+
+.. code-block:: python
+
+   # src/myproduct_mcp/__main__.py
+   import sys
+   from ansys.common.mcp.logging_config import setup_logging
+   from myproduct_mcp import app
+   import myproduct_mcp.tools  # noqa: F401
+
+   def main(argv=None):
+       setup_logging(level="INFO")
+       app.run_cli(argv)  # transport, host, port, and CORS are handled here
+       return 0
+
+   if __name__ == "__main__":
+       sys.exit(main())
+
+Your users can then select the transport at startup without any additional code in your
+package:
+
+.. code-block:: bash
+
+   # stdio (default)
+   python -m myproduct_mcp
+
+   # HTTP on the default address (127.0.0.1:8080)
+   python -m myproduct_mcp --transport http
+
+   # HTTP with a custom host and port
+   python -m myproduct_mcp --transport http --http-host 0.0.0.0 --http-port 9000
+
+   # HTTP with CORS origins
+   python -m myproduct_mcp --transport http \\
+       --cors-origins "http://localhost:3000,https://myapp.com"
+
+.. note::
+
+   HTTP transport uses streamable HTTP (``/mcp`` endpoint). When using the HTTP
+   transport, start the server process first, then point your AI client at
+   ``http://<host>:<port>/mcp``.
+
+Add product-specific CLI arguments
+-----------------------------------
+
+For products that need their own CLI arguments (for example, a connection IP or port),
+override :meth:`~ansys.common.mcp.server.PyAnsysBaseMCP._add_cli_arguments` to inject
+them into the parser, and
+:meth:`~ansys.common.mcp.server.PyAnsysBaseMCP._configure_from_cli` to process them.
+The transport dispatch is unchanged — you never need to rewrite it.
+
+Add arguments to the parser:
+
+.. literalinclude:: ../../../examples/src/pyexample_mcp/server.py
+   :language: python
+   :pyobject: PyExampleMCP._add_cli_arguments
+
+Store the parsed values before the server starts:
+
+.. literalinclude:: ../../../examples/src/pyexample_mcp/server.py
+   :language: python
+   :pyobject: PyExampleMCP._configure_from_cli
+
+The resulting server now accepts both the standard transport arguments and the
+product-specific ones:
+
+.. code-block:: bash
+
+   python -m pyexample_mcp --ip 10.0.0.5 --port 50052 --connect-on-startup
+   python -m pyexample_mcp --transport http --http-port 9000 --ip 10.0.0.5
+
+Test CLI argument parsing
+-------------------------
+
+Because ``run_cli()`` accepts an optional ``argv`` list, you can test CLI argument
+parsing without starting a real server. Tests for transport and CORS:
+
+.. literalinclude:: ../../../tests/test_pyexample/test_main.py
+   :language: python
+   :pyobject: TestMainCliDispatch
+
+Tests for product-specific arguments:
+
+.. literalinclude:: ../../../tests/test_pyexample/test_main.py
+   :language: python
+   :pyobject: TestPyExampleCliHooks
+
+
 Expose tool sets
 ================
 
