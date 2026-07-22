@@ -384,6 +384,38 @@ print('hello')
         finally:
             session.stop()
 
+    def test_execute_with_error_no_primary_prompt(self):
+        """Test runtime error is properly reported without the primary prompt."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            # Execute code that raises an error
+            result = session.execute("print(1)\nprint(2)\nprint(3)\nif True print(i)")
+            assert not result["success"], "Error should be caught"
+            assert result["stderr"], "stderr should contain error info"
+            assert "error" in result["stderr"].lower() or "exception" in result["stderr"].lower()
+            assert ">>>" not in result["stderr"]
+        finally:
+            session.stop()
+
+    def test_execute_with_error_no_secondary_prompt(self):
+        """Test runtime error is properly reported without the secondary prompt."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            # Execute code that raises an error
+            result = session.execute("for i in range(1, 5):\n   if True print(i)")
+            assert not result["success"], "Error should be caught"
+            assert result["stderr"], "stderr should contain error info"
+            assert "error" in result["stderr"].lower() or "exception" in result["stderr"].lower()
+            assert "..." not in result["stderr"]
+        finally:
+            session.stop()
+
     def test_with_startup_code(self):
         """Test session with startup code that runs on initialization."""
         startup_code = "import math\nPI = 3.14159"
