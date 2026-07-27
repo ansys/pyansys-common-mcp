@@ -138,6 +138,7 @@ def _prepare_repl_code(code: str) -> str:
         return code
 
     comment_pattern = re.compile(r"^\s*#")
+    continuation_block_pattern = re.compile(r"^\s*(?:else|elif|except|finally)\b")
 
     prepared_repl_code: list[str] = []
 
@@ -164,10 +165,12 @@ def _prepare_repl_code(code: str) -> str:
 
         is_current_line_indented = line.startswith((" ", "\t"))
 
-        is_end_of_block = not is_current_line_indented and is_previous_line_indented
-        if is_end_of_block:
-            # end of the block, insert return character to trigger the REPL evaluation
-            prepared_repl_code.append("\n")
+        is_continuation = continuation_block_pattern.match(line)
+        if not is_continuation:
+            is_end_of_block = not is_current_line_indented and is_previous_line_indented
+            if is_end_of_block:
+                # end of the block, insert return character to trigger the REPL evaluation
+                prepared_repl_code.append("\n")
 
         prepared_repl_code.append(line)
 

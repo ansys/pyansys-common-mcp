@@ -689,6 +689,49 @@ for n in range(1, 5):
         finally:
             session.stop()
 
+    def test_indented_code_blocks_with_continuations(self):
+        """Test running code with indented blocks containing else|elif|except|finally."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            code = """\
+n = 5
+score = 85
+
+if n % 2 == 0:
+    print(f"{n} is even")
+else:
+    print(f"{n} is odd")
+try:
+    result = 10 / 0  
+except ZeroDivisionError:
+    print("Error: divide by zero!")
+finally:
+    print("finally")
+if score >= 90:
+    print("Grade: A")
+elif score >= 80:
+    print("Grade: B")
+elif score >= 70:
+    print("Grade: C")
+else:
+    print("Grade: F")"""
+
+            result = session.execute(code)
+
+            assert result["success"], f"Execution failed: {result.get('error')}"
+
+            expected_result = """\
+5 is odd
+Error: divide by zero!
+finally
+Grade: B"""
+            assert expected_result in result["stdout"]
+        finally:
+            session.stop()
+
     def test_metadata_persistence_across_executions(self):
         """Test that metadata persists across code executions."""
         session = PersistentPythonSession()
