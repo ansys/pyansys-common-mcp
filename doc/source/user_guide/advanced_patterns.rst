@@ -349,7 +349,7 @@ package:
    ``http://<host>:<port>/mcp``.
 
 Add product-specific CLI arguments
------------------------------------
+----------------------------------
 
 For products that need their own CLI arguments (for example, a connection IP or port),
 override :meth:`~ansys.common.mcp.server.PyAnsysBaseMCP._add_cli_arguments` to inject
