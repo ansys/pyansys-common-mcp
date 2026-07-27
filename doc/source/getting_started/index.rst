@@ -21,13 +21,13 @@ Here are the requirements for PyAnsys Common MCP:
 
 Requirements
 ~~~~~~~~~~~~
-- Python 3.10 or later (up to 3.14)
+- Python 3.12 or later (up to 3.14)
 - A PyAnsys library for your product (such as PyMAPDL or PyFluent)
 
 Install in user mode
 ~~~~~~~~~~~~~~~~~~~~
 
-The ``ansys.common.mcp`` package currently supports Python 3.10 through
+The ``ansys.common.mcp`` package currently supports Python 3.12 through
 Python 3.14 on Windows, Mac OS, and Linux.
 
 Install the latest package for use with this command:
