@@ -51,7 +51,7 @@ html_theme_options = {
 }
 
 if os.getenv("DOCUMENTATION_HAS_VERSION_SWITCHER"):
-    cname = os.getenv("DOCUMENTATION_CNAME", "cfx-mcp.docs.pyansys.com")
+    cname = os.getenv("DOCUMENTATION_CNAME", "common-mcp.docs.pyansys.com")
     html_theme_options["switcher"] = {
         "json_url": f"https://{cname}/versions.json",
         "version_match": switcher_version,
