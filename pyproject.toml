@@ -51,15 +51,15 @@ tests = [
     "fastmcp==3.4.4",
 ]
 doc = [
-    "Sphinx==8.2.3",
+    "Sphinx==9.1.0",
     "ansys-sphinx-theme[autoapi,changelog]==1.9.0",
     "build>= 0.10.0",
     "flit>=3.8.0",
     "inflect==7.5.0",
     "jupyter_sphinx==0.5.3",
-    "numpy==2.2.6",
+    "numpy==2.5.1",
     "numpydoc==1.10.0",
-    "pandas==2.3.3",
+    "pandas==3.0.3",
     "parse==1.22.1",
     "pypandoc==1.17",
     "pytest-sphinx==0.7.1",
