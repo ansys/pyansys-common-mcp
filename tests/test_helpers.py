@@ -545,67 +545,77 @@ print('done')
         finally:
             session.stop()
 
-    def test_empty_reads_default_timeout(self):
-        """Test that the default timeout (~1.2s) for empty reads fires as expected."""
+    def test_no_output_timeout_fires_by_default(self):
+        """Test that the default no_output_timeout (1.2s) interrupts code with no output."""
         session = PersistentPythonSession()
 
         try:
             session.start()
 
-            # Blocks output to stdout for longer than the timeout
+            # Sleeps well beyond the default 1.2s idle timeout without producing output
             code = """
 import time
-time.sleep(1.4)
+time.sleep(3)
 print('done')
 """
             result = session.execute(code)
 
-            # Check interrupted before printing 'done'
+            # Execution should be interrupted before 'done' is printed
             assert "done" not in result["stdout"]
 
         finally:
             session.stop()
 
-    def test_disable_empty_reads_default_timeout(self):
-        """Test that the default timeout (~1s) for empty reads can be disabled."""
+    def test_no_output_timeout_can_be_disabled(self):
+        """Test that setting no_output_timeout=None disables the idle check."""
         session = PersistentPythonSession()
 
         try:
             session.start()
 
-            # Blocks output to stdout
+            # Sleeps briefly, but longer than the default 1.2s idle timeout
             code = """
 import time
 time.sleep(1.4)
 print('done')
 """
-            # max_consecutive_empty_reads=-1 turns off time-out
-            result = session.execute(code, max_consecutive_empty_reads=-1)
+            # no_output_timeout=None disables the check; rely on the outer timeout instead
+            result = session.execute(code, no_output_timeout=None)
 
-            # Check not interrupted and both values printed
             assert "done" in result["stdout"]
 
         finally:
             session.stop()
 
-    def test_custom_empty_reads_default_timeout(self):
-        """Test that a custom timeout for empty reads is applied."""
+    def test_no_output_timeout_custom_value(self):
+        """Test that a custom no_output_timeout is respected."""
         session = PersistentPythonSession()
 
         try:
             session.start()
 
-            # Blocks output to stdout
+            # Sleeps longer than the custom timeout but shorter than the default
             code = """
 import time
 time.sleep(1)
 print('done')
 """
-            # max_consecutive_empty_reads=2 sets the time-out to ~0.6s
-            result = session.execute(code, max_consecutive_empty_reads=2)
+            # 0.5s idle timeout should fire before the 1s sleep finishes
+            result = session.execute(code, no_output_timeout=0.5)
 
-            # Check interrupted before printing 'done'
             assert "done" not in result["stdout"]
 
+        finally:
+            session.stop()
+
+    def test_no_output_timeout_invalid_values(self):
+        """Test that invalid no_output_timeout values raise ValueError."""
+        session = PersistentPythonSession()
+        session.start()
+
+        try:
+            for bad_value in (0, -1, float("nan"), float("-inf"), "5"):
+                with pytest.raises(ValueError, match="no_output_timeout"):
+                    session.execute("print('hi')", no_output_timeout=bad_value)
         finally:
             session.stop()

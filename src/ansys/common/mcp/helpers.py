@@ -252,7 +252,7 @@ class PersistentPythonSession:
             }
 
     def execute(
-        self, code: str, timeout: float = 30.0, max_consecutive_empty_reads: int = 5
+        self, code: str, timeout: float = 30.0, no_output_timeout: Optional[float] = 1.2
     ) -> dict[str, Any]:
         """Execute Python code in the persistent session.
 
@@ -262,12 +262,10 @@ class PersistentPythonSession:
             Python code to execute.
         timeout : float, default: 30.0
             Maximum execution time in seconds.
-        max_consecutive_empty_reads: int, default 5
-            Number of empty reads allowed before breaking out. Reads happen every ~0.2s, so
-            a value of 5 means allowing ~1.2s without any output written to stdout/stderr by
-            the code execution.
-            This prevents infinite loops if marker is never found.
-            Set to -1 to turn off this safety check.
+        no_output_timeout : float or None, default: 1.2
+            Maximum number of seconds to wait without receiving any output before
+            stopping collection. This prevents infinite loops if the completion
+            marker is never found. Set to ``None`` to disable this safety check.
 
         Returns
         -------
@@ -286,6 +284,15 @@ class PersistentPythonSession:
                 "stderr": "",
                 "error": "Session is not running. Call 'start()' first.",
             }
+
+        if no_output_timeout is not None and (
+            not isinstance(no_output_timeout, (int, float))
+            or no_output_timeout <= 0
+            or no_output_timeout != no_output_timeout  # NaN check
+        ):
+            raise ValueError(
+                f"no_output_timeout must be a positive number or None, got {no_output_timeout!r}."
+            )
 
         with self._execution_lock:
             try:
@@ -313,7 +320,7 @@ class PersistentPythonSession:
                 stderr_lines: list[str] = []
                 start_time = time.time()
                 marker_found = False
-                consecutive_empty_reads = 0
+                last_output_time = time.time()
 
                 while True:
                     elapsed = time.time() - start_time
@@ -358,25 +365,19 @@ class PersistentPythonSession:
                     if marker_found and not (error_line or output_line):
                         break
 
-                    # Safety: if we've had many consecutive empty reads, break
-                    # (This prevents infinite loops if marker is never found)
-                    if not (error_line or output_line):
-                        consecutive_empty_reads += 1
-                        if (
-                            max_consecutive_empty_reads > 0
-                            and consecutive_empty_reads > max_consecutive_empty_reads
-                        ):
-                            # for instance `max_consecutive_empty_reads=5` means
-                            # `(5+1) * (0.1s for stdout + 0.1s for stderr) = 1.2s` of no data
-                            if marker_found:
-                                break
-                            # If marker not found but no data, something went wrong
-                            logger.warning(
-                                "No data received for extended period. Stopping collection."
-                            )
+                    # Safety: if no output has been received for no_output_timeout seconds,
+                    # stop collection to prevent infinite loops if the marker is never found.
+                    if error_line or output_line:
+                        last_output_time = time.time()
+                    elif (
+                        no_output_timeout is not None
+                        and time.time() - last_output_time > no_output_timeout
+                    ):
+                        if marker_found:
                             break
-                    else:
-                        consecutive_empty_reads = 0
+                        # Marker not found but no data: something went wrong
+                        logger.warning("No data received for extended period. Stopping collection.")
+                        break
 
                 # After marker found, do one final drain of stderr to catch any remaining output
                 final_drain_start = time.time()
