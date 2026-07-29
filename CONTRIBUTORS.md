@@ -11,3 +11,4 @@
 * [Kathy Pippert](https://github.com/PipKat)
 * [Maxime Rey](https://github.com/MaxJPRey)
 * [Roberto Pastor Muela](https://github.com/RobPasMue)
+* [Sylvain](https://github.com/duposyl)

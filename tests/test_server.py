@@ -16,6 +16,7 @@
 
 """Unit tests for server module."""
 
+import argparse
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -517,6 +518,215 @@ class TestPyAnsysBaseMCPNeedPython:
                     async with mcp_false.product_lifespan(mock_server):
                         pass
                     assert mcp_false.product_startup_called
+
+
+class TestValidatePort:
+    """Tests for the _validate_port helper."""
+
+    def test_valid_port(self):
+        """Test that a valid port returns an integer."""
+        from ansys.common.mcp.server import _validate_port
+
+        assert _validate_port("8080") == 8080
+        assert _validate_port("1") == 1
+        assert _validate_port("65535") == 65535
+
+    def test_port_zero_raises(self):
+        """Test that port 0 raises ArgumentTypeError."""
+        import argparse
+
+        from ansys.common.mcp.server import _validate_port
+
+        with pytest.raises(argparse.ArgumentTypeError):
+            _validate_port("0")
+
+    def test_port_too_large_raises(self):
+        """Test that a port above 65535 raises ArgumentTypeError."""
+        import argparse
+
+        from ansys.common.mcp.server import _validate_port
+
+        with pytest.raises(argparse.ArgumentTypeError):
+            _validate_port("65536")
+
+    def test_non_integer_raises(self):
+        """Test that a non-integer value raises ArgumentTypeError."""
+        import argparse
+
+        from ansys.common.mcp.server import _validate_port
+
+        with pytest.raises(argparse.ArgumentTypeError):
+            _validate_port("not-a-port")
+
+
+class TestRunCli:
+    """Tests for PyAnsysBaseMCP.run_cli()."""
+
+    def test_run_cli_stdio_default(self):
+        """Test that run_cli dispatches to run_async for stdio (default)."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            mcp = MockMCP()
+            with patch.object(mcp, "run_async", return_value=None) as mock_run:
+                with patch("ansys.common.mcp.server.asyncio.run") as mock_asyncio:
+                    mcp.run_cli([])
+
+                    mock_asyncio.assert_called_once()
+                    mock_run.assert_called_once()
+
+    def test_run_cli_explicit_stdio(self):
+        """Test that --transport stdio dispatches to run_async."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            mcp = MockMCP()
+            with patch.object(mcp, "run_async", return_value=None) as mock_run:
+                with patch("ansys.common.mcp.server.asyncio.run"):
+                    mcp.run_cli(["--transport", "stdio"])
+
+                    mock_run.assert_called_once()
+
+    def test_run_cli_http_dispatches_run_http_async(self):
+        """Test that --transport http dispatches to run_http_async without middleware."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            mcp = MockMCP()
+            with patch.object(mcp, "run_http_async", return_value=None) as mock_http:
+                with patch("ansys.common.mcp.server.asyncio.run"):
+                    mcp.run_cli(["--transport", "http"])
+
+                    mock_http.assert_called_once_with(
+                        transport="http",
+                        host="127.0.0.1",
+                        port=8080,
+                        middleware=None,
+                    )
+
+    def test_run_cli_http_custom_host_and_port(self):
+        """Test that custom --http-host and --http-port are forwarded."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            mcp = MockMCP()
+            with patch.object(mcp, "run_http_async", return_value=None) as mock_http:
+                with patch("ansys.common.mcp.server.asyncio.run"):
+                    mcp.run_cli(
+                        ["--transport", "http", "--http-host", "0.0.0.0", "--http-port", "9000"]
+                    )
+
+                    mock_http.assert_called_once_with(
+                        transport="http",
+                        host="0.0.0.0",
+                        port=9000,
+                        middleware=None,
+                    )
+
+    def test_run_cli_http_cors_origins_creates_middleware(self):
+        """Test that --cors-origins builds a CORSMiddleware and passes it via middleware."""
+        from starlette.middleware.cors import CORSMiddleware
+
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            mcp = MockMCP()
+            with patch.object(mcp, "run_http_async", return_value=None) as mock_http:
+                with patch("ansys.common.mcp.server.asyncio.run"):
+                    mcp.run_cli(
+                        [
+                            "--transport",
+                            "http",
+                            "--cors-origins",
+                            "http://localhost:3000,https://myapp.com",
+                        ]
+                    )
+
+                    mock_http.assert_called_once()
+                    call_kwargs = mock_http.call_args.kwargs
+                    assert call_kwargs["transport"] == "http"
+                    assert call_kwargs["host"] == "127.0.0.1"
+                    assert call_kwargs["port"] == 8080
+                    mw_list = call_kwargs["middleware"]
+                    assert len(mw_list) == 1
+                    assert mw_list[0].cls is CORSMiddleware
+                    assert mw_list[0].kwargs["allow_origins"] == [
+                        "http://localhost:3000",
+                        "https://myapp.com",
+                    ]
+
+    def test_run_cli_invalid_port_exits(self):
+        """Test that an out-of-range port causes SystemExit."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            mcp = MockMCP()
+            with pytest.raises(SystemExit):
+                mcp.run_cli(["--transport", "http", "--http-port", "99999"])
+
+    def test_run_cli_invalid_transport_exits(self):
+        """Test that an unknown transport value causes SystemExit."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            mcp = MockMCP()
+            with pytest.raises(SystemExit):
+                mcp.run_cli(["--transport", "grpc"])
+
+    def test_add_cli_arguments_is_called(self):
+        """Test that _add_cli_arguments is invoked with the parser."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            mcp = MockMCP()
+            with patch.object(mcp, "_add_cli_arguments") as mock_add:
+                with patch.object(mcp, "run_async", return_value=None):
+                    with patch("ansys.common.mcp.server.asyncio.run"):
+                        mcp.run_cli([])
+                mock_add.assert_called_once()
+                assert isinstance(mock_add.call_args[0][0], argparse.ArgumentParser)
+
+    def test_configure_from_cli_is_called_with_namespace(self):
+        """Test that _configure_from_cli is invoked with the parsed namespace."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            mcp = MockMCP()
+            with patch.object(mcp, "_configure_from_cli") as mock_cfg:
+                with patch.object(mcp, "run_async", return_value=None):
+                    with patch("ansys.common.mcp.server.asyncio.run"):
+                        mcp.run_cli(["--transport", "stdio"])
+                mock_cfg.assert_called_once()
+                ns = mock_cfg.call_args[0][0]
+                assert isinstance(ns, argparse.Namespace)
+                assert ns.transport == "stdio"
+
+    def test_product_specific_argument_injected_via_hook(self):
+        """Test end-to-end: a subclass adds --my-flag and reads it in _configure_from_cli."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+
+            class ExtendedMCP(MockMCP):
+                captured_args = None
+
+                def _add_cli_arguments(self, parser):
+                    parser.add_argument("--my-flag", dest="my_flag", default="default_value")
+
+                def _configure_from_cli(self, args):
+                    ExtendedMCP.captured_args = args
+
+            mcp = ExtendedMCP()
+            with patch.object(mcp, "run_async", return_value=None):
+                with patch("ansys.common.mcp.server.asyncio.run"):
+                    mcp.run_cli(["--my-flag", "custom_value"])
+
+            assert ExtendedMCP.captured_args is not None
+            assert ExtendedMCP.captured_args.my_flag == "custom_value"
+
+    def test_default_add_cli_arguments_is_noop(self):
+        """Test that the default _add_cli_arguments does nothing."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            mcp = MockMCP()
+            parser = argparse.ArgumentParser()
+            before = set(vars(parser.parse_args([])).keys())
+            mcp._add_cli_arguments(parser)
+            after = set(vars(parser.parse_args([])).keys())
+            assert before == after
+
+    def test_default_configure_from_cli_is_noop(self):
+        """Test that the default _configure_from_cli does nothing."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            mcp = MockMCP()
+            ns = argparse.Namespace(transport="stdio")
+            # Should not raise and should not modify the server
+            mcp._configure_from_cli(ns)
+
+    def test_cli_config_initialized_as_empty_dict(self):
+        """Test that _cli_config is always initialized as an empty dict."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            mcp = MockMCP()
+            assert mcp._cli_config == {}
 
     @pytest.mark.asyncio
     async def test_lifespan_always_calls_product_cleanup_regardless_of_need_python(self):

@@ -7,7 +7,7 @@ name = "pyexample-mcp"
 version = "0.1.0"
 description = "MCP server for PyExample"
 readme = "README.md"
-requires-python = ">=3.10,<4"
+requires-python = ">=3.12,<4"
 license = { file = "LICENSE" }
 
 dependencies = [
