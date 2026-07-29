@@ -9,6 +9,131 @@ This document contains the release notes for the PyAnsys Common MCP project.
 
 .. towncrier release notes start
 
+`0.3.3 <https://github.com/ansys/pyansys-common-mcp/releases/tag/v0.3.3>`_ - July 29, 2026
+==========================================================================================
+
+.. tab-set::
+
+
+  .. tab-item:: Added
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Drop support to Python 3.10 and 3.11
+          - `#128 <https://github.com/ansys/pyansys-common-mcp/pull/128>`_
+
+        * - Add configurable HTTP transport via CLI
+          - `#130 <https://github.com/ansys/pyansys-common-mcp/pull/130>`_
+
+
+  .. tab-item:: Fixed
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Prevent Python REPL prompts from cluttering stderr
+          - `#125 <https://github.com/ansys/pyansys-common-mcp/pull/125>`_
+
+        * - Dependencies
+          - `#142 <https://github.com/ansys/pyansys-common-mcp/pull/142>`_
+
+
+  .. tab-item:: Documentation
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Update \`\`CONTRIBUTORS.md\`\` with the latest contributors
+          - `#141 <https://github.com/ansys/pyansys-common-mcp/pull/141>`_
+
+
+  .. tab-item:: Dependencies
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Bump fastmcp from 3.3.1 to 3.4.2
+          - `#105 <https://github.com/ansys/pyansys-common-mcp/pull/105>`_
+
+        * - Bump ansys-sphinx-theme from 1.8.2 to 1.9.0
+          - `#106 <https://github.com/ansys/pyansys-common-mcp/pull/106>`_
+
+        * - Bump actions/checkout from 6.0.2 to 7.0.0
+          - `#109 <https://github.com/ansys/pyansys-common-mcp/pull/109>`_
+
+        * - Bump mcp from 1.27.2 to 1.28.0
+          - `#110 <https://github.com/ansys/pyansys-common-mcp/pull/110>`_
+
+        * - Bump pytest from 9.0.3 to 9.1.1
+          - `#111 <https://github.com/ansys/pyansys-common-mcp/pull/111>`_
+
+        * - Bump mcp from 1.28.0 to 1.28.1
+          - `#114 <https://github.com/ansys/pyansys-common-mcp/pull/114>`_
+
+        * - Bump ansys/actions/doc-deploy-stable from 10.3.2 to 10.3.4
+          - `#116 <https://github.com/ansys/pyansys-common-mcp/pull/116>`_
+
+        * - Bump ansys/actions/release-github from 10.3.2 to 10.3.3
+          - `#117 <https://github.com/ansys/pyansys-common-mcp/pull/117>`_
+
+        * - Bump ansys/actions/doc-deploy-pr from 10.3.2 to 10.3.4
+          - `#118 <https://github.com/ansys/pyansys-common-mcp/pull/118>`_
+
+        * - Bump ansys/actions/doc-changelog from 10.3.2 to 10.3.4
+          - `#119 <https://github.com/ansys/pyansys-common-mcp/pull/119>`_
+
+        * - Bump ansys/actions/tests-pytest from 10.3.2 to 10.3.4
+          - `#121 <https://github.com/ansys/pyansys-common-mcp/pull/121>`_
+
+        * - Bump regex from 2026.5.9 to 2026.7.10
+          - `#122 <https://github.com/ansys/pyansys-common-mcp/pull/122>`_
+
+        * - Bump fastmcp from 3.4.2 to 3.4.4
+          - `#123 <https://github.com/ansys/pyansys-common-mcp/pull/123>`_
+
+        * - Bump ansys/actions/doc-deploy-dev from 10.3.2 to 10.3.4
+          - `#131 <https://github.com/ansys/pyansys-common-mcp/pull/131>`_
+
+        * - Bump ansys/actions/build-library from 10.3.2 to 10.3.5
+          - `#132 <https://github.com/ansys/pyansys-common-mcp/pull/132>`_
+
+        * - Bump ansys/actions/doc-build from 10.3.2 to 10.3.5
+          - `#133 <https://github.com/ansys/pyansys-common-mcp/pull/133>`_
+
+        * - Bump sphinx-autobuild from 2024.10.3 to 2025.8.25
+          - `#134 <https://github.com/ansys/pyansys-common-mcp/pull/134>`_
+
+        * - Bump ansys/actions/release-github from 10.3.3 to 10.3.5
+          - `#135 <https://github.com/ansys/pyansys-common-mcp/pull/135>`_
+
+        * - Bump sphinx from 8.2.3 to 9.1.0
+          - `#136 <https://github.com/ansys/pyansys-common-mcp/pull/136>`_
+
+        * - Bump actions/labeler from 6.1.0 to 6.2.0
+          - `#137 <https://github.com/ansys/pyansys-common-mcp/pull/137>`_
+
+        * - Bump pandas from 2.3.3 to 3.0.3
+          - `#138 <https://github.com/ansys/pyansys-common-mcp/pull/138>`_
+
+        * - Bump sphinx-autodoc-typehints from 3.2.0 to 3.13.0
+          - `#140 <https://github.com/ansys/pyansys-common-mcp/pull/140>`_
+
+
+  .. tab-item:: Maintenance
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Update CHANGELOG for v0.3.2
+          - `#108 <https://github.com/ansys/pyansys-common-mcp/pull/108>`_
+
+
 `0.3.2 <https://github.com/ansys/pyansys-common-mcp/releases/tag/v0.3.2>`_ - June 24, 2026
 ==========================================================================================
 
