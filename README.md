@@ -1,7 +1,7 @@
 # PyAnsys Common MCP
 
 [![PyAnsys](https://img.shields.io/badge/Py-Ansys-ffc107.svg?logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAABDklEQVQ4jWNgoDfg5+OQgMJ/0AqCqXGQMEBAwBEKQj5gGDjQsA80UeCDscxrD4YhGsgABEELnC5zAwAu6ADCKQDAQzNBFwAAVdgFEAnfDiQAATyIBaAFgCbkAI5DQwAVGAYkAMA4gHgg2AC+AAgQIABggagAqyAD4AF0MaB8gCbgoEAL0MEYRz4WxpMdWFzQBYKhK8DjEYH9KDgAw9ACAAgwFCgC2AMJvgAAJv+LQQJwJ8AAKQEoAAxr7W4AG/wGqAB4AACkR7cEdcEBQOPjIvAEtRDoAbYLANQAZGsBEAFeBwCsAY0HgGCAAEQTaDj7xQAABItJ+S3DsQAAAABJRU5ErkJggg==)](https://docs.pyansys.com/)
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
+[![Python](https://img.shields.io/pypi/pyversions/ansys-common-mcp?logo=pypi)](https://pypi.org/project/ansys-common-mcp)
 [![Apache](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 PyAnsys Common MCP provides the infrastructure for building [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers for PyAnsys libraries.
@@ -20,7 +20,7 @@ This package provides the foundation for creating MCP servers that enable AI ass
 
 ### For users
 
-The ``ansys.common.mcp`` package currently supports Python 3.10 through
+The ``ansys.common.mcp`` package currently supports Python 3.12 through
 Python 3.14 on Windows, Mac OS, and Linux.
 
 Install the latest package for use with this command:
