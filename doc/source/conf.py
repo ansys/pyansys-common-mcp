@@ -45,14 +45,17 @@ html_theme_options = {
             "icon": "fa fa-comment fa-fw",
         },
     ],
-    # "switcher": {
-    #     "json_url": f"https://{cname}/versions.json",
-    #     "version_match": switcher_version,
-    # },
     "ansys_sphinx_theme_autoapi": {
         "project": project,
     },
 }
+
+if os.getenv("DOCUMENTATION_HAS_VERSION_SWITCHER"):
+    cname = os.getenv("DOCUMENTATION_CNAME", "common-mcp.docs.pyansys.com")
+    html_theme_options["switcher"] = {
+        "json_url": f"https://{cname}/versions.json",
+        "version_match": switcher_version,
+    }
 
 html_context = {
     "display_github": True,  # Integrate GitHub

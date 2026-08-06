@@ -1,3 +1,19 @@
+# Copyright (C) 2025 - 2026 ANSYS, Inc. and/or its affiliates.
+# SPDX-License-Identifier: Apache-2.0
+#
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Tools for PyExample MCP server."""
 
 import json
@@ -10,6 +26,33 @@ from ansys.common.mcp.tools import create_custom_plot, execute_python_code
 from pyexample_mcp import app
 
 logger = get_logger(__name__)
+
+
+@app.resource("toolsets://definition")
+def list_tool_sets() -> list[dict]:
+    """Toolset definitions."""
+    return [
+        {
+            "name": "structures",
+            "description": "Tools for creating and running structural models",
+            "skill": (
+                "Use these tools to set up and solve structural simulations. "
+                "Start with create_model to define the model, then use "
+                "run_simulation to execute the analysis."
+            ),
+            "tools": ["create_model", "run_simulation"],
+        },
+        {
+            "name": "post_processing",
+            "description": "Tools for processing and exporting simulation results",
+            "skill": (
+                "Use these tools to inspect results and run custom analyses after a simulation. "
+                "Use get_command_history to review past commands and execute_python_code "
+                "for custom post-processing scripts."
+            ),
+            "tools": ["get_command_history", "execute_python_code"],
+        },
+    ]
 
 
 # Define tools for interacting with PyExample instance
@@ -45,7 +88,7 @@ def execute_command(ctx: Context, command: str) -> str:
         return f"Error: {e}"
 
 
-@app.tool()
+@app.tool(tags={"structures"})
 def create_model(
     ctx: Context,
     name: str,
@@ -88,7 +131,7 @@ def create_model(
     return f"Model '{name}' created successfully\n{model}"
 
 
-@app.tool()
+@app.tool(tags={"structures"})
 def run_simulation(
     ctx: Context, model_name: Optional[str] = None, save_results: bool = True
 ) -> str:
@@ -134,7 +177,7 @@ def run_simulation(
     return f"Simulation completed for '{target_model}'\n{result}"
 
 
-@app.tool()
+@app.tool(tags={"post_processing"})
 def get_command_history(ctx: Context, format: str = "list") -> str:
     """Retrieve command execution history.
 
@@ -167,7 +210,7 @@ def get_command_history(ctx: Context, format: str = "list") -> str:
         return "\n".join(app_context.command_history)
 
 
-@app.tool()
+@app.tool(tags={"post_processing"})
 async def run_python_code(ctx: Context, code: str) -> str:
     """Execute Python code in the persistent session.
 

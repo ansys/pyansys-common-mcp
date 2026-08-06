@@ -91,6 +91,32 @@ Define the entry point
 .. literalinclude:: ../../../examples/src/pyexample_mcp/__main__.py
    :language: python
 
+The entry point delegates transport selection entirely to
+:meth:`~ansys.common.mcp.server.PyAnsysBaseMCP.run_cli`, which is provided by the base
+class. You do not need to implement argument parsing or transport dispatch yourself.
+
+``run_cli()`` accepts the following command-line arguments:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 15 60
+
+   * - Argument
+     - Default
+     - Description
+   * - ``--transport {stdio,http}``
+     - ``stdio``
+     - Transport protocol to use.
+   * - ``--http-host HOST``
+     - ``127.0.0.1``
+     - Host address when using HTTP transport.
+   * - ``--http-port PORT``
+     - ``8080``
+     - Port number when using HTTP transport (1–65535).
+   * - ``--cors-origins ORIGINS``
+     - *(none)*
+     - Comma-separated list of allowed CORS origins for HTTP transport.
+
 
 Configure the package
 ---------------------
@@ -111,27 +137,70 @@ Install the package in a virtual environment using pip:
    pip install .
 
 
-Then, start the server using the entry point:
+Start the server with the default stdio transport:
 
 .. code-block:: bash
 
    python -m pyexample_mcp
 
 
-Another option is to configure the server in VS Code for easier development and debugging. Create a file
-``.vscode/mcp.json`` with the following content:
+Start the server with HTTP transport on the default host and port (``127.0.0.1:8080``):
+
+.. code-block:: bash
+
+   python -m pyexample_mcp --transport http
+
+
+Customize the host, port, and allowed CORS origins:
+
+.. code-block:: bash
+
+   python -m pyexample_mcp --transport http \
+       --http-host 0.0.0.0 \
+       --http-port 9000 \
+       --cors-origins "http://localhost:3000,https://myapp.com"
+
+
+VS Code configuration
+~~~~~~~~~~~~~~~~~~~~~
+
+For easier development and debugging, configure the server in VS Code by creating
+a ``.vscode/mcp.json`` file.
+
+Stdio transport (default):
 
 .. code-block:: json
 
    {
-	   "servers": {
-		   "pyexample-mcp": {
-			   "type": "stdio",
-			   "command": ".\\.venv\\Scripts\\python.exe",
-			   "args": ["-m", "pyexample_mcp"]
-	       }
-	   }
+       "servers": {
+           "pyexample-mcp": {
+               "type": "stdio",
+               "command": ".\\.venv\\Scripts\\python.exe",
+               "args": ["-m", "pyexample_mcp"]
+           }
+       }
    }
 
 
-The server will start and communicate via stdio, ready to accept MCP requests from AI clients.
+HTTP transport:
+
+.. code-block:: json
+
+   {
+       "servers": {
+           "pyexample-mcp": {
+               "type": "http",
+               "url": "http://127.0.0.1:8080/mcp"
+           }
+       }
+   }
+
+When using HTTP transport, start the server process separately before connecting VS Code:
+
+.. code-block:: bash
+
+   python -m pyexample_mcp --transport http
+
+
+The server will start and communicate via the selected transport, ready to accept MCP requests
+from AI clients.
