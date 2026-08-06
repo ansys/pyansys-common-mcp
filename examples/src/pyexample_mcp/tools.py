@@ -17,9 +17,10 @@
 """Tools for PyExample MCP server."""
 
 import json
-from typing import Optional
+from typing import Optional, Union
 
 from fastmcp.server import Context
+from mcp.types import ImageContent, TextContent
 
 from ansys.common.mcp.logging_config import get_logger
 from ansys.common.mcp.tools import create_custom_plot, execute_python_code
@@ -227,11 +228,11 @@ async def run_python_code(ctx: Context, code: str) -> str:
         Execution output
 
     """
-    await execute_python_code(ctx, code)
+    return await execute_python_code(ctx, code)
 
 
 @app.tool()
-def custom_plot(ctx: Context, plot_code: str) -> str:
+def custom_plot(ctx: Context, plot_code: str) -> Union[list[Union[TextContent, ImageContent]], str]:
     """Custom plotting tool that generates a plot based on provided Python code.
 
     This tool handles proper execution of the plotting code and returns a plot object that can
