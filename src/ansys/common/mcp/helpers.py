@@ -31,6 +31,9 @@ from ansys.common.mcp.logging_config import get_logger
 
 logger = get_logger(__name__)
 
+_COMMENT_PATTERN = re.compile(r"^\s*#")
+_CONTINUATION_BLOCK_PATTERN = re.compile(r"^\s*(?:else|elif|except|finally)\b")
+
 
 def _sanitize_output(text: str) -> str:
     """Sanitize the output text to handle encoding issues.
@@ -137,9 +140,6 @@ def _prepare_repl_code(code: str) -> str:
     if not lines:
         return code
 
-    comment_pattern = re.compile(r"^\s*#")
-    continuation_block_pattern = re.compile(r"^\s*(?:else|elif|except|finally)\b")
-
     prepared_repl_code: list[str] = []
 
     # Block of code always start without indentation
@@ -148,7 +148,7 @@ def _prepare_repl_code(code: str) -> str:
     is_current_line_indented = False
 
     for line in lines:
-        is_comment_line = comment_pattern.match(line)
+        is_comment_line = _COMMENT_PATTERN.match(line)
         if is_comment_line:
             # leave comment lines as is
             # do not consider them to decide if enter is required
@@ -165,18 +165,18 @@ def _prepare_repl_code(code: str) -> str:
 
         is_current_line_indented = line.startswith((" ", "\t"))
 
-        is_continuation = continuation_block_pattern.match(line)
+        is_continuation = _CONTINUATION_BLOCK_PATTERN.match(line)
         if not is_continuation:
             is_end_of_block = not is_current_line_indented and is_previous_line_indented
             if is_end_of_block:
-                # end of the block, insert return character to trigger the REPL evaluation
-                prepared_repl_code.append("\n")
+                # end of the block, insert blank line to trigger the REPL evaluation
+                prepared_repl_code.append("")
 
         prepared_repl_code.append(line)
 
     if is_current_line_indented:
         # trigger the REPL evaluation if ending on an indented block
-        prepared_repl_code.append("\n")
+        prepared_repl_code.append("")
 
     return "\n".join(prepared_repl_code)
 
