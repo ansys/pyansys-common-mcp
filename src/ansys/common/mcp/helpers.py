@@ -18,6 +18,7 @@
 
 from pathlib import Path
 import queue
+import re
 
 # Subprocess is needed for managing the persistent Python session
 import subprocess  # nosec B404
@@ -29,6 +30,9 @@ from typing import Any, Optional
 from ansys.common.mcp.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+_COMMENT_PATTERN = re.compile(r"^\s*#")
+_CONTINUATION_BLOCK_PATTERN = re.compile(r"^\s*(?:else|elif|except|finally)\b")
 
 
 def _sanitize_output(text: str) -> str:
@@ -103,6 +107,78 @@ def _sanitize_output(text: str) -> str:
         text = text.encode("ascii", errors="replace").decode("ascii")
 
     return text
+
+
+def _prepare_repl_code(code: str) -> str:
+    """Prepare a snippet for running in the interactive REPL.
+
+    The persistent session uses an interactive Python interpreter to execute
+    code, sending the text to the Python interpreter's `stdin`. The REPL
+    obeys these rules:
+
+    * a blank line inside an indented block terminates it early
+    * an indented block is only executed once a blank line is encountered
+
+    Therefore the text needs to be prepared to correctly drive the REPL:
+
+    * blank lines inside indented blocks are replaced by `#` so the block
+    does not terminate prematurely
+    * an extra blank line is inserted at the end of the last indented block
+    to trigger the execution of that block
+
+    Parameters
+    ----------
+    code : str
+        Python source to send to the interactive session.
+
+    Returns
+    -------
+    str
+        The prepared source code.
+    """
+    lines = code.splitlines()
+    if not lines:
+        return code
+
+    prepared_repl_code: list[str] = []
+
+    # Block of code always start without indentation
+    # (if not `IndentationError: unexpected indent`
+    # will be generated anyway)
+    is_current_line_indented = False
+
+    for line in lines:
+        is_comment_line = _COMMENT_PATTERN.match(line)
+        if is_comment_line:
+            # leave comment lines as is
+            # do not consider them to decide if enter is required
+            prepared_repl_code.append(line)
+            continue
+
+        if not line.strip():
+            # empty line, change to comment to prevent
+            # inadvertent execution
+            prepared_repl_code.append(line + "#")
+            continue
+
+        is_previous_line_indented = is_current_line_indented
+
+        is_current_line_indented = line.startswith((" ", "\t"))
+
+        is_continuation = _CONTINUATION_BLOCK_PATTERN.match(line)
+        if not is_continuation:
+            is_end_of_block = not is_current_line_indented and is_previous_line_indented
+            if is_end_of_block:
+                # end of the block, insert blank line to trigger the REPL evaluation
+                prepared_repl_code.append("")
+
+        prepared_repl_code.append(line)
+
+    if is_current_line_indented:
+        # trigger the REPL evaluation if ending on an indented block
+        prepared_repl_code.append("")
+
+    return "\n".join(prepared_repl_code)
 
 
 class PersistentPythonSession:
@@ -299,10 +375,12 @@ class PersistentPythonSession:
                 # Clear any pending output
                 self._drain_queues(timeout=0.1)
 
+                prepared_repl_code = _prepare_repl_code(code)
+
                 # Send code to Python process
                 # Use a unique marker to detect when execution is complete
                 marker = "___EXECUTION_COMPLETE___"
-                code_with_marker = f"{code}\nprint('{marker}')\n"
+                code_with_marker = f"{prepared_repl_code}\nprint('{marker}')\n"
 
                 logger.debug(f"Executing code: {code[:100]}...")
                 if self.process.stdin is None:
