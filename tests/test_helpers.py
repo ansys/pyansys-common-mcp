@@ -22,7 +22,81 @@ import tempfile
 
 import pytest
 
-from ansys.common.mcp.helpers import PersistentPythonSession
+from ansys.common.mcp.helpers import PersistentPythonSession, _prepare_repl_code
+
+# ============================================================================
+# _prepare_repl_code Unit Tests
+# ============================================================================
+
+
+class TestPrepareReplCode:
+    """Unit tests for the _prepare_repl_code pure function."""
+
+    def test_empty_code_returned_unchanged(self):
+        assert _prepare_repl_code("") == ""
+
+    def test_flat_code_returned_unchanged(self):
+        code = "x = 1\nprint(x)"
+        assert _prepare_repl_code(code) == code
+
+    def test_blank_line_inside_block_replaced_with_comment(self):
+        code = "for i in range(5):\n\n    print(i)"
+        result = _prepare_repl_code(code)
+        assert "\n\n" not in result
+        assert "#" in result
+
+    def test_blank_line_with_spaces_inside_block_replaced(self):
+        code = "for i in range(5):\n   \n    print(i)"
+        result = _prepare_repl_code(code)
+        lines = result.splitlines()
+        assert any(line.strip() == "#" for line in lines)
+
+    def test_blank_line_inserted_after_block(self):
+        code = "for i in range(5):\n    print(i)\nprint('done')"
+        result = _prepare_repl_code(code)
+        lines = result.splitlines()
+        # A blank line must appear between the end of the block and print('done')
+        idx = lines.index("print('done')")
+        assert lines[idx - 1] == ""
+
+    def test_trailing_blank_line_inserted_when_ending_on_indented_block(self):
+        code = "for i in range(5):\n    print(i)"
+        result = _prepare_repl_code(code)
+        assert result.endswith("\n")
+
+    def test_no_trailing_blank_line_when_ending_on_flat_code(self):
+        code = "for i in range(5):\n    print(i)\nprint('done')"
+        result = _prepare_repl_code(code)
+        assert not result.endswith("\n\n")
+
+    def test_continuation_keywords_do_not_trigger_extra_blank_line(self):
+        code = "if x:\n    pass\nelse:\n    pass"
+        result = _prepare_repl_code(code)
+        lines = result.splitlines()
+        # No blank line should appear before 'else'
+        idx = lines.index("else:")
+        assert lines[idx - 1] != ""
+
+    def test_nested_blocks_handled(self):
+        code = "for i in range(5):\n    if i > 2:\n        print(i)\nprint('done')"
+        result = _prepare_repl_code(code)
+        assert "print('done')" in result
+        # Blank line must appear before 'print('done')'
+        lines = result.splitlines()
+        idx = lines.index("print('done')")
+        assert lines[idx - 1] == ""
+
+    def test_comment_lines_preserved_as_is(self):
+        code = "# a comment\nx = 1"
+        result = _prepare_repl_code(code)
+        assert result.startswith("# a comment")
+
+    def test_only_single_blank_line_inserted_not_double(self):
+        """append('') joined with '\\n' must produce exactly one blank line, not two."""
+        code = "for i in range(5):\n    print(i)\nprint('done')"
+        result = _prepare_repl_code(code)
+        assert "\n\n\n" not in result
+
 
 # ============================================================================
 # PersistentPythonSession Unit Tests
@@ -286,6 +360,20 @@ class TestPersistentPythonSessionIntegration:
         assert result["success"], f"Failed to stop: {result.get('error')}"
         assert not session.is_running()
 
+    def test_execute_empty_code(self):
+        """Test executing an empty Python code snippet in session."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            # Execute simple assignment
+            result = session.execute("")
+            assert result["success"], f"Execution failed: {result.get('error')}"
+            assert isinstance(result["stdout"], str)
+        finally:
+            session.stop()
+
     def test_execute_simple_code(self):
         """Test executing simple Python code in session."""
         session = PersistentPythonSession()
@@ -488,6 +576,233 @@ print('hello')
                 result = session.execute(f"print({i})")
                 assert result["success"], f"Execution {i} failed: {result.get('error')}"
                 assert str(i) in result["stdout"]
+        finally:
+            session.stop()
+
+    def test_with_one_indented_code_block(self):
+        """Test running code with an indented block."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            code = """\
+for i in range(1,5):
+    print(i)
+print('done')
+"""
+            result = session.execute(code)
+
+            assert result["success"], f"Execution failed: {result.get('error')}"
+
+            expected_result = """\
+1
+2
+3
+4
+done"""
+            assert expected_result in result["stdout"]
+        finally:
+            session.stop()
+
+    def test_ending_with_one_indented_code_block(self):
+        """Test running code with an indented block."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            code = """\
+for n in range(1, 5):
+    if n % 2 == 0:
+        continue
+    print(n)"""
+            result = session.execute(code)
+
+            assert result["success"], f"Execution failed: {result.get('error')}"
+
+            expected_result = """\
+1
+3"""
+            assert expected_result in result["stdout"]
+        finally:
+            session.stop()
+
+    def test_with_nested_indented_code_blocks(self):
+        """Test running code with multiple nested and indented blocks."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            code = """\
+for i in range(1,5):
+    if i > 3:
+        print(i)
+    else:
+        for j in range(1, i):
+            print(j)
+print('done')
+"""
+            result = session.execute(code)
+
+            assert result["success"], f"Execution failed: {result.get('error')}"
+
+            expected_result = """\
+1
+1
+2
+4
+done"""
+            assert expected_result in result["stdout"]
+        finally:
+            session.stop()
+
+    def test_with_blank_lines_in_indented_blocks(self):
+        """Test running code with multiple nested blocks that include blank lines."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            code = """\
+for i in range(1,5):
+    if i > 3:
+
+        print(i)
+
+    else:
+        for j in range(1, i):
+
+            print(j)
+print('done')
+"""
+            result = session.execute(code)
+
+            assert result["success"], f"Execution failed: {result.get('error')}"
+
+            expected_result = """\
+1
+1
+2
+4
+done"""
+            assert expected_result in result["stdout"]
+        finally:
+            session.stop()
+
+    def test_ending_with_deep_nested_code_blocks(self):
+        """Test running code ending on a deeply indented section."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            code = """\
+for i in range(1,5):
+    if i % 2 == 0:
+        if i > 1:
+            if i == 2:
+                print(2)
+"""
+            result = session.execute(code)
+
+            assert result["success"], f"Execution failed: {result.get('error')}"
+
+            expected_result = "2"
+            assert expected_result in result["stdout"]
+        finally:
+            session.stop()
+
+    def test_repeated_indented_code_blocks(self):
+        """Test running code with an indented block."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            code = """\
+for n in range(1, 5):
+    if n % 2 == 0:
+        continue
+    print(n)
+for n in range(1, 5):
+    if n % 2 == 0:
+        if n % 2 == 0:
+            if n % 2 == 0:
+                if n % 2 == 0:
+                    continue
+    print(2*n)
+
+
+for n in range(1, 5):
+    if n % 2 == 0:
+
+        continue
+
+    print(3*n)
+for n in range(1, 5):
+    if n % 2 == 0:
+        continue
+    print(4*n)"""
+
+            result = session.execute(code)
+
+            assert result["success"], f"Execution failed: {result.get('error')}"
+
+            expected_result = """\
+1
+3
+2
+6
+3
+9
+4
+12"""
+            assert expected_result in result["stdout"]
+        finally:
+            session.stop()
+
+    def test_indented_code_blocks_with_continuations(self):
+        """Test running code with indented blocks containing else|elif|except|finally."""
+        session = PersistentPythonSession()
+
+        try:
+            session.start()
+
+            code = """\
+n = 5
+score = 85
+
+if n % 2 == 0:
+    print(f"{n} is even")
+else:
+    print(f"{n} is odd")
+try:
+    result = 10 / 0
+except ZeroDivisionError:
+    print("Error: divide by zero!")
+finally:
+    print("finally")
+if score >= 90:
+    print("Grade: A")
+elif score >= 80:
+    print("Grade: B")
+elif score >= 70:
+    print("Grade: C")
+else:
+    print("Grade: F")"""
+
+            result = session.execute(code)
+
+            assert result["success"], f"Execution failed: {result.get('error')}"
+
+            expected_result = """\
+5 is odd
+Error: divide by zero!
+finally
+Grade: B"""
+            assert expected_result in result["stdout"]
         finally:
             session.stop()
 
