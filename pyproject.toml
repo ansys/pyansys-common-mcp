@@ -66,7 +66,7 @@ doc = [
     "pydantic-settings==2.14.2",
     "pypandoc==1.17",
     "pytest-sphinx==0.7.1",
-    "regex==2026.7.10",
+    "regex==2026.7.19",
     "sphinx-autobuild==2025.8.25",
     "sphinx-autodoc-typehints==3.13.2",
     "sphinx-copybutton==0.5.2",
