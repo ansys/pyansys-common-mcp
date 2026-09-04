@@ -18,6 +18,7 @@
 
 from pathlib import Path
 import queue
+import re
 
 # Subprocess is needed for managing the persistent Python session
 import subprocess  # nosec B404
@@ -29,6 +30,9 @@ from typing import Any, Optional
 from ansys.common.mcp.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+_COMMENT_PATTERN = re.compile(r"^\s*#")
+_CONTINUATION_BLOCK_PATTERN = re.compile(r"^\s*(?:else|elif|except|finally)\b")
 
 
 def _sanitize_output(text: str) -> str:
@@ -103,6 +107,78 @@ def _sanitize_output(text: str) -> str:
         text = text.encode("ascii", errors="replace").decode("ascii")
 
     return text
+
+
+def _prepare_repl_code(code: str) -> str:
+    """Prepare a snippet for running in the interactive REPL.
+
+    The persistent session uses an interactive Python interpreter to execute
+    code, sending the text to the Python interpreter's `stdin`. The REPL
+    obeys these rules:
+
+    * a blank line inside an indented block terminates it early
+    * an indented block is only executed once a blank line is encountered
+
+    Therefore the text needs to be prepared to correctly drive the REPL:
+
+    * blank lines inside indented blocks are replaced by `#` so the block
+    does not terminate prematurely
+    * an extra blank line is inserted at the end of the last indented block
+    to trigger the execution of that block
+
+    Parameters
+    ----------
+    code : str
+        Python source to send to the interactive session.
+
+    Returns
+    -------
+    str
+        The prepared source code.
+    """
+    lines = code.splitlines()
+    if not lines:
+        return code
+
+    prepared_repl_code: list[str] = []
+
+    # Block of code always start without indentation
+    # (if not `IndentationError: unexpected indent`
+    # will be generated anyway)
+    is_current_line_indented = False
+
+    for line in lines:
+        is_comment_line = _COMMENT_PATTERN.match(line)
+        if is_comment_line:
+            # leave comment lines as is
+            # do not consider them to decide if enter is required
+            prepared_repl_code.append(line)
+            continue
+
+        if not line.strip():
+            # empty line, change to comment to prevent
+            # inadvertent execution
+            prepared_repl_code.append(line + "#")
+            continue
+
+        is_previous_line_indented = is_current_line_indented
+
+        is_current_line_indented = line.startswith((" ", "\t"))
+
+        is_continuation = _CONTINUATION_BLOCK_PATTERN.match(line)
+        if not is_continuation:
+            is_end_of_block = not is_current_line_indented and is_previous_line_indented
+            if is_end_of_block:
+                # end of the block, insert blank line to trigger the REPL evaluation
+                prepared_repl_code.append("")
+
+        prepared_repl_code.append(line)
+
+    if is_current_line_indented:
+        # trigger the REPL evaluation if ending on an indented block
+        prepared_repl_code.append("")
+
+    return "\n".join(prepared_repl_code)
 
 
 class PersistentPythonSession:
@@ -251,7 +327,9 @@ class PersistentPythonSession:
                 "error": error_msg,
             }
 
-    def execute(self, code: str, timeout: float = 30.0) -> dict[str, Any]:
+    def execute(
+        self, code: str, timeout: float = 30.0, no_output_timeout: Optional[float] = 1.2
+    ) -> dict[str, Any]:
         """Execute Python code in the persistent session.
 
         Parameters
@@ -260,6 +338,10 @@ class PersistentPythonSession:
             Python code to execute.
         timeout : float, default: 30.0
             Maximum execution time in seconds.
+        no_output_timeout : float or None, default: 1.2
+            Maximum number of seconds to wait without receiving any output before
+            stopping collection. This prevents infinite loops if the completion
+            marker is never found. Set to ``None`` to disable this safety check.
 
         Returns
         -------
@@ -279,15 +361,26 @@ class PersistentPythonSession:
                 "error": "Session is not running. Call 'start()' first.",
             }
 
+        if no_output_timeout is not None and (
+            not isinstance(no_output_timeout, (int, float))
+            or no_output_timeout <= 0
+            or no_output_timeout != no_output_timeout  # NaN check
+        ):
+            raise ValueError(
+                f"no_output_timeout must be a positive number or None, got {no_output_timeout!r}."
+            )
+
         with self._execution_lock:
             try:
                 # Clear any pending output
                 self._drain_queues(timeout=0.1)
 
+                prepared_repl_code = _prepare_repl_code(code)
+
                 # Send code to Python process
                 # Use a unique marker to detect when execution is complete
                 marker = "___EXECUTION_COMPLETE___"
-                code_with_marker = f"{code}\nprint('{marker}')\n"
+                code_with_marker = f"{prepared_repl_code}\nprint('{marker}')\n"
 
                 logger.debug(f"Executing code: {code[:100]}...")
                 if self.process.stdin is None:
@@ -305,7 +398,7 @@ class PersistentPythonSession:
                 stderr_lines: list[str] = []
                 start_time = time.time()
                 marker_found = False
-                consecutive_empty_reads = 0
+                last_output_time = time.time()
 
                 while True:
                     elapsed = time.time() - start_time
@@ -350,20 +443,19 @@ class PersistentPythonSession:
                     if marker_found and not (error_line or output_line):
                         break
 
-                    # Safety: if we've had many consecutive empty reads, break
-                    # (This prevents infinite loops if marker is never found)
-                    if not (error_line or output_line):
-                        consecutive_empty_reads += 1
-                        if consecutive_empty_reads > 5:  # 5 * 0.1s = 0.5s of no data
-                            if marker_found:
-                                break
-                            # If marker not found but no data, something went wrong
-                            logger.warning(
-                                "No data received for extended period. Stopping collection."
-                            )
+                    # Safety: if no output has been received for no_output_timeout seconds,
+                    # stop collection to prevent infinite loops if the marker is never found.
+                    if error_line or output_line:
+                        last_output_time = time.time()
+                    elif (
+                        no_output_timeout is not None
+                        and time.time() - last_output_time > no_output_timeout
+                    ):
+                        if marker_found:
                             break
-                    else:
-                        consecutive_empty_reads = 0
+                        # Marker not found but no data: something went wrong
+                        logger.warning("No data received for extended period. Stopping collection.")
+                        break
 
                 # After marker found, do one final drain of stderr to catch any remaining output
                 final_drain_start = time.time()
