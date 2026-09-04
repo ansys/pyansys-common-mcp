@@ -37,8 +37,8 @@ classifiers = [
 ]
 
 dependencies = [
-    "mcp>=0.1.0<2.O",
-    "fastmcp>=3.0.0<4.0",
+    "mcp>=0.1.0,<2.0",
+    "fastmcp>=3.0.0,<4.0",
     "pydantic-settings>=2.0.0",
 ]
 
