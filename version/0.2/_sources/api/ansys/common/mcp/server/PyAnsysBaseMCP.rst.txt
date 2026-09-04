@@ -1,0 +1,299 @@
+
+
+
+
+
+
+:class:`PyAnsysBaseMCP`
+=======================
+
+
+.. py:class:: ansys.common.mcp.server.PyAnsysBaseMCP(python_executable: Optional[str] = None, working_directory: Optional[str] = None, *args, **kwargs)
+
+   Bases: :py:obj:`fastmcp.FastMCP`, :py:obj:`abc.ABC`
+
+
+   
+   Base MCP server for PyAnsys libraries.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+
+.. py:currentmodule:: PyAnsysBaseMCP
+
+Overview
+--------
+
+.. tab-set::
+
+   .. tab-item:: Abstract methods
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~product_cleanup`
+            - Cleanup routine before shutting down the server.
+          * - :py:attr:`~product_startup`
+            - Startup routine to initialize resources when the server starts.
+
+
+
+   .. tab-item:: Methods
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~create_context`
+            - Create product-specific context.
+          * - :py:attr:`~start_python_session`
+            - Start a persistent Python session for executing generated code.
+          * - :py:attr:`~cleanup_python_session`
+            - Cleanup the persistent Python session.
+          * - :py:attr:`~product_lifespan`
+            - Define default lifespan for PyAnsys MCP servers.
+
+
+
+   .. tab-item:: Attributes
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~python_executable`
+            - 
+          * - :py:attr:`~working_directory`
+            - 
+
+
+
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.common.mcp.server import PyAnsysBaseMCP
+
+
+Attribute detail
+----------------
+
+.. py:attribute:: python_executable
+   :value: None
+
+
+.. py:attribute:: working_directory
+   :value: None
+
+
+
+
+Method detail
+-------------
+
+.. py:method:: product_cleanup()
+   :abstractmethod:
+
+
+   
+   Cleanup routine before shutting down the server.
+
+   Must be implemented by subclasses to handle product-specific cleanup.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: product_startup()
+   :abstractmethod:
+
+
+   
+   Startup routine to initialize resources when the server starts.
+
+   Must be implemented by subclasses to handle product-specific initialization.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: create_context() -> ansys.common.mcp.context.PyAnsysBaseAppContext
+
+   
+   Create product-specific context.
+
+   Override this method in subclasses to return custom context types
+   (e.g., PyMAPDLContext with a mapdl field).
+
+
+
+
+   :Returns:
+
+       :obj:`PyAnsysBaseAppContext`
+           The context instance for this server. Default implementation
+           creates a base context with Python session support.
+
+
+
+
+
+
+
+
+
+
+   .. rubric:: Examples
+
+   Override in a product-specific server:
+
+   >>> class PyMAPDLMCP(PyAnsysBaseMCP):
+   ...     def create_context(self) -> PyMAPDLContext:
+   ...         return PyMAPDLContext(
+   ...             python_session=PersistentPythonSession(self.python_executable),
+   ...             command_history=[],
+   ...         )
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: start_python_session()
+
+   
+   Start a persistent Python session for executing generated code.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: cleanup_python_session()
+
+   
+   Cleanup the persistent Python session.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: product_lifespan(server: fastmcp.FastMCP) -> AsyncIterator[ansys.common.mcp.context.PyAnsysBaseAppContext]
+   :async:
+
+
+   
+   Define default lifespan for PyAnsys MCP servers.
+
+   Product-specific servers can override this method if needed.
+
+   :Parameters:
+
+       **server** : :obj:`FastMCP`
+           The MCP server instance.
+
+
+
+
+   :Yields:
+
+       :obj:`AsyncIterator`\[:obj:`PyAnsysBaseAppContext`]
+           The application context for the MCP server.
+
+
+
+
+
+
+
+   .. rubric:: Notes
+
+   This method orchestrates the complete lifecycle:
+   1. Creates context (via factory method - extensible by subclasses)
+   2. Initializes Python session (managed by base class)
+   3. Calls product-specific startup
+   4. Yields context to the application
+   5. Cleans up in reverse order on shutdown
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+

@@ -1,0 +1,200 @@
+
+
+
+
+
+
+:class:`PyAnsysBaseAppContext`
+==============================
+
+
+.. py:class:: ansys.common.mcp.context.PyAnsysBaseAppContext
+
+   
+   Base application context for PyAnsys MCP servers.
+
+   This class provides a common structure that product-specific contexts
+   can extend. The ``product_instance`` field can hold any Ansys product
+   connection (such as MAPDL, Fluent, or Maxwell).
+
+
+   :Attributes:
+
+       **product_instance** : [:obj:`Any`], default: :data:`python:None`
+           Main product instance (such as MAPDL or Fluent) associated with the context.
+
+       **python_executable** : [:obj:`Any`], default: :data:`python:None`
+           Python executable to use for the session.
+
+       **python_session** : [:obj:`Any`], default: :data:`python:None`
+           Instance of the ``PersistentPythonSession`` class for managing the persistent
+           Python session.
+
+       **metadata** : :class:`python:dict`
+           Dictionary for storing arbitrary metadata related to the context.
+
+       **command_history** : :class:`python:list`\[:class:`python:tuple`\[:class:`python:str`, :ref:`bool <python:bltin-boolean-values>`, :class:`python:str`]], default: []
+           List to keep track of executed commands in the session with the
+           following format: [(tool (str), success (bool), code (str))]
+
+
+
+
+
+
+
+
+
+
+
+
+   .. rubric:: Examples
+
+   Extend the base context for a specific product:
+
+   >>> from ansys.common.mcp import PyAnsysBaseAppContext
+   >>> from dataclasses import dataclass
+   >>> from typing import Optional, Any
+   >>>
+   >>> @dataclass
+   >>> class NewAppContext(PyAnsysBaseAppContext):
+   ...     instance: Optional[Any] = None
+   ...
+   ...     @property
+   ...     def product_instance(self):
+   ...         return self.instance
+
+   ..
+       !! processed by numpydoc !!
+
+
+.. py:currentmodule:: PyAnsysBaseAppContext
+
+Overview
+--------
+
+.. tab-set::
+
+
+
+   .. tab-item:: Methods
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~add_to_history`
+            - Add a command entry to the command history.
+
+
+
+   .. tab-item:: Attributes
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~product_instance`
+            - 
+          * - :py:attr:`~python_executable`
+            - 
+          * - :py:attr:`~python_session`
+            - 
+          * - :py:attr:`~metadata`
+            - 
+          * - :py:attr:`~command_history`
+            - 
+
+
+
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.common.mcp.context import PyAnsysBaseAppContext
+
+
+Attribute detail
+----------------
+
+.. py:attribute:: product_instance
+   :type:  Optional[Any]
+   :value: None
+
+
+.. py:attribute:: python_executable
+   :type:  Optional[Any]
+   :value: None
+
+
+.. py:attribute:: python_session
+   :type:  Optional[Any]
+   :value: None
+
+
+.. py:attribute:: metadata
+   :type:  dict[str, Any]
+
+.. py:attribute:: command_history
+   :type:  list[tuple[str, bool, str]]
+   :value: []
+
+
+
+
+Method detail
+-------------
+
+.. py:method:: add_to_history(tool: str, success: bool, command: str) -> None
+
+   
+   Add a command entry to the command history.
+
+
+   :Parameters:
+
+       **tool** : :class:`python:str`
+           Name of the tool that executed the command such as "mapdl.tools.run_python_code".
+
+       **success** : :ref:`bool <python:bltin-boolean-values>`
+           Whether the command executed successfully.
+
+       **command** : :class:`python:str`
+           The actual code or command that was executed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+   .. rubric:: Examples
+
+   Record a successful command:
+
+   >>> app_context.add_to_history(
+   ...     "ansys.mapdl.mcp.tools.run_python_code", True, "import numpy as np"
+   ... )
+
+   Record a failed command:
+
+   >>> app_context.add_to_history(
+   ...     "ansys.mapdl.mcp.tools.run_python_code", False, "import unknown_package"
+   ... )
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+

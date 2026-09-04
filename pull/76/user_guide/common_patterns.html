@@ -1,0 +1,1300 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Common patterns &#8212; PyAnsys Common MCP</title>
+  
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=55c26ed414f5f8a31ebb" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/ansys-sphinx-theme.css?v=5ffe81b6" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
+    <link rel="stylesheet" type="text/css" href="../_static/jupyter-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/thebelab.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/ansys-sphinx-theme.css?v=5ffe81b6" />
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.23/css/jquery.dataTables.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://www.nerdfonts.com/assets/css/webfont.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script defer src="../_static/scripts/fontawesome.js?digest=55c26ed414f5f8a31ebb"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb" />
+
+
+  <!-- Include desired assets -->
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+  
+
+  
+    <link href="../_static/css/breadcrumbs.css" rel="stylesheet" />
+  
+    <script src="../_static/documentation_options.js?v=3b1a31c5"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/thebelab-helper.js"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="https://cdn.datatables.net/1.10.23/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user_guide/common_patterns';</script>
+    <script>
+        DOCUMENTATION_OPTIONS.theme_version = '0.17.1';
+        DOCUMENTATION_OPTIONS.theme_switcher_json_url = 'https://common-mcp.docs.pyansys.com/versions.json';
+        DOCUMENTATION_OPTIONS.theme_switcher_version_match = 'dev';
+        DOCUMENTATION_OPTIONS.show_version_warning_banner =
+            false;
+        </script>
+    <script>DOCUMENTATION_OPTIONS.search_as_you_type = false;</script>
+    <link rel="icon" href="../_static/ansys-favicon.png"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="API reference" href="../api/index.html" />
+    <link rel="prev" title="Architecture" href="architecture.html" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="0.2.dev0" />
+  
+    
+    <script src="../_static/searchtools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <script src="../searchindex.js"></script>
+  
+  </head>
+  <body data-default-mode="">
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+
+  
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+  
+  
+  
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+  
+    <header id="pst-header" class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../_static/pyansys_logo_transparent_black.png" class="logo__image only-light" alt="PyAnsys Common MCP - Home"/>
+    <img src="../_static/pyansys_logo_transparent_white.png" class="logo__image only-dark pst-js-only" alt="PyAnsys Common MCP - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../index.html" title="PyAnsys Common MCP home">Home</a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../getting_started/index.html">
+    Getting started
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api/index.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples/index.html">
+    Examples
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../changelog.html">
+    Release notes
+  </a>
+</li>
+
+
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../migration_guide.html">
+    Migration guide
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav>
+</div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+      
+        <div class="navbar-item">
+<div class="search-bar pst-js-only" id="search-bar">
+  <form class="bd-search d-flex align-items-center" action="../search.html" method="get">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input type="search" class="form-control" name="q" placeholder="Search the docs ..."
+      aria-label="Search the docs ..." autocomplete="off" autocorrect="off"
+      autocapitalize="off" spellcheck="false" />
+    <span class="search-button__kbd-shortcut">
+      <kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd>
+    </span>
+  </form>
+  
+  <div id="static-search-results" class="static-search-results" style="display:none;" tabindex="0"></div>
+  
+</div></div>
+      
+        <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-2"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-2"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-2"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-2">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ansys/pyansys-common-mcp" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ansys/pyansys-common-mcp/discussions" title="Support" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa fa-comment fa-fw fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Support</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+  
+    
+<!--
+  Announcement Version Loader
+  Dynamically loads the announcement.html content into the announcement_msg div.
+-->
+<div id="announcement_msg" aria-live="polite"></div>
+<script>
+  // Fetch and inject the announcement HTML content
+  fetch("announcement.html")
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status} Announcement.html file not found, Please ignore this, if you are in dev/stable documentation`);
+      }
+      return response.text();
+    })
+    .then((text) => {
+      var msgDiv = document.getElementById("announcement_msg");
+      if (msgDiv) {
+        msgDiv.innerHTML = text;
+      }
+    })
+    .catch((error) => {
+      // Log only unexpected fetch errors
+      if (!(error.message && error.message.startsWith("HTTP error: 404"))) {
+        console.error(`Fetch problem: ${error.message} Announcement.html could not be loaded.`);
+      }
+    });
+</script>
+  
+
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../index.html" title="PyAnsys Common MCP home">Home</a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../getting_started/index.html">
+    Getting started
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="index.html">
+    User guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../api/index.html">
+    API reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../examples/index.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../changelog.html">
+    Release notes
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../migration_guide.html">
+    Migration guide
+  </a>
+</li>
+
+  </ul>
+</nav>
+</div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+<div class="search-bar pst-js-only" id="search-bar">
+  <form class="bd-search d-flex align-items-center" action="../search.html" method="get">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input type="search" class="form-control" name="q" placeholder="Search the docs ..."
+      aria-label="Search the docs ..." autocomplete="off" autocorrect="off"
+      autocapitalize="off" spellcheck="false" />
+    <span class="search-button__kbd-shortcut">
+      <kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd>
+    </span>
+  </form>
+  
+  <div id="static-search-results" class="static-search-results" style="display:none;" tabindex="0"></div>
+  
+</div></div>
+        
+          <div class="navbar-item">
+<div class="version-switcher__container dropdown pst-js-only">
+  <button id="pst-version-switcher-button-3"
+    type="button"
+    class="version-switcher__button btn btn-sm dropdown-toggle"
+    data-bs-toggle="dropdown"
+    aria-haspopup="listbox"
+    aria-controls="pst-version-switcher-list-3"
+    aria-label="Version switcher list"
+  >
+    Choose version  <!-- this text may get changed later by javascript -->
+    <span class="caret"></span>
+  </button>
+  <div id="pst-version-switcher-list-3"
+    class="version-switcher__menu dropdown-menu list-group-flush py-0"
+    role="listbox" aria-labelledby="pst-version-switcher-button-3">
+    <!-- dropdown will be populated by javascript on page load -->
+  </div>
+</div></div>
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ansys/pyansys-common-mcp" title="GitHub" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/ansys/pyansys-common-mcp/discussions" title="Support" class="nav-link pst-navbar-icon" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><i class="fa fa-comment fa-fw fa-lg" aria-hidden="true"></i>
+            <span class="sr-only">Support</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item pst-sidebar-collapse"><button id="pst-collapse-sidebar-button" aria-expanded="true" aria-controls="pst-primary-sidebar"><svg class="pst-icon svg-inline--fa" role="img" aria-hidden="true" focusable="false" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M3 15.5C2.36232 15.5 1.74874 15.2564 1.28478 14.8189C0.820828 14.3815 0.541576 13.7832 0.504167 13.1467L0.5 13L0.5 3C0.499965 2.36232 0.743605 1.74874 1.18107 1.28478C1.61854 0.820828 2.21676 0.541576 2.85333 0.504167L3 0.5L13 0.5C13.6377 0.499965 14.2513 0.743605 14.7152 1.18107C15.1792 1.61854 15.4584 2.21676 15.4958 2.85333L15.5 3L15.5 13C15.5 13.6377 15.2564 14.2513 14.8189 14.7152C14.3815 15.1792 13.7832 15.4584 13.1467 15.4958L13 15.5L3 15.5ZM3 13.8333L10.5 13.8333L10.5 2.16667L3 2.16667C2.79589 2.16669 2.59889 2.24163 2.44636 2.37726C2.29383 2.5129 2.19638 2.69979 2.1725 2.9025L2.16667 3L2.16667 13C2.16669 13.2041 2.24163 13.4011 2.37726 13.5536C2.5129 13.7062 2.69979 13.8036 2.9025 13.8275L3 13.8333ZM6.65583 10.325L6.5775 10.2558L4.91083 8.58917C4.76735 8.44567 4.68116 8.25476 4.66843 8.05223C4.65569 7.84971 4.71729 7.6495 4.84167 7.48917L4.91083 7.41083L6.5775 5.74417C6.72747 5.59471 6.9287 5.50794 7.14032 5.50148C7.35194 5.49502 7.55809 5.56935 7.7169 5.70937C7.8757 5.8494 7.97525 6.04463 7.99533 6.25539C8.01541 6.46616 7.95451 6.67667 7.825 6.84417L7.75583 6.9225L6.67917 8L7.75583 9.0775C7.89931 9.22099 7.98551 9.41191 7.99824 9.61443C8.01097 9.81695 7.94938 10.0172 7.825 10.1775L7.75583 10.2558C7.61234 10.3993 7.42142 10.4855 7.2189 10.4982C7.01638 10.511 6.81617 10.4494 6.65583 10.325Z"/>
+  </svg>
+  <span class="pst-collapse-sidebar-label">Collapse Sidebar</span>
+  <span class="pst-expand-sidebar-label">Expand Sidebar</span>
+</button></div>
+        <div class="sidebar-primary-item">
+
+
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Common patterns</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+<nav aria-label="Breadcrumb">
+  <ul class="bd-breadcrumbs">
+         
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="https://docs.pyansys.com/" class="nav-link">PyAnsys</a>
+    </li>
+     
+    <li class="breadcrumb-item">
+      <a
+        href="../index.html"
+        class="nav-link"
+        aria-label="Home"
+      >
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+     
+    <li class="breadcrumb-item">
+      <a href="index.html" class="nav-link">User guide</a>
+    </li>
+      
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Common patterns</span></li>
+    
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="common-patterns">
+<span id="user-guide-common-patterns"></span><h1>Common patterns<a class="headerlink" href="#common-patterns" title="Link to this heading">#</a></h1>
+<p>This page explains common patterns for building robust MCP servers.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All tool examples use the recommended <code class="docutils literal notranslate"><span class="pre">ctx:</span> <span class="pre">Context</span></code> parameter pattern to access
+the application context. For more information, see <a class="reference internal" href="architecture.html#function-parameter"><span class="std std-ref">Function parameter</span></a>.</p>
+</div>
+<section id="initialize-a-python-session">
+<h2>Initialize a Python session<a class="headerlink" href="#initialize-a-python-session" title="Link to this heading">#</a></h2>
+<section id="set-up-a-session-with-startup-code">
+<h3>Set up a session with startup code<a class="headerlink" href="#set-up-a-session-with-startup-code" title="Link to this heading">#</a></h3>
+<p>You can set up a Python session with custom startup code that runs automatically
+when the session starts. This approach is useful for importing commonly used libraries,
+configuring settings, or defining helper functions.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ansys.common.mcp.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">PersistentPythonSession</span>
+
+<span class="c1"># Create a session with startup code</span>
+<span class="n">startup_code</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">import numpy as np</span>
+<span class="s2">import pandas as pd</span>
+<span class="s2">import matplotlib.pyplot as plt</span>
+
+<span class="s2"># Define a helper function</span>
+<span class="s2">def quick_plot(data):</span>
+<span class="s2">    plt.figure(figsize=(10, 6))</span>
+<span class="s2">    plt.plot(data)</span>
+<span class="s2">    plt.show()</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+<span class="n">session</span> <span class="o">=</span> <span class="n">PersistentPythonSession</span><span class="p">(</span><span class="n">startup_code</span><span class="o">=</span><span class="n">startup_code</span><span class="p">)</span>
+<span class="n">session</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+<span class="c1"># Now numpy, pandas, and plt are already imported</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;arr = np.array([1, 2, 3, 4, 5])&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>When you restart the session using the <code class="docutils literal notranslate"><span class="pre">session.restart()</span></code> method, the startup
+code runs again, ensuring that all imports and configurations are
+reestablished. This approach is particularly useful when resetting the session state
+while maintaining necessary dependencies.</p>
+</section>
+</section>
+<section id="command-history">
+<h2>Command history<a class="headerlink" href="#command-history" title="Link to this heading">#</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">command_history</span></code> attribute in <code class="docutils literal notranslate"><span class="pre">PyAnsysBaseAppContext</span></code> tracks all commands executed
+during the MCP session. This history is used for session replay when restarting the Python
+environment with the <code class="docutils literal notranslate"><span class="pre">restart_python_session()</span></code> tool. Each entry in the history includes the command type,
+execution success status, and the actual code or command executed.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you are upgrading from a previous version where <code class="docutils literal notranslate"><span class="pre">command_history</span></code> was a simple
+list of strings, see the <a class="reference internal" href="../migration_guide.html#migration-guide"><span class="std std-ref">Migration guide</span></a> for step-by-step migration instructions.</p>
+</div>
+<section id="format-structure">
+<h3>Format structure<a class="headerlink" href="#format-structure" title="Link to this heading">#</a></h3>
+<p>Each entry in <code class="docutils literal notranslate"><span class="pre">command_history</span></code> is a list with three elements:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">tool</span><span class="p">,</span> <span class="n">success_flag</span><span class="p">,</span> <span class="n">tool_arguments</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Where:</p>
+<ul class="simple">
+<li><p><strong>command_type</strong> (str): The type of command executed. Common values include:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;python_code&quot;</span></code>: Python code executed via <code class="docutils literal notranslate"><span class="pre">execute_python_code()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;plot_code&quot;</span></code>: Plot code executed via <code class="docutils literal notranslate"><span class="pre">create_custom_plot()</span></code></p></li>
+<li><p>Custom types defined by product-specific implementations (e.g., <code class="docutils literal notranslate"><span class="pre">&quot;example_command&quot;</span></code>)</p></li>
+</ul>
+</li>
+<li><p><strong>success_flag</strong> (bool): Whether the command executed successfully (<code class="docutils literal notranslate"><span class="pre">True</span></code>) or failed (<code class="docutils literal notranslate"><span class="pre">False</span></code>)</p></li>
+<li><p><strong>code_content</strong> (str): The actual code or command that was executed</p></li>
+</ul>
+</section>
+<section id="example-usage">
+<h3>Example usage<a class="headerlink" href="#example-usage" title="Link to this heading">#</a></h3>
+<p>Accessing command history:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ansys.common.mcp</span><span class="w"> </span><span class="kn">import</span> <span class="n">PyAnsysBaseAppContext</span>
+
+<span class="n">app_context</span> <span class="o">=</span> <span class="n">PyAnsysBaseAppContext</span><span class="p">()</span>
+
+<span class="c1"># After executing commands, the history might look like:</span>
+<span class="c1"># [</span>
+<span class="c1">#     (&quot;python_code&quot;, True, &quot;import numpy as np&quot;),</span>
+<span class="c1">#     (&quot;python_code&quot;, True, &quot;x = np.array([1, 2, 3])&quot;),</span>
+<span class="c1">#     (&quot;python_code&quot;, False, &quot;print(undefined_variable)&quot;),</span>
+<span class="c1">#     (&quot;plot_code&quot;, True, &quot;plt.plot([1, 2, 3])&quot;)</span>
+<span class="c1"># ]</span>
+</pre></div>
+</div>
+<p>Adding entries to command history:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># For successful execution</span>
+<span class="n">app_context</span><span class="o">.</span><span class="n">add_to_history</span><span class="p">(</span><span class="s2">&quot;python_code&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;result = 42&quot;</span><span class="p">)</span>
+
+<span class="c1"># For failed execution</span>
+<span class="n">app_context</span><span class="o">.</span><span class="n">add_to_history</span><span class="p">(</span><span class="s2">&quot;python_code&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;bad_syntax)&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Filtering command history:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get only successful commands</span>
+<span class="n">successful_commands</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">entry</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">app_context</span><span class="o">.</span><span class="n">command_history</span>
+    <span class="k">if</span> <span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="kc">True</span>
+<span class="p">]</span>
+
+<span class="c1"># Get specific tool calls</span>
+<span class="n">custom_tool_commands</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">entry</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">app_context</span><span class="o">.</span><span class="n">command_history</span>
+    <span class="k">if</span> <span class="n">entry</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;my_custom_tool&quot;</span>
+<span class="p">]</span>
+
+<span class="c1"># Get the actual code from all commands</span>
+<span class="n">all_code</span> <span class="o">=</span> <span class="p">[</span><span class="n">entry</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">app_context</span><span class="o">.</span><span class="n">command_history</span><span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="best-practices">
+<h3>Best practices<a class="headerlink" href="#best-practices" title="Link to this heading">#</a></h3>
+<ol class="arabic">
+<li><p><strong>Always use</strong> <code class="docutils literal notranslate"><span class="pre">add_to_history()</span></code>: Use <code class="docutils literal notranslate"><span class="pre">app_context.add_to_history(tool,</span> <span class="pre">success,</span> <span class="pre">tool_arguments)</span></code>
+instead of appending directly to <code class="docutils literal notranslate"><span class="pre">command_history</span></code>. This method ensures consistent
+formatting and allows for future enhancements.</p></li>
+<li><p><strong>Use descriptive command types</strong>: Choose clear, consistent names for your command
+types to make filtering easier.</p></li>
+<li><p><strong>Update success flag accurately</strong>: Set the success flag based on actual execution
+results, not just whether an exception was raised.</p></li>
+<li><p><strong>Use skip_history parameter</strong>: When replaying commands during restart, use
+<code class="docutils literal notranslate"><span class="pre">skip_history=True</span></code> in <code class="docutils literal notranslate"><span class="pre">execute_python_code()</span></code> and <code class="docutils literal notranslate"><span class="pre">create_custom_plot()</span></code>
+to avoid duplicate history entries:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># During restart, skip adding to history</span>
+<span class="n">execute_python_code</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">command</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">skip_history</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<section id="run-python-code-from-tools">
+<h3>Run Python code from tools<a class="headerlink" href="#run-python-code-from-tools" title="Link to this heading">#</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">execute_python_code</span></code> tool lets you run arbitrary Python code in the persistent session.
+Because the code runs in the context of the session, it has access to all imports and variables
+defined in the startup code.</p>
+<p>The function automatically tracks all executed code in the <code class="docutils literal notranslate"><span class="pre">command_history</span></code> (see
+<a class="reference internal" href="#command-history">Command history</a> above), recording both successful and failed executions.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">mcp.server.fastmcp</span><span class="w"> </span><span class="kn">import</span> <span class="n">Context</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ansys.common.mcp.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">execute_python_code</span>
+
+<span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_python_code</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span> <span class="n">code</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">60</span><span class="p">,</span> <span class="n">skip_history</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run Python code in the persistent session.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ctx : Context</span>
+<span class="sd">        MCP context (automatically injected).</span>
+<span class="sd">    code : str</span>
+<span class="sd">        Python code to run.</span>
+<span class="sd">    timeout : int, default: 60</span>
+<span class="sd">        Maximum time in seconds to allow for code execution before timing out.</span>
+<span class="sd">    skip_history : bool, default: False</span>
+<span class="sd">        If True, the executed code will not be added to the command history. This is useful</span>
+<span class="sd">        when replaying commands during a session restart to avoid duplicate entries.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># execute_python_code automatically adds to command_history</span>
+    <span class="c1"># You can add additional logic here (such as logging and error handling)</span>
+    <span class="k">return</span> <span class="n">execute_python_code</span><span class="p">(</span><span class="n">ctx</span><span class="o">=</span><span class="n">ctx</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="n">code</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span> <span class="n">skip_history</span><span class="o">=</span><span class="n">skip_history</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="restart-a-session-with-history">
+<h3>Restart a session with history<a class="headerlink" href="#restart-a-session-with-history" title="Link to this heading">#</a></h3>
+<p>You can create a tool to restart the Python session while optionally replaying the command history
+(see <a class="reference internal" href="#format-structure">Format structure</a> above). This approach allows you to reset the session state
+while preserving and optionally replaying previous commands.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span> <span class="kn">from</span><span class="w"> </span><span class="nn">ansys.common.mcp.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">restart_python_session</span>
+
+<span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">restart_session</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span>
+    <span class="n">run_successful_history_commands</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">run_all_history</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Restart the Python session and optionally replay commands.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ctx : Context</span>
+<span class="sd">        MCP context (automatically injected).</span>
+<span class="sd">    run_successful_history_commands : bool, default: True</span>
+<span class="sd">        Whether to replay only successful command history.</span>
+<span class="sd">    run_all_history : bool, default: False</span>
+<span class="sd">        Whether to replay all command history.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">restart_python_session</span><span class="p">(</span>
+        <span class="n">ctx</span><span class="p">,</span>
+        <span class="n">run_successful_history_commands</span><span class="o">=</span><span class="n">run_successful_history_commands</span><span class="p">,</span>
+        <span class="n">run_all_history</span><span class="o">=</span><span class="n">run_all_history</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">restart_python_session()</span></code> only replays commands of type <code class="docutils literal notranslate"><span class="pre">&quot;python_code&quot;</span></code> and
+<code class="docutils literal notranslate"><span class="pre">&quot;plot_code&quot;</span></code>. Commands recorded with a custom type (such as <code class="docutils literal notranslate"><span class="pre">&quot;example_command&quot;</span></code>
+or any product-specific type) are silently skipped.</p>
+<p>If you need to replay custom commands on restart, you must extend
+<code class="docutils literal notranslate"><span class="pre">restart_python_session()</span></code> with your own logic. For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ansys.common.mcp.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">restart_python_session</span>
+
+<span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">restart_session</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">Context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Restart and replay all command types.&quot;&quot;&quot;</span>
+    <span class="n">app_context</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">request_context</span><span class="o">.</span><span class="n">lifespan_context</span>
+
+    <span class="c1"># Let the built-in function handle python_code and plot_code</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">restart_python_session</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>
+
+    <span class="c1"># Replay custom command types manually</span>
+    <span class="k">for</span> <span class="n">command_type</span><span class="p">,</span> <span class="n">success</span><span class="p">,</span> <span class="n">command</span> <span class="ow">in</span> <span class="n">app_context</span><span class="o">.</span><span class="n">command_history</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">command_type</span> <span class="o">==</span> <span class="s2">&quot;example_command&quot;</span> <span class="ow">and</span> <span class="n">success</span><span class="p">:</span>
+            <span class="n">app_context</span><span class="o">.</span><span class="n">example_instance</span><span class="o">.</span><span class="n">run_command</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>With this approach, the original execution order is not preserved.
+All <code class="docutils literal notranslate"><span class="pre">&quot;python_code&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;plot_code&quot;</span></code> commands are replayed first by
+<code class="docutils literal notranslate"><span class="pre">restart_python_session()</span></code>, and <code class="docutils literal notranslate"><span class="pre">&quot;example_command&quot;</span></code> entries are replayed
+afterwards. If your custom commands depend on state set by Python code, this
+ordering is fine, but if Python code depends on a product state set by a custom
+command, the replay will fail.</p>
+<p>To preserve the original order, implement the full replay loop yourself instead
+of calling <code class="docutils literal notranslate"><span class="pre">restart_python_session()</span></code>.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="handle-errors">
+<h2>Handle errors<a class="headerlink" href="#handle-errors" title="Link to this heading">#</a></h2>
+<section id="use-graceful-degradation">
+<h3>Use graceful degradation<a class="headerlink" href="#use-graceful-degradation" title="Link to this heading">#</a></h3>
+<p>Handle errors without crashing the server:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ansys.common.mcp.logging_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">product_startup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">   </span><span class="sd">&quot;&quot;&quot;Start with graceful error handling.&quot;&quot;&quot;</span>
+   <span class="k">try</span><span class="p">:</span>
+       <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Attempting to connect to product...&quot;</span><span class="p">)</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">product_instance</span> <span class="o">=</span> <span class="n">connect</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+       <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Connected: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">product_instance</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+   <span class="k">except</span> <span class="n">ConnectionTimeout</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+       <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Connection timeout: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+       <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Server will start in limited mode&quot;</span><span class="p">)</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">product_instance</span> <span class="o">=</span> <span class="kc">None</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;mode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;limited&quot;</span>
+
+   <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+       <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unexpected error during startup: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+       <span class="k">raise</span>  <span class="c1"># Re-raise for critical errors</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Logs automatically redirect to stderr (not stdout) to avoid interfering
+with the MCP protocol. The logging configuration handles this behavior.</p>
+</div>
+</section>
+<section id="add-retry-logic">
+<h3>Add retry logic<a class="headerlink" href="#add-retry-logic" title="Link to this heading">#</a></h3>
+<p>Implement retry logic for flaky connections:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">product_startup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Connect with retry logic.&quot;&quot;&quot;</span>
+    <span class="n">max_retries</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">retry_delay</span> <span class="o">=</span> <span class="mi">5</span>  <span class="c1"># seconds</span>
+
+    <span class="k">for</span> <span class="n">attempt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_retries</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Connection attempt </span><span class="si">{</span><span class="n">attempt</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">max_retries</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">product_instance</span> <span class="o">=</span> <span class="n">connect</span><span class="p">()</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Connected successfully&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Attempt </span><span class="si">{</span><span class="n">attempt</span><span class="si">}</span><span class="s2"> failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">attempt</span> <span class="o">&lt;</span> <span class="n">max_retries</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Retrying in </span><span class="si">{</span><span class="n">retry_delay</span><span class="si">}</span><span class="s2"> seconds...&quot;</span><span class="p">)</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">retry_delay</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;All connection attempts failed&quot;</span><span class="p">)</span>
+                <span class="k">raise</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="track-metadata">
+<h2>Track metadata<a class="headerlink" href="#track-metadata" title="Link to this heading">#</a></h2>
+<section id="monitor-session-state">
+<h3>Monitor session state<a class="headerlink" href="#monitor-session-state" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">product_startup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize with state tracking.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">product_instance</span> <span class="o">=</span> <span class="n">connect</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+        <span class="s2">&quot;session_id&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()),</span>
+        <span class="s2">&quot;start_time&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+        <span class="s2">&quot;statistics&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;commands_executed&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;errors&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+    <span class="p">})</span>
+</pre></div>
+</div>
+</section>
+<section id="manage-user-preferences">
+<h3>Manage user preferences<a class="headerlink" href="#manage-user-preferences" title="Link to this heading">#</a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">set_preference</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set a user preference.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ctx : Context</span>
+<span class="sd">        MCP context (automatically injected).</span>
+<span class="sd">    key : str</span>
+<span class="sd">        Preference key.</span>
+<span class="sd">    value : str</span>
+<span class="sd">        Preference value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">app_context</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">request_context</span><span class="o">.</span><span class="n">lifespan_context</span>
+    <span class="n">app_context</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;preferences&quot;</span><span class="p">,</span> <span class="p">{})[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Set </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;stdout&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;stderr&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Preference updated&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="p">)</span>
+
+<span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_preference</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get a user preference.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ctx : Context</span>
+<span class="sd">        MCP context (automatically injected).</span>
+<span class="sd">    key : str</span>
+<span class="sd">        Preference key.</span>
+<span class="sd">    default : str, default: None</span>
+<span class="sd">        Default value if the specified preference key is not found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">app_context</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">request_context</span><span class="o">.</span><span class="n">lifespan_context</span>
+    <span class="n">prefs</span> <span class="o">=</span> <span class="n">app_context</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;preferences&quot;</span><span class="p">,</span> <span class="p">{})</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">prefs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Preference &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; is not set.&quot;</span>
+    <span class="k">return</span> <span class="n">value</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="expose-tool-sets">
+<h2>Expose tool sets<a class="headerlink" href="#expose-tool-sets" title="Link to this heading">#</a></h2>
+<p>A <strong>tool set</strong> groups tools under a named tag.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Registering the <code class="docutils literal notranslate"><span class="pre">toolsets://definition</span></code> resource is <strong>required</strong> for integration with
+some Ansys products, as it allows the product to discover and display available
+tool sets in the user interface.</p>
+</div>
+<p>Use <code class="docutils literal notranslate"><span class="pre">&#64;app.tool(tags={...})</span></code> to assign a tool to one or more sets, and
+<code class="docutils literal notranslate"><span class="pre">&#64;app.resource(&quot;toolsets://definition&quot;)</span></code> to expose the tool set definitions as a list.
+Each tool set must include a <code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">description</span></code>, <code class="docutils literal notranslate"><span class="pre">skill</span></code> (instructions for the AI
+agent on when and how to use the tools), and <code class="docutils literal notranslate"><span class="pre">tools</span></code> (list of tool function names).</p>
+<p>Register the resource:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@app</span><span class="o">.</span><span class="n">resource</span><span class="p">(</span><span class="s2">&quot;toolsets://definition&quot;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_tool_sets</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Toolset definitions.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;structures&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Tools for creating and running structural models&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;skill&quot;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="s2">&quot;Use these tools to set up and solve structural simulations. &quot;</span>
+                <span class="s2">&quot;Start with create_model to define the model, then use &quot;</span>
+                <span class="s2">&quot;run_simulation to execute the analysis.&quot;</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;tools&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;create_model&quot;</span><span class="p">,</span> <span class="s2">&quot;run_simulation&quot;</span><span class="p">],</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;post_processing&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Tools for processing and exporting simulation results&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;skill&quot;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="s2">&quot;Use these tools to inspect results and run custom analyses after a simulation. &quot;</span>
+                <span class="s2">&quot;Use get_command_history to review past commands and execute_python_code &quot;</span>
+                <span class="s2">&quot;for custom post-processing scripts.&quot;</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;tools&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;get_command_history&quot;</span><span class="p">,</span> <span class="s2">&quot;execute_python_code&quot;</span><span class="p">],</span>
+        <span class="p">},</span>
+    <span class="p">]</span>
+</pre></div>
+</div>
+<p>Tag a tool with the <code class="docutils literal notranslate"><span class="pre">structures</span></code> set:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@app</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;structures&quot;</span><span class="p">})</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_model</span><span class="p">(</span>
+    <span class="n">ctx</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">model_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span><span class="p">,</span>
+    <span class="n">parameters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a new model in PyExample.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ctx : Context</span>
+<span class="sd">        The FastMCP context</span>
+<span class="sd">    name : str</span>
+<span class="sd">        Name for the new model</span>
+<span class="sd">    model_type : str</span>
+<span class="sd">        Type of model to create</span>
+<span class="sd">    parameters : Optional[dict]</span>
+<span class="sd">        Additional model parameters</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        Status message</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">app_context</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">fastmcp</span><span class="o">.</span><span class="n">_lifespan_result</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">app_context</span><span class="o">.</span><span class="n">example_instance</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;Error: PyExample not connected&quot;</span>
+
+    <span class="c1"># Create model (simulated)</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">parameters</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">command</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;CREATE MODEL </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> TYPE </span><span class="si">{</span><span class="n">model_type</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">app_context</span><span class="o">.</span><span class="n">example_instance</span><span class="o">.</span><span class="n">create_model</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">model_type</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+        <span class="c1"># Update command history with success</span>
+        <span class="n">app_context</span><span class="o">.</span><span class="n">add_to_history</span><span class="p">(</span><span class="s2">&quot;example_command&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">command</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="c1"># Update command history with failure</span>
+        <span class="n">app_context</span><span class="o">.</span><span class="n">add_to_history</span><span class="p">(</span><span class="s2">&quot;example_command&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">command</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Model creation failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Created model: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> (type: </span><span class="si">{</span><span class="n">model_type</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Model &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; created successfully</span><span class="se">\n</span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+<p>Tag a tool with the <code class="docutils literal notranslate"><span class="pre">post_processing</span></code> set:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@app</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;post_processing&quot;</span><span class="p">})</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_command_history</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span> <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;list&quot;</span><span class="p">,</span> <span class="n">code_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;all&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Retrieve command execution history.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ctx : Context</span>
+<span class="sd">        The FastMCP context</span>
+<span class="sd">    format : str</span>
+<span class="sd">        Output format: &#39;list&#39;, &#39;numbered&#39;, or &#39;json&#39;</span>
+<span class="sd">    code_type : str</span>
+<span class="sd">        Filter by code type (e.g., &#39;plot_code&#39;, &#39;python_code&#39;, or &#39;all&#39;)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        Command history in requested format</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">app_context</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">fastmcp</span><span class="o">.</span><span class="n">_lifespan_result</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">app_context</span><span class="o">.</span><span class="n">command_history</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;No commands executed yet&quot;</span>
+
+    <span class="c1"># Filter by code type if specified</span>
+    <span class="k">if</span> <span class="n">code_type</span> <span class="o">!=</span> <span class="s2">&quot;all&quot;</span><span class="p">:</span>
+        <span class="n">filtered_history</span> <span class="o">=</span> <span class="p">[</span><span class="n">entry</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">app_context</span><span class="o">.</span><span class="n">command_history</span> <span class="k">if</span> <span class="n">entry</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">code_type</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">filtered_history</span> <span class="o">=</span> <span class="n">app_context</span><span class="o">.</span><span class="n">command_history</span>
+
+    <span class="c1"># Format output</span>
+    <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;list&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">entry</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">filtered_history</span><span class="p">])</span>
+
+    <span class="k">elif</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;numbered&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">. </span><span class="si">{</span><span class="n">entry</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">filtered_history</span><span class="p">)])</span>
+
+    <span class="k">elif</span> <span class="nb">format</span> <span class="o">==</span> <span class="s2">&quot;json&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">{</span><span class="s2">&quot;code_type&quot;</span><span class="p">:</span> <span class="n">entry</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s2">&quot;command&quot;</span><span class="p">:</span> <span class="n">entry</span><span class="p">[</span><span class="mi">2</span><span class="p">]}</span>
+                <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">filtered_history</span>
+            <span class="p">],</span>
+            <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;Error: Invalid format specified. Use &#39;list&#39;, &#39;numbered&#39;, or &#39;json&#39;.&quot;</span>
+</pre></div>
+</div>
+<p>A tool can belong to multiple sets by listing several tags:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@app</span><span class="o">.</span><span class="n">tool</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;structures&quot;</span><span class="p">,</span> <span class="s2">&quot;post_processing&quot;</span><span class="p">})</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_stress_report</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">Context</span><span class="p">,</span> <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate a stress report.&quot;&quot;&quot;</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="pst-show_toc_level nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#initialize-a-python-session">Initialize a Python session</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#set-up-a-session-with-startup-code">Set up a session with startup code</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#command-history">Command history</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#format-structure">Format structure</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#example-usage">Example usage</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#best-practices">Best practices</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#run-python-code-from-tools">Run Python code from tools</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#restart-a-session-with-history">Restart a session with history</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#handle-errors">Handle errors</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#use-graceful-degradation">Use graceful degradation</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#add-retry-logic">Add retry logic</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#track-metadata">Track metadata</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#monitor-session-state">Monitor session state</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#manage-user-preferences">Manage user preferences</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#expose-tool-sets">Expose tool sets</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+
+  
+  <nav class="tocsection editthispage" aria-label="Edit this page">
+    <a href="https://github.com/ansys/pyansys-common-mcp/edit/main/doc/source/user_guide/common_patterns.rst" rel="noopener noreferrer">
+      <i class="fa-solid fa-pencil" aria-hidden="true"></i>
+      
+      
+        
+          Edit on GitHub
+        
+      
+    </a>
+  </nav>
+</div>
+
+  <div class="sidebar-secondary-item">
+  <div role="note" aria-label="source link">
+    <ul class="this-page-menu">
+      <li><a href="../_sources/user_guide/common_patterns.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../_static/scripts/bootstrap.js?digest=55c26ed414f5f8a31ebb"></script>
+<script defer src="../_static/scripts/pydata-sphinx-theme.js?digest=55c26ed414f5f8a31ebb"></script>
+
+
+  <!-- Include desired assets -->
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.7/require.min.js"></script>
+
+<script>
+// Passing the search options to the search.js file
+const SEARCH_OPTIONS = JSON.parse('{"keys": ["title", "text", "objectID"], "limit": 10, "threshold": 0.2}');
+const SEARCH_FILE = "../_static/search.json";
+const ADVANCE_SEARCH_PATH = "../search.html";
+const EXTRA_SOURCES = JSON.parse('""');
+</script>
+
+
+<script src="../_static/js/search.js"></script>
+
+  
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright (c) 2026 ANSYS, Inc. All rights reserved.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<!--
+  Theme Version Footer
+  Displays the Sphinx theme version and the last updated date.
+  Accessibility and semantic improvements included.
+-->
+<footer class="theme-version" aria-label="Theme version and last update">
+  <span>
+    
+      Built with the
+      <a href="https://sphinxdocs.ansys.com/version/stable/index.html" target="_blank" rel="noopener noreferrer">
+        Ansys Sphinx Theme
+      </a>
+      1.8.2.
+    
+  </span>
+  <br />
+  <span>Last updated on <time id="ast_build_date"></time></span>
+</footer>
+<script>
+  // Set the last updated date in a readable format
+  (function() {
+    var options = { day: "numeric", month: "long", year: "numeric" };
+    var ast_lastModifiedDate = new Date(document.lastModified);
+    var ast_build_date = ast_lastModifiedDate.toLocaleDateString("en-US", options);
+    var dateElem = document.getElementById("ast_build_date");
+    if (dateElem) {
+      dateElem.textContent = ast_build_date;
+    }
+  })();
+</script></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

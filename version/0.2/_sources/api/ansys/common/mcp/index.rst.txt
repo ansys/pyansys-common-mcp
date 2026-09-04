@@ -1,0 +1,206 @@
+
+
+
+
+
+
+The ``ansys.common.mcp`` library
+================================
+
+.. py:module:: ansys.common.mcp
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.. py:currentmodule:: mcp
+.. tab-set::
+
+
+    .. tab-item:: Submodules
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~ansys.common.mcp.__main__`
+            - Entry point for running the MCP server as a module.
+
+
+          * - :py:obj:`~ansys.common.mcp.context`
+            - Common context definitions for PyAnsys MCP servers.
+
+
+          * - :py:obj:`~ansys.common.mcp.helpers`
+            - 
+
+
+          * - :py:obj:`~ansys.common.mcp.logging_config`
+            - Logging configuration for PyAnsys MCP servers.
+
+
+          * - :py:obj:`~ansys.common.mcp.prompts`
+            - Common prompts for PyAnsys MCP servers.
+
+
+          * - :py:obj:`~ansys.common.mcp.server`
+            - Base MCP server infrastructure for PyAnsys libraries.
+
+
+          * - :py:obj:`~ansys.common.mcp.tools`
+            - Common tool implementations for PyAnsys MCP servers.
+
+
+
+
+    .. tab-item:: Classes
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~ansys.common.mcp.PyAnsysBaseAppContext`
+            - Base application context for PyAnsys MCP servers.
+
+
+          * - :py:obj:`~ansys.common.mcp.PersistentPythonSession`
+            - Maintains a persistent Python subprocess for stateful code execution.
+
+
+          * - :py:obj:`~ansys.common.mcp.PyAnsysBaseMCP`
+            - Base MCP server for PyAnsys libraries.
+
+
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~get_logger`
+            - Get a logger instance with the specified name.
+
+
+          * - :py:obj:`~setup_logging`
+            - Configure logging for MCP servers.
+
+
+          * - :py:obj:`~create_custom_plot`
+            - Create a custom plot using matplotlib or PyVista in the persistent Python session.
+
+
+          * - :py:obj:`~execute_python_code`
+            - Execute Python code in the persistent Python session with automatic rule generation.
+
+
+
+    .. tab-item:: Attributes
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~__version__`
+            - 
+
+
+
+
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+   :hidden:
+
+    <span class="nf nf-fa-file"></span> __main__</api/ansys/common/mcp/__main__/index>
+    <span class="nf nf-fa-file"></span> context</api/ansys/common/mcp/context/index>
+    <span class="nf nf-fa-file"></span> helpers</api/ansys/common/mcp/helpers/index>
+    <span class="nf nf-fa-file"></span> logging_config</api/ansys/common/mcp/logging_config/index>
+    <span class="nf nf-fa-file"></span> prompts</api/ansys/common/mcp/prompts/index>
+    <span class="nf nf-fa-file"></span> server</api/ansys/common/mcp/server/index>
+    <span class="nf nf-fa-file"></span> tools</api/ansys/common/mcp/tools/index>
+
+
+
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+   :hidden:
+
+    <span class="nf nf-cod-symbol_class"></span> PyAnsysBaseAppContext</api/ansys/common/mcp/PyAnsysBaseAppContext>
+    <span class="nf nf-cod-symbol_class"></span> PersistentPythonSession</api/ansys/common/mcp/PersistentPythonSession>
+    <span class="nf nf-cod-symbol_class"></span> PyAnsysBaseMCP</api/ansys/common/mcp/PyAnsysBaseMCP>
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+
+Common Model Context Protocol (MCP) infrastructure for PyAnsys libraries.
+
+This package provides base classes, utilities, and common tools that
+PyAnsys product-specific MCP servers can extend and use.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+
+
+
+
+.. py:data:: __version__
+   :value: '0.0.1'
+
+
+
+
