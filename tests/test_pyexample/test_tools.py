@@ -29,9 +29,9 @@ from pyexample_mcp.mock_pyexample import PyExample
 from pyexample_mcp.tools import (
     create_model,
     execute_command,
-    execute_python_code,
     get_command_history,
     list_tool_sets,
+    run_python_code,
     run_simulation,
 )
 import pytest
@@ -53,6 +53,7 @@ def mock_fastmcp_context(app_context):
     """Fixture providing a mock FastMCP context."""
     context = MagicMock()
     context.request_context = MagicMock()
+    context.request_context.lifespan_context = app_context
     context.fastmcp._lifespan_result = app_context
     return context
 
@@ -245,9 +246,9 @@ class TestGetCommandHistoryTool:
 
 
 class TestExecutePythonCodeTool:
-    """Tests for the execute_python_code tool."""
+    """Tests for the run_python_code tool."""
 
-    def test_execute_python_code_success(self, mock_fastmcp_context):
+    async def test_run_python_code_code_success(self, mock_fastmcp_context):
         """Test successful Python code execution."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
         context.python_session.execute = MagicMock(
@@ -258,11 +259,11 @@ class TestExecutePythonCodeTool:
             }
         )
 
-        result = execute_python_code(ctx=mock_fastmcp_context, code="print(42)")
+        result = await run_python_code(ctx=mock_fastmcp_context, code="print(42)")
 
         assert "42" in result
 
-    def test_execute_python_code_with_warnings(self, mock_fastmcp_context):
+    async def test_run_python_code_code_with_warnings(self, mock_fastmcp_context):
         """Test Python code execution with warnings."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
         context.python_session.execute = MagicMock(
@@ -273,13 +274,13 @@ class TestExecutePythonCodeTool:
             }
         )
 
-        result = execute_python_code(ctx=mock_fastmcp_context, code="some_code()")
+        result = await run_python_code(ctx=mock_fastmcp_context, code="some_code()")
 
         assert "Result" in result
         assert "Warning" in result
         assert "deprecated" in result
 
-    def test_execute_python_code_error(self, mock_fastmcp_context):
+    async def test_run_python_code_error(self, mock_fastmcp_context):
         """Test Python code execution with error."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
         context.python_session.execute = MagicMock(
@@ -289,16 +290,17 @@ class TestExecutePythonCodeTool:
             }
         )
 
-        result = execute_python_code(ctx=mock_fastmcp_context, code="undefined()")
+        result = await run_python_code(ctx=mock_fastmcp_context, code="undefined()")
 
-        assert "Error:" in result
-        assert "NameError" in result
+        parsed = json.loads(result)
+        assert parsed["success"] is False
+        assert "NameError" in parsed["error"]
 
 
 class TestToolsIntegration:
     """Integration tests for multiple tools working together."""
 
-    def test_complete_workflow(self, mock_fastmcp_context):
+    async def test_complete_workflow(self, mock_fastmcp_context):
         """Test complete workflow using multiple tools."""
         context = mock_fastmcp_context.fastmcp._lifespan_result
         context.python_session.execute = MagicMock(
@@ -323,10 +325,11 @@ class TestToolsIntegration:
         assert "SOLVE MODEL" in history
 
         # Execute Python code
-        code_result = execute_python_code(
+        code_result = await run_python_code(
             ctx=mock_fastmcp_context, code="print('Analysis complete')"
         )
-        assert "Analysis complete" in code_result
+        parsed = json.loads(code_result)
+        assert "Analysis complete" in parsed["stdout"]
 
         # Verify context state
         assert len(context.simulation_results) == 2
@@ -394,7 +397,7 @@ class TestToolSets:
         tools = {t.name: t for t in asyncio.run(app.list_tools())}
 
         assert "post_processing" in tools["get_command_history"].tags
-        assert "post_processing" in tools["execute_python_code"].tags
+        assert "post_processing" in tools["run_python_code"].tags
 
     def test_untagged_tools_have_no_tags(self):
         """Test that tools without a tag assignment have an empty tag set."""
