@@ -192,7 +192,7 @@ jobs:
       contents: write
     steps:
       - name: "Deploy the stable documentation"
-        uses: ansys/actions/doc-deploy-stable@7419880d64bb0bba83f968ca803611df0b76faf0 #v10.3.4
+        uses: ansys/actions/doc-deploy-stable@7e89e00c5619374a1da8c2e876309d8b15ff0559 #v11.0.3
         with:
           cname: ${{ env.DOCUMENTATION_CNAME }}
           token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
