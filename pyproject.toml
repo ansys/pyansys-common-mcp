@@ -54,7 +54,7 @@ tests = [
 ]
 doc = [
     "Sphinx==9.1.0",
-    "ansys-sphinx-theme[autoapi,changelog]==1.10.0",
+    "ansys-sphinx-theme[autoapi,changelog]==1.11.0",
     "build>= 0.10.0",
     "flit>=3.8.0",
     "inflect==7.5.0",
