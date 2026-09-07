@@ -137,7 +137,7 @@ jobs:
       contents: write
     steps:
       - name: "Deploy the PR documentation"
-        uses: ansys/actions/doc-deploy-pr@9dc4e3161033d2c2485fbf9687d40cfb7a661fb2 #v10.3.6
+        uses: ansys/actions/doc-deploy-pr@21c78f8b27683ae8c93557345392abe39ab21d2f #v11.0.4
         with:
           cname: ${{ env.DOCUMENTATION_CNAME }}
           token: ${{ secrets.PYANSYS_CI_BOT_TOKEN }}
