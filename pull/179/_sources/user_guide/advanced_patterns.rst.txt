@@ -58,7 +58,10 @@ defined in the startup code.
 
 .. code-block:: python
 
-   from fastmcp import Context
+   try:
+       from fastmcp import Context
+   except ImportError:  # MCP SDK < 2.0
+       from mcp.server.fastmcp import Context
    from ansys.common.mcp.tools import execute_python_code
 
    @mcp.tool()
@@ -120,7 +123,10 @@ to export it in various formats.
 
 .. code-block:: python
 
-   from fastmcp import Context
+   try:
+       from fastmcp import Context
+   except ImportError:  # MCP SDK < 2.0
+       from mcp.server.fastmcp import Context
 
    @mcp.tool()
    def execute_command(ctx: Context, command: str) -> str:
