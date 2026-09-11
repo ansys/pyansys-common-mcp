@@ -351,7 +351,7 @@ class TestCreateCustomPlotBasic:
         assert len(result) == 2
         assert isinstance(result[0], TextContent)
         assert isinstance(result[1], ImageContent)
-        assert result[1].mimeType == "image/png"
+        assert result[1].mime_type == "image/png"
         assert result[1].data == base64_data
 
     def test_create_pyvista_plot_success(self):
@@ -697,7 +697,7 @@ class TestCreateCustomPlotImageContent:
         image_content = result[1]
         assert image_content.type == "image"
         assert image_content.data == base64_data
-        assert image_content.mimeType == "image/png"
+        assert image_content.mime_type == "image/png"
 
     def test_base64_data_extraction(self):
         """Test that base64 data is correctly extracted from data URI."""
