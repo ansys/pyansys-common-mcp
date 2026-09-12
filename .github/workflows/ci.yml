@@ -64,7 +64,7 @@ jobs:
         python-version: ["3.12", "3.13", "3.14"]
     steps:
       - name: "Run tests with pytest"
-        uses: ansys/actions/tests-pytest@84b6533ae76f5dde69a1df26c18682160a8121cf #v10.3.5
+        uses: ansys/actions/tests-pytest@3ad3b285bd9b67045477dafc7f9865a3aa39f692 #v11.0.6
         with:
           python-version: ${{ matrix.python-version }}
           pytest-extra-args: "--cov=ansys.common.mcp --cov-report=term --cov-report=html --cov-report=xml"
