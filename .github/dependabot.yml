@@ -20,6 +20,10 @@ updates:
       - "dependencies"
     commit-message:
       prefix: "build(pip)"
+    groups:
+      pip-deps:
+        patterns:
+          - "*"
 
   - package-ecosystem: "github-actions"
     cooldown:
@@ -41,3 +45,30 @@ updates:
       - "dependencies"
     commit-message:
       prefix: "build(actions)"
+    groups:
+      action-deps:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "06:00"
+      timezone: "Europe/Paris"
+    cooldown:
+      default-days: 7 # semver-* options are not applicable for pre-commit
+      exclude:
+        - "ansys/pre-commit-hooks/*"
+    labels:
+      - "maintenance"
+    assignees:
+      - "pyansys-ci-bot"
+    commit-message:
+      prefix: "build(pre-commit)"
+    groups:
+      pre-commit-hooks-deps:
+        patterns:
+          - "*"
+
