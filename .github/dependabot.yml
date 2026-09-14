@@ -71,4 +71,3 @@ updates:
       pre-commit-hooks-deps:
         patterns:
           - "*"
-
