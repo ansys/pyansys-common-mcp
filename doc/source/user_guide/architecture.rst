@@ -122,7 +122,10 @@ automatically injects it.
 
 .. code-block:: python
 
-   from mcp.server.fastmcp import Context
+   try:
+       from fastmcp import Context
+   except ImportError:  # MCP SDK < 2.0
+       from mcp.server.fastmcp import Context
 
    @mcp.tool()
    def my_tool(ctx: Context, param: str) -> str:
