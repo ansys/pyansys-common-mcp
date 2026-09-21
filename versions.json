@@ -1,0 +1,17 @@
+[
+  {
+    "name": "dev",
+    "version": "dev",
+    "url": "https://common-mcp.docs.pyansys.com/version/dev/"
+  },
+  {
+    "name": "0.3 (stable)",
+    "version": "0.3",
+    "url": "https://common-mcp.docs.pyansys.com/version/stable/"
+  },
+  {
+    "name": "0.2",
+    "version": "0.2",
+    "url": "https://common-mcp.docs.pyansys.com/version/0.2/"
+  }
+]
