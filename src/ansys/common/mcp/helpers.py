@@ -328,7 +328,7 @@ class PersistentPythonSession:
             }
 
     def execute(
-        self, code: str, timeout: float = 30.0, no_output_timeout: Optional[float] = 1.2
+        self, code: str, timeout: int = 30, no_output_timeout: Optional[float] = 1.2
     ) -> dict[str, Any]:
         """Execute Python code in the persistent session.
 
