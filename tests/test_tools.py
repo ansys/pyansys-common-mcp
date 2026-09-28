@@ -80,6 +80,45 @@ class TestExecutePythonCodeBasic:
         assert result_dict["success"] is True
 
     @pytest.mark.asyncio
+    async def test_execute_code_with_no_output_timeout(self):
+        """Test that a custom no_output_timeout is forwarded to the session."""
+        mock_context = MagicMock()
+        mock_session = MagicMock()
+        mock_session.execute.return_value = {
+            "success": True,
+            "stdout": "done",
+            "stderr": "",
+        }
+        mock_context.request_context.lifespan_context.python_session = mock_session
+
+        code = "print('test')"
+        result = await execute_python_code(mock_context, code, timeout=90, no_output_timeout=45)
+
+        mock_session.execute.assert_called_once_with(code, timeout=90, no_output_timeout=45)
+        result_dict = json.loads(result)
+        assert result_dict["success"] is True
+
+    @pytest.mark.asyncio
+    async def test_no_output_timeout_overrides_smaller_timeout(self):
+        """Test that timeout is raised to match no_output_timeout when it would exceed it."""
+        mock_context = MagicMock()
+        mock_session = MagicMock()
+        mock_session.execute.return_value = {
+            "success": True,
+            "stdout": "done",
+            "stderr": "",
+        }
+        mock_context.request_context.lifespan_context.python_session = mock_session
+
+        code = "print('test')"
+        result = await execute_python_code(mock_context, code, timeout=60, no_output_timeout=120)
+
+        # timeout is raised to match the larger no_output_timeout
+        mock_session.execute.assert_called_once_with(code, timeout=120, no_output_timeout=120)
+        result_dict = json.loads(result)
+        assert result_dict["success"] is True
+
+    @pytest.mark.asyncio
     async def test_execute_code_no_session(self):
         """Test executing code when no Python session is available."""
         # Setup mock context with no session
