@@ -1,4 +1,4 @@
-# Copyright (C) 2025 - 2026 ANSYS, Inc. and/or its affiliates.
+# Copyright (C) 2025 - 2026 Synopsys, Inc. and ANSYS, Inc. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 #
@@ -76,6 +76,45 @@ class TestExecutePythonCodeBasic:
 
         # Verify timeout was passed
         mock_session.execute.assert_called_once_with(code, timeout=timeout)
+        result_dict = json.loads(result)
+        assert result_dict["success"] is True
+
+    @pytest.mark.asyncio
+    async def test_execute_code_with_no_output_timeout(self):
+        """Test that a custom no_output_timeout is forwarded to the session."""
+        mock_context = MagicMock()
+        mock_session = MagicMock()
+        mock_session.execute.return_value = {
+            "success": True,
+            "stdout": "done",
+            "stderr": "",
+        }
+        mock_context.request_context.lifespan_context.python_session = mock_session
+
+        code = "print('test')"
+        result = await execute_python_code(mock_context, code, timeout=90, no_output_timeout=45)
+
+        mock_session.execute.assert_called_once_with(code, timeout=90, no_output_timeout=45)
+        result_dict = json.loads(result)
+        assert result_dict["success"] is True
+
+    @pytest.mark.asyncio
+    async def test_no_output_timeout_overrides_smaller_timeout(self):
+        """Test that timeout is raised to match no_output_timeout when it would exceed it."""
+        mock_context = MagicMock()
+        mock_session = MagicMock()
+        mock_session.execute.return_value = {
+            "success": True,
+            "stdout": "done",
+            "stderr": "",
+        }
+        mock_context.request_context.lifespan_context.python_session = mock_session
+
+        code = "print('test')"
+        result = await execute_python_code(mock_context, code, timeout=60, no_output_timeout=120)
+
+        # timeout is raised to match the larger no_output_timeout
+        mock_session.execute.assert_called_once_with(code, timeout=120, no_output_timeout=120)
         result_dict = json.loads(result)
         assert result_dict["success"] is True
 
@@ -351,7 +390,7 @@ class TestCreateCustomPlotBasic:
         assert len(result) == 2
         assert isinstance(result[0], TextContent)
         assert isinstance(result[1], ImageContent)
-        assert result[1].mimeType == "image/png"
+        assert result[1].mime_type == "image/png"
         assert result[1].data == base64_data
 
     def test_create_pyvista_plot_success(self):
@@ -697,7 +736,7 @@ class TestCreateCustomPlotImageContent:
         image_content = result[1]
         assert image_content.type == "image"
         assert image_content.data == base64_data
-        assert image_content.mimeType == "image/png"
+        assert image_content.mime_type == "image/png"
 
     def test_base64_data_extraction(self):
         """Test that base64 data is correctly extracted from data URI."""

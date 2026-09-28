@@ -1,4 +1,4 @@
-# Copyright (C) 2025 - 2026 ANSYS, Inc. and/or its affiliates.
+# Copyright (C) 2025 - 2026 Synopsys, Inc. and ANSYS, Inc. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
 #
@@ -22,6 +22,7 @@ but functions that can be called from product-specific tool implementations.
 """
 
 import json
+from typing import Any, Optional
 
 from fastmcp import Context
 
@@ -36,6 +37,7 @@ async def execute_python_code(
     ctx: Context,
     code: str,
     timeout: int = 60,
+    no_output_timeout: Optional[float] = None,
 ) -> str:
     """Execute Python code in the persistent Python session with automatic rule generation.
 
@@ -51,6 +53,12 @@ async def execute_python_code(
         Python code to execute.
     timeout : int, default: 60
         Maximum time in seconds to allow for code execution.
+    no_output_timeout : float or None, default: None
+        Maximum number of seconds to wait without receiving any output before
+        stopping collection. Useful for code that produces no output for extended periods.
+        If greater than ``timeout``, ``timeout`` is raised to match it, since
+        ``no_output_timeout`` can never exceed the overall execution timeout. If ``None``,
+        the persistent session's default is used.
 
     Returns
     -------
@@ -100,8 +108,15 @@ async def execute_python_code(
 
         logger.info(f"Executing Python code in persistent session:\n{sanitized_code}")
 
+        # no_output_timeout cannot exceed the overall timeout, so extend timeout to match
+        if no_output_timeout is not None and no_output_timeout > float(timeout):
+            timeout = int(no_output_timeout)
+
         # Execute code in persistent session
-        result = session.execute(sanitized_code, timeout=timeout)
+        execute_kwargs: dict[str, Any] = {"timeout": timeout}
+        if no_output_timeout is not None:
+            execute_kwargs["no_output_timeout"] = no_output_timeout
+        result = session.execute(sanitized_code, **execute_kwargs)
 
         # Parse the result
         if isinstance(result, dict):
