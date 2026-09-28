@@ -109,8 +109,8 @@ async def execute_python_code(
         logger.info(f"Executing Python code in persistent session:\n{sanitized_code}")
 
         # no_output_timeout cannot exceed the overall timeout, so extend timeout to match
-        if no_output_timeout is not None and no_output_timeout > timeout:
-            timeout = no_output_timeout
+        if no_output_timeout is not None and no_output_timeout > float(timeout):
+            timeout = int(no_output_timeout)
 
         # Execute code in persistent session
         execute_kwargs: dict[str, Any] = {"timeout": timeout}
