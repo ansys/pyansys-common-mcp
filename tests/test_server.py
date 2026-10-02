@@ -595,6 +595,7 @@ class TestRunCli:
                         transport="http",
                         host="127.0.0.1",
                         port=8080,
+                        path=None,
                         middleware=None,
                     )
 
@@ -612,8 +613,36 @@ class TestRunCli:
                         transport="http",
                         host="0.0.0.0",
                         port=9000,
+                        path=None,
                         middleware=None,
                     )
+
+    def test_run_cli_http_custom_path(self):
+        """Test that a custom --http-path is forwarded to run_http_async."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            mcp = MockMCP()
+            with patch.object(mcp, "run_http_async", return_value=None) as mock_http:
+                with patch("ansys.common.mcp.server.asyncio.run"):
+                    mcp.run_cli(["--transport", "http", "--http-path", "/custom-path"])
+
+                    mock_http.assert_called_once_with(
+                        transport="http",
+                        host="127.0.0.1",
+                        port=8080,
+                        path="/custom-path",
+                        middleware=None,
+                    )
+
+    def test_run_cli_http_path_defaults_to_none(self):
+        """Test that --http-path defaults to None so FastMCP's own default (/mcp) applies."""
+        with patch("ansys.common.mcp.server.FastMCP.__init__", return_value=None):
+            mcp = MockMCP()
+            with patch.object(mcp, "run_http_async", return_value=None) as mock_http:
+                with patch("ansys.common.mcp.server.asyncio.run"):
+                    mcp.run_cli(["--transport", "http"])
+
+                    call_kwargs = mock_http.call_args.kwargs
+                    assert call_kwargs["path"] is None
 
     def test_run_cli_http_cors_origins_creates_middleware(self):
         """Test that --cors-origins builds a CORSMiddleware and passes it via middleware."""
@@ -637,6 +666,7 @@ class TestRunCli:
                     assert call_kwargs["transport"] == "http"
                     assert call_kwargs["host"] == "127.0.0.1"
                     assert call_kwargs["port"] == 8080
+                    assert call_kwargs["path"] is None
                     mw_list = call_kwargs["middleware"]
                     assert len(mw_list) == 1
                     assert mw_list[0].cls is CORSMiddleware
