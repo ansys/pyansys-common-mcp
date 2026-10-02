@@ -364,6 +364,12 @@ print("PyVista configured for off-screen rendering.")
             help="Port number for HTTP transport (1-65535).",
         )
         parser.add_argument(
+                    "--http-path",
+                    dest="http_path",
+                    default="/",
+                    help="Path for HTTP transport.",
+                )
+        parser.add_argument(
             "--cors-origins",
             dest="cors_origins",
             default=None,
@@ -396,6 +402,7 @@ print("PyVista configured for off-screen rendering.")
                     transport="http",
                     host=args.http_host,
                     port=args.http_port,
+                    path=args.http_path,
                     middleware=middleware,
                 )
             )
