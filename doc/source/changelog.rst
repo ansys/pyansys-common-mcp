@@ -9,6 +9,130 @@ This document contains the release notes for the PyAnsys Common MCP project.
 
 .. towncrier release notes start
 
+`0.3.5 <https://github.com/ansys/pyansys-common-mcp/releases/tag/v0.3.5>`_ - September 28, 2026
+===============================================================================================
+
+.. tab-set::
+
+
+  .. tab-item:: Added
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Update pyexample with built-in functions
+          - `#152 <https://github.com/ansys/pyansys-common-mcp/pull/152>`_
+
+        * - Update fastmcp version
+          - `#179 <https://github.com/ansys/pyansys-common-mcp/pull/179>`_
+
+        * - \`\`no_output_timeout\`\` argument in \`\`execute_python_code\`\`
+          - `#198 <https://github.com/ansys/pyansys-common-mcp/pull/198>`_
+
+
+  .. tab-item:: Fixed
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Add upper limit for dependencies
+          - `#170 <https://github.com/ansys/pyansys-common-mcp/pull/170>`_
+
+
+  .. tab-item:: Dependencies
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Bump regex from 2026.7.10 to 2026.7.19
+          - `#147 <https://github.com/ansys/pyansys-common-mcp/pull/147>`_
+
+        * - Bump actions/checkout from 7.0.0 to 7.0.1
+          - `#149 <https://github.com/ansys/pyansys-common-mcp/pull/149>`_
+
+        * - Bump pydantic-settings from 2.14.2 to 2.15.0
+          - `#159 <https://github.com/ansys/pyansys-common-mcp/pull/159>`_
+
+        * - Bump ansys/actions/release-github from 10.3.5 to 10.3.6
+          - `#160 <https://github.com/ansys/pyansys-common-mcp/pull/160>`_
+
+        * - Bump ansys/actions/doc-deploy-pr from 10.3.4 to 10.3.6
+          - `#162 <https://github.com/ansys/pyansys-common-mcp/pull/162>`_
+
+        * - Update flit-core requirement from <4,>=3.2 to >=3.2,<5
+          - `#163 <https://github.com/ansys/pyansys-common-mcp/pull/163>`_
+
+        * - Bump numpy from 2.5.1 to 2.5.2
+          - `#166 <https://github.com/ansys/pyansys-common-mcp/pull/166>`_
+
+        * - Bump ansys/actions/doc-changelog from 10.3.4 to 11.0.3
+          - `#171 <https://github.com/ansys/pyansys-common-mcp/pull/171>`_
+
+        * - Bump ansys/actions/doc-deploy-stable from 10.3.4 to 11.0.4
+          - `#172 <https://github.com/ansys/pyansys-common-mcp/pull/172>`_
+
+        * - Bump ansys/actions/doc-deploy-dev from 10.3.4 to 11.0.4
+          - `#173 <https://github.com/ansys/pyansys-common-mcp/pull/173>`_
+
+        * - Bump ansys/actions/doc-deploy-pr from 10.3.6 to 11.0.4
+          - `#174 <https://github.com/ansys/pyansys-common-mcp/pull/174>`_
+
+        * - Bump ansys/actions/release-github from 10.3.6 to 11.0.4
+          - `#175 <https://github.com/ansys/pyansys-common-mcp/pull/175>`_
+
+        * - Bump fastmcp from 3.4.5 to 3.4.7
+          - `#176 <https://github.com/ansys/pyansys-common-mcp/pull/176>`_
+
+        * - Bump ansys-sphinx-theme from 1.10.0 to 1.11.0
+          - `#178 <https://github.com/ansys/pyansys-common-mcp/pull/178>`_
+
+        * - Bump ansys/actions/doc-deploy-changelog from 10.3.2 to 11.0.6
+          - `#180 <https://github.com/ansys/pyansys-common-mcp/pull/180>`_
+
+        * - Bump sphinx-autodoc-typehints from 3.13.2 to 3.13.5
+          - `#183 <https://github.com/ansys/pyansys-common-mcp/pull/183>`_
+
+        * - Bump ansys/actions/doc-changelog from 11.0.3 to 11.0.6
+          - `#184 <https://github.com/ansys/pyansys-common-mcp/pull/184>`_
+
+        * - Bump the pre-commit-hooks-deps group with 4 updates
+          - `#190 <https://github.com/ansys/pyansys-common-mcp/pull/190>`_
+
+        * - Bump the pip-deps group with 2 updates
+          - `#191 <https://github.com/ansys/pyansys-common-mcp/pull/191>`_, `#193 <https://github.com/ansys/pyansys-common-mcp/pull/193>`_
+
+        * - Bump the action-deps group with 8 updates
+          - `#192 <https://github.com/ansys/pyansys-common-mcp/pull/192>`_
+
+        * - Bump the action-deps group with 10 updates
+          - `#194 <https://github.com/ansys/pyansys-common-mcp/pull/194>`_
+
+        * - Bump the pre-commit-hooks-deps group with 2 updates
+          - `#196 <https://github.com/ansys/pyansys-common-mcp/pull/196>`_
+
+        * - Bump the pip-deps group with 6 updates
+          - `#197 <https://github.com/ansys/pyansys-common-mcp/pull/197>`_
+
+
+  .. tab-item:: Maintenance
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Update missing or outdated files
+          - `#167 <https://github.com/ansys/pyansys-common-mcp/pull/167>`_
+
+        * - Update CHANGELOG for v0.3.4
+          - `#169 <https://github.com/ansys/pyansys-common-mcp/pull/169>`_
+
+        * - Grouping dependabot upgrades
+          - `#189 <https://github.com/ansys/pyansys-common-mcp/pull/189>`_
+
+
 `0.3.4 <https://github.com/ansys/pyansys-common-mcp/releases/tag/v0.3.4>`_ - September 03, 2026
 ===============================================================================================
 
