@@ -366,8 +366,9 @@ print("PyVista configured for off-screen rendering.")
         parser.add_argument(
             "--http-path",
             dest="http_path",
-            default="/",
-            help="Path for HTTP transport.",
+            default=None,
+            help="Path for HTTP transport. Defaults to FastMCP's own default (``/mcp``) "
+            "when not provided.",
         )
         parser.add_argument(
             "--cors-origins",
