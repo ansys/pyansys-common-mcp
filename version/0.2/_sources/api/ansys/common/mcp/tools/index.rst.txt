@@ -1,0 +1,217 @@
+
+
+
+
+
+
+The ``tools.py`` module
+=======================
+
+.. py:module:: ansys.common.mcp.tools
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+.. py:currentmodule:: tools
+.. tab-set::
+
+
+
+
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~execute_python_code`
+            - Execute Python code in the persistent Python session with automatic rule generation.
+
+
+          * - :py:obj:`~create_custom_plot`
+            - Create a custom plot using matplotlib or PyVista in the persistent Python session.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+Common tool implementations for PyAnsys MCP servers.
+
+This module provides reusable tool functions that product-specific MCP
+servers can use or extend. These are not registered tools themselves,
+but functions that can be called from product-specific tool implementations.
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+.. py:function:: execute_python_code(ctx: fastmcp.Context, code: str, timeout: int = 60) -> str
+   :async:
+
+
+   
+   Execute Python code in the persistent Python session with automatic rule generation.
+
+   This function should be used for custom Python code execution. When code execution
+   fails, it automatically generates a rule using LLM analysis to prevent similar
+   errors in the future.
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           The MCP context containing server session and application context.
+
+       **code** : :class:`python:str`
+           The Python code to execute.
+
+       **timeout** : :class:`python:int`, :obj:`optional`
+           Maximum time in seconds to allow for code execution. Default is 60 seconds.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Execution result or error message. Returns JSON for structured output
+           compatible with both stdio and http transports.
+
+
+
+
+
+
+
+
+
+
+   .. rubric:: Examples
+
+   Execute simple Python code:
+
+   .. code:: python
+
+       code = '''
+       result = sum([i**2 for i in range(10)])
+       print(f"Sum of squares: {result}")
+       '''
+       await execute_python_code(ctx, code)
+
+   Execute code with automatic rule generation on failure:
+
+   .. code:: python
+
+       code = "result = 1/0"  # This will fail
+       await execute_python_code(ctx, code)
+
+   # Automatically adds rule like: {"Division Operations": ["Do not divide by zero"]}
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: create_custom_plot(ctx: fastmcp.Context, plot_code: str, plot_type: str = 'matplotlib', timeout: int = 60) -> list[mcp.types.TextContent | mcp.types.ImageContent] | str
+
+   
+   Create a custom plot using matplotlib or PyVista in the persistent Python session.
+
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           The MCP context containing server session and application context.
+
+       **plot_code** : :class:`python:str`
+           Python code to create the plot. Should use matplotlib.pyplot or PyVista.
+           For matplotlib, the code should create the figure/plot but NOT call plt.show().
+           Use the save_matplotlib_plot() or save_plot() helper functions to return the plot.
+
+       **plot_type** : :class:`python:str`, :obj:`optional`
+           Type of plot: "matplotlib" or "pyvista". Default is "matplotlib".
+
+       **timeout** : :class:`python:int`, :obj:`optional`
+           Maximum time in seconds for plot generation. Default is 60 seconds.
+
+
+
+   :Returns:
+
+       :class:`python:list`\[:obj:`TextContent` | :obj:`ImageContent`]
+           A list containing:
+           - TextContent with the plot creation status message
+           - ImageContent with the base64-encoded image data if successfull
+           or a JSON string with error details if failed.
+
+
+
+
+
+
+
+
+
+
+   .. rubric:: Examples
+
+   Create a custom matplotlib line plot:
+
+   .. code:: python
+
+       plot_code = '''
+       import matplotlib.pyplot as plt
+       import numpy as np
+
+       # Extract data from MAPDL
+       displacements = mapdl.get_array("NODE", item1="U", it1num="Y")
+
+       # Create custom plot
+       plt.figure(figsize=(10, 6))
+       plt.plot(displacements)
+       plt.xlabel("Node Number")
+       plt.ylabel("Displacement (m)")
+       plt.title("Custom Displacement Plot")
+       plt.grid(True)
+       # Save and return
+       result = save_matplotlib_plot(dpi=150)
+       print(result)
+       '''
+
+       create_custom_plot(ctx, plot_code, plot_type="matplotlib")
+
+   ..
+       !! processed by numpydoc !!
+
+
+
