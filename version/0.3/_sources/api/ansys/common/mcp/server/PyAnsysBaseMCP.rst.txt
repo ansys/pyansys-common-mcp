@@ -1,0 +1,355 @@
+
+
+
+
+
+
+:class:`PyAnsysBaseMCP`
+=======================
+
+
+.. py:class:: ansys.common.mcp.server.PyAnsysBaseMCP(python_executable: Optional[str] = None, working_directory: Optional[str] = None, need_python: bool = True, *args, **kwargs)
+
+   Bases: :py:obj:`fastmcp.FastMCP`, :py:obj:`abc.ABC`
+
+
+   
+   Base MCP server for PyAnsys libraries.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+
+.. py:currentmodule:: PyAnsysBaseMCP
+
+Overview
+--------
+
+.. tab-set::
+
+   .. tab-item:: Abstract methods
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~product_cleanup`
+            - Cleanup routine before shutting down the server.
+          * - :py:attr:`~product_startup`
+            - Startup routine to initialize resources when the server starts.
+
+
+
+   .. tab-item:: Methods
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~create_context`
+            - Create product-specific context.
+          * - :py:attr:`~start_python_session`
+            - Start a persistent Python session for executing generated code.
+          * - :py:attr:`~cleanup_python_session`
+            - Clean up the persistent Python session.
+          * - :py:attr:`~product_lifespan`
+            - Define default lifespan for PyAnsys MCP servers.
+          * - :py:attr:`~run_cli`
+            - Parse CLI arguments and run the MCP server with the selected transport.
+
+
+
+   .. tab-item:: Attributes
+
+      .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+          * - :py:attr:`~python_executable`
+            - 
+          * - :py:attr:`~working_directory`
+            - 
+
+
+
+
+
+
+Import detail
+-------------
+
+.. code-block:: python
+
+    from ansys.common.mcp.server import PyAnsysBaseMCP
+
+
+Attribute detail
+----------------
+
+.. py:attribute:: python_executable
+   :value: None
+
+
+.. py:attribute:: working_directory
+   :value: None
+
+
+
+
+Method detail
+-------------
+
+.. py:method:: product_cleanup()
+   :abstractmethod:
+
+
+   
+   Cleanup routine before shutting down the server.
+
+   This abstract method must be implemented by subclasses to handle product-specific cleanup.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: product_startup()
+   :abstractmethod:
+
+
+   
+   Startup routine to initialize resources when the server starts.
+
+   This abstract method must be implemented by subclasses to handle
+   product-specific initialization.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: create_context() -> ansys.common.mcp.context.PyAnsysBaseAppContext
+
+   
+   Create product-specific context.
+
+   Override this method in subclasses to return custom context types
+   (such as in ``PyMAPDLContext`` with an MAPDL field).
+
+
+
+
+   :Returns:
+
+       :obj:`PyAnsysBaseAppContext`
+           Context instance for this server. The default implementation
+           creates a base context with Python session support.
+
+
+
+
+
+
+
+
+
+
+   .. rubric:: Examples
+
+   Override in a product-specific server:
+
+   >>> class PyMAPDLMCP(PyAnsysBaseMCP):
+   ...     def create_context(self) -> PyMAPDLContext:
+   ...         return PyMAPDLContext(
+   ...             python_session=PersistentPythonSession(self.python_executable),
+   ...             command_history=[],
+   ...         )
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: start_python_session()
+
+   
+   Start a persistent Python session for executing generated code.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: cleanup_python_session()
+
+   
+   Clean up the persistent Python session.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: product_lifespan(server: fastmcp.FastMCP) -> AsyncIterator[ansys.common.mcp.context.PyAnsysBaseAppContext]
+   :async:
+
+
+   
+   Define default lifespan for PyAnsys MCP servers.
+
+   Product-specific servers can override this method if needed.
+
+   :Parameters:
+
+       **server** : :obj:`FastMCP`
+           MCP server instance.
+
+
+
+
+   :Yields:
+
+       :obj:`AsyncIterator`\[:obj:`PyAnsysBaseAppContext`]
+           Application context for the MCP server.
+
+
+
+
+
+
+
+   .. rubric:: Notes
+
+   This method orchestrates the complete lifecycle:
+   1. Creates context (via factory method - extensible by subclasses).
+   2. Initializes Python session (managed by base class).
+   3. Calls product-specific startup.
+   4. Yields context to the application.
+   5. Cleans up in reverse order on shutdown.
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:method:: run_cli(argv: Optional[List[str]] = None) -> None
+
+   
+   Parse CLI arguments and run the MCP server with the selected transport.
+
+   This method provides a ready-to-use entry point for product-specific MCP
+   servers, handling transport selection and HTTP configuration so that
+   downstream packages do not need to duplicate this boilerplate.
+
+   The method follows the **template method pattern**: two hooks let subclasses
+   extend the CLI without rewriting the transport dispatch logic:
+
+   - :meth:`_add_cli_arguments` — add product-specific arguments to the parser.
+   - :meth:`_configure_from_cli` — process parsed product-specific arguments
+     (for example, store them in ``_cli_config`` so ``create_context`` can read them).
+
+   :Parameters:
+
+       **argv** : :class:`python:list`\[:class:`python:str`] :obj:`or` :data:`python:None`, default: :data:`python:None`
+           Argument list to parse. If ``None``, ``sys.argv[1:]`` is used.
+           Pass an explicit list in tests to avoid reading the real command line.
+
+
+
+
+
+
+
+
+
+
+
+
+
+   .. rubric:: Examples
+
+   Minimal usage — call from a product's ``__main__.py``:
+
+   >>> app.run_cli()
+
+   Product with extra CLI arguments:
+
+   >>> class PyMAPDLMCP(PyAnsysBaseMCP):
+   ...     def _add_cli_arguments(self, parser):
+   ...         parser.add_argument("--ip", dest="mapdl_ip", default="127.0.0.1")
+   ...         parser.add_argument("--port", dest="mapdl_port", type=int, default=50052)
+   ...
+   ...     def _configure_from_cli(self, args):
+   ...         self._cli_config = {"mapdl_ip": args.mapdl_ip, "mapdl_port": args.mapdl_port}
+
+   ..
+       !! processed by numpydoc !!
+
+
+
+
