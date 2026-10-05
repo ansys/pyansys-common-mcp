@@ -263,8 +263,6 @@ parameters:
 
 .. code-block:: python
 
-   import sys
-
    # Use custom Python executable and working directory
    server = MyProductMCP(
        python_executable="/path/to/python/executable",
