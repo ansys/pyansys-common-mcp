@@ -9,6 +9,61 @@ This document contains the release notes for the PyAnsys Common MCP project.
 
 .. towncrier release notes start
 
+`0.3.6 <https://github.com/ansys/pyansys-common-mcp/releases/tag/v0.3.6>`_ - October 05, 2026
+=============================================================================================
+
+.. tab-set::
+
+
+  .. tab-item:: Added
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Add \`\`http_path\`\` arg in \`\`run_cli\`\`
+          - `#202 <https://github.com/ansys/pyansys-common-mcp/pull/202>`_
+
+
+  .. tab-item:: Documentation
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Correct typo
+          - `#200 <https://github.com/ansys/pyansys-common-mcp/pull/200>`_
+
+        * - Remove unused import from code-block
+          - `#201 <https://github.com/ansys/pyansys-common-mcp/pull/201>`_
+
+        * - Update \`\`CONTRIBUTORS.md\`\` with the latest contributors
+          - `#205 <https://github.com/ansys/pyansys-common-mcp/pull/205>`_
+
+
+  .. tab-item:: Dependencies
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Bump the pre-commit-hooks-deps group with 2 updates
+          - `#203 <https://github.com/ansys/pyansys-common-mcp/pull/203>`_
+
+        * - Bump fastmcp from 4.0.5 to 4.0.10 in the pip-deps group
+          - `#204 <https://github.com/ansys/pyansys-common-mcp/pull/204>`_
+
+
+  .. tab-item:: Maintenance
+
+    .. list-table::
+        :header-rows: 0
+        :widths: auto
+
+        * - Update CHANGELOG for v0.3.5
+          - `#199 <https://github.com/ansys/pyansys-common-mcp/pull/199>`_
+
+
 `0.3.5 <https://github.com/ansys/pyansys-common-mcp/releases/tag/v0.3.5>`_ - September 28, 2026
 ===============================================================================================
 
