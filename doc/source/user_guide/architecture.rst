@@ -63,7 +63,7 @@ handles errors.
 PyAnsysBaseAppContext
 ---------------------
 
-``PyAnsysBaseAppContent`` is the dataclass that holds the shared state accessible from all MCP tools.
+``PyAnsysBaseAppContext`` is the dataclass that holds the shared state accessible from all MCP tools.
 
 **Built-in fields:**
 
