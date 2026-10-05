@@ -63,7 +63,7 @@ handles errors.
 PyAnsysBaseAppContext
 ---------------------
 
-``PyAnsysBaseAppContent`` is the dataclass that holds the shared state accessible from all MCP tools.
+``PyAnsysBaseAppContext`` is the dataclass that holds the shared state accessible from all MCP tools.
 
 **Built-in fields:**
 
@@ -262,8 +262,6 @@ When Python sessions are enabled, you can customize the Python environment using
 parameters:
 
 .. code-block:: python
-
-   import sys
 
    # Use custom Python executable and working directory
    server = MyProductMCP(
