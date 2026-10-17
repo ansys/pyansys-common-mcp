@@ -50,7 +50,7 @@ tests = [
     "pytest-cov==7.1.0",
     "pytest-mock==3.16.0",
     "mcp==2.3.0",
-    "fastmcp==4.0.10",
+    "fastmcp==4.1.0",
 ]
 doc = [
     "Sphinx==9.1.0",
@@ -68,7 +68,7 @@ doc = [
     "pytest-sphinx==0.7.1",
     "regex==2026.9.29",
     "sphinx-autobuild==2025.8.25",
-    "sphinx-autodoc-typehints==3.13.8",
+    "sphinx-autodoc-typehints==3.13.9",
     "sphinx-copybutton==0.5.2",
     "sphinx-notfound-page==1.1.0",
     "sphinx-gallery==0.22.1",
