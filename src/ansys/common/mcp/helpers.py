@@ -180,6 +180,13 @@ def _prepare_repl_code(code: str) -> str:
 
     return "\n".join(prepared_repl_code)
 
+from pydantic import BaseModel
+from typing import Literal
+class _CodeTerminationMarker(BaseModel):
+    marker: Literal["___EXECUTION_COMPLETE___"]
+    success: bool
+    is_complete: bool
+
 
 class PersistentPythonSession:
     r"""Maintains a persistent Python subprocess for stateful code execution.
