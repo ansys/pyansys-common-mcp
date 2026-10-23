@@ -420,6 +420,53 @@ class TestPersistentPythonSessionIntegration:
         finally:
             session.stop()
 
+    def test_timeout_preserves_pending_result(self):
+        """A client timeout must not reset state or misalign subsequent results."""
+        with PersistentPythonSession() as session:
+            result = session.execute(
+                "import time; time.sleep(0.2); x = 42; print('late')", timeout=0.01
+            )
+            assert not result["success"]
+            assert "timed out" in result["error"]
+            assert "pending" in session.execute("x = -1")["error"]
+
+            result = session.wait_for_result(timeout=5)
+            assert result["success"], result
+            assert result["stdout"] == "late\n"
+            assert result["stderr"] == ""
+            assert session.execute("print(x)")["stdout"] == "42\n"
+
+    def test_collects_both_streams_without_markers(self):
+        """Preserve partial output and exclude both marker lines and separator newlines."""
+        with PersistentPythonSession() as session:
+            result = session.execute(
+                "import os\n"
+                "os.write(1, b'___EXECUTION_COMPLETE___  ')\n"
+                "os.write(2, b'error text without newline')"
+            )
+            assert result["success"], result
+            assert result["stdout"] == "___EXECUTION_COMPLETE___  "
+            assert result["stderr"] == "error text without newline"
+
+    @pytest.mark.parametrize("source", ["if True:", "raise SystemExit(2)"])
+    def test_failed_request_preserves_session(self, source):
+        """Incomplete input and SystemExit return failures without ending the session."""
+        with PersistentPythonSession() as session:
+            result = session.execute(source)
+            assert not result["success"], result
+            assert result["error"]
+            assert session.execute("print('next')")["stdout"] == "next\n"
+
+    def test_working_directory_import(self, tmp_path):
+        """Launching the worker must preserve imports from the working directory."""
+        (tmp_path / "session_local_module.py").write_text("value = 42\n")
+        with PersistentPythonSession(working_directory=str(tmp_path)) as session:
+            result = session.execute(
+                "import session_local_module; print(session_local_module.value)"
+            )
+            assert result["success"], result
+            assert result["stdout"] == "42\n"
+
     def test_state_persistence(self):
         """Test that session maintains state across multiple executions."""
         session = PersistentPythonSession()

@@ -28,6 +28,7 @@ class Interpreter(code.InteractiveInterpreter):
 
 def main():
     """Serve complete snippets in a persistent namespace without rewriting source."""
+    sys.path[0] = ""  # Preserve working-directory imports from the former ``python -c`` launch.
     interpreter = Interpreter()
     for line in sys.stdin:
         is_complete = True
