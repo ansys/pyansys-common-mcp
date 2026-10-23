@@ -402,6 +402,24 @@ class TestPersistentPythonSessionIntegration:
         finally:
             session.stop()
 
+    def test_execute_single_line_for_loop(self):
+        """Reproduce issue #213: a single-line loop must execute without syntax errors."""
+        session = PersistentPythonSession(python_executable=sys.executable)
+
+        try:
+            started = session.start()
+            assert started["success"], started
+
+            baseline = session.execute("print('baseline')")
+            assert baseline["success"], baseline
+            assert baseline["stdout"].strip() == "baseline", baseline
+
+            result = session.execute("for value in [1, 2]: print(value)")
+            assert result["success"], result
+            assert result["stdout"].splitlines() == ["1", "2"], result
+        finally:
+            session.stop()
+
     def test_state_persistence(self):
         """Test that session maintains state across multiple executions."""
         session = PersistentPythonSession()
