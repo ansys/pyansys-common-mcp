@@ -37,10 +37,11 @@ def test_runsource_resets_success_after_failure(source):
         ("if True:", False, False, ""),
         ("import sys; print('error message', file=sys.stderr)", True, True, "error message"),
         ("print('partial', end='')", True, True, ""),
+        ("import sys; print('partial', end='', file=sys.stderr)", True, True, "partial"),
     ],
 )
 def test_worker_emits_valid_marker_and_recovers(source, success, is_complete, diagnostic):
-    """Each request emits one model-valid marker and leaves the worker usable."""
+    """Each request terminates both streams with matching markers and remains usable."""
     worker = Path(helpers.__file__).with_name("_interactive_python.py")
     requests = [{"code": source}, {"code": "x = 42"}, {"code": "print(x)"}]
     result = subprocess.run(
@@ -57,6 +58,12 @@ def test_worker_emits_valid_marker_and_recovers(source, success, is_complete, di
         if line.startswith('{"marker":')
     ]
     assert len(markers) == 3
+    stderr_markers = [
+        _CodeTerminationMarker.model_validate_json(line)
+        for line in result.stderr.splitlines()
+        if line.startswith('{"marker":')
+    ]
+    assert stderr_markers == markers
     assert markers[0].success is success
     assert markers[0].is_complete is is_complete
     assert all(marker.success and marker.is_complete for marker in markers[1:])
@@ -67,11 +74,13 @@ def test_worker_emits_valid_marker_and_recovers(source, success, is_complete, di
         assert result.stdout.startswith("1\n2\n")
     if source.startswith("print('partial'"):
         assert result.stdout.startswith('partial\n{"marker":')
+    if "end='', file=sys.stderr" in source:
+        assert result.stderr.startswith('partial\n{"marker":')
 
 
 @pytest.mark.parametrize("request_line", ["not json", "[]", '{"code": 42}', "{}"])
 def test_invalid_request_emits_failure_marker(request_line):
-    """Malformed requests report a diagnostic and exactly one termination marker."""
+    """Malformed requests report a diagnostic and a marker on each output stream."""
     worker = Path(helpers.__file__).with_name("_interactive_python.py")
     result = subprocess.run(
         [sys.executable, "-u", str(worker)],
@@ -85,3 +94,5 @@ def test_invalid_request_emits_failure_marker(request_line):
     assert not marker.success
     assert marker.is_complete
     assert "Invalid request" in result.stderr
+    stderr_marker = _CodeTerminationMarker.model_validate_json(result.stderr.splitlines()[-1])
+    assert stderr_marker == marker
