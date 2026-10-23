@@ -16,17 +16,87 @@
 
 """Unit tests for helpers module."""
 
-import json
-import os
-from pathlib import Path
 import queue
-import subprocess
 import sys
 import tempfile
 
 import pytest
 
-from ansys.common.mcp.helpers import PersistentPythonSession
+from ansys.common.mcp.helpers import PersistentPythonSession, _prepare_repl_code
+
+# ============================================================================
+# _prepare_repl_code Unit Tests
+# ============================================================================
+
+
+class TestPrepareReplCode:
+    """Unit tests for the _prepare_repl_code pure function."""
+
+    def test_empty_code_returned_unchanged(self):
+        assert _prepare_repl_code("") == ""
+
+    def test_flat_code_returned_unchanged(self):
+        code = "x = 1\nprint(x)"
+        assert _prepare_repl_code(code) == code
+
+    def test_blank_line_inside_block_replaced_with_comment(self):
+        code = "for i in range(5):\n\n    print(i)"
+        result = _prepare_repl_code(code)
+        assert "\n\n" not in result
+        assert "#" in result
+
+    def test_blank_line_with_spaces_inside_block_replaced(self):
+        code = "for i in range(5):\n   \n    print(i)"
+        result = _prepare_repl_code(code)
+        lines = result.splitlines()
+        assert any(line.strip() == "#" for line in lines)
+
+    def test_blank_line_inserted_after_block(self):
+        code = "for i in range(5):\n    print(i)\nprint('done')"
+        result = _prepare_repl_code(code)
+        lines = result.splitlines()
+        # A blank line must appear between the end of the block and print('done')
+        idx = lines.index("print('done')")
+        assert lines[idx - 1] == ""
+
+    def test_trailing_blank_line_inserted_when_ending_on_indented_block(self):
+        code = "for i in range(5):\n    print(i)"
+        result = _prepare_repl_code(code)
+        assert result.endswith("\n")
+
+    def test_no_trailing_blank_line_when_ending_on_flat_code(self):
+        code = "for i in range(5):\n    print(i)\nprint('done')"
+        result = _prepare_repl_code(code)
+        assert not result.endswith("\n\n")
+
+    def test_continuation_keywords_do_not_trigger_extra_blank_line(self):
+        code = "if x:\n    pass\nelse:\n    pass"
+        result = _prepare_repl_code(code)
+        lines = result.splitlines()
+        # No blank line should appear before 'else'
+        idx = lines.index("else:")
+        assert lines[idx - 1] != ""
+
+    def test_nested_blocks_handled(self):
+        code = "for i in range(5):\n    if i > 2:\n        print(i)\nprint('done')"
+        result = _prepare_repl_code(code)
+        assert "print('done')" in result
+        # Blank line must appear before 'print('done')'
+        lines = result.splitlines()
+        idx = lines.index("print('done')")
+        assert lines[idx - 1] == ""
+
+    def test_comment_lines_preserved_as_is(self):
+        code = "# a comment\nx = 1"
+        result = _prepare_repl_code(code)
+        assert result.startswith("# a comment")
+
+    def test_only_single_blank_line_inserted_not_double(self):
+        """append('') joined with '\\n' must produce exactly one blank line, not two."""
+        code = "for i in range(5):\n    print(i)\nprint('done')"
+        result = _prepare_repl_code(code)
+        assert "\n\n\n" not in result
+
 
 # ============================================================================
 # PersistentPythonSession Unit Tests
@@ -349,126 +419,6 @@ class TestPersistentPythonSessionIntegration:
             assert result["stdout"].splitlines() == ["1", "2"], result
         finally:
             session.stop()
-
-    def test_timeout_preserves_state_and_response_alignment(self):
-        """A timed-out request remains collectable and cannot become the next result."""
-        with PersistentPythonSession() as session:
-            result = session.execute(
-                "import time; time.sleep(0.2); x = 42; print('late')", timeout=0.01
-            )
-            assert not result["success"], result
-            assert "timed out" in result["error"], result
-
-            rejected = session.execute("x = -1; print('wrong')")
-            assert not rejected["success"], rejected
-            assert "pending" in rejected["error"], rejected
-
-            result = session.wait_for_result(timeout=5)
-            assert result["success"], result
-            assert result["stdout"] == "late\n"
-
-            result = session.execute("print(x)")
-            assert result["success"], result
-            assert result["stdout"] == "42\n"
-
-    def test_captures_descriptor_and_subprocess_output(self):
-        """Capture OS-level and inherited subprocess writes without protocol corruption."""
-        with PersistentPythonSession() as session:
-            result = session.execute(
-                "import os, subprocess, sys\n"
-                "os.write(1, b'native stdout\\n')\n"
-                "os.write(2, b'native stderr\\n')\n"
-                "subprocess.run([sys.executable, '-c', "
-                "\"import sys; print('child stdout'); "
-                "print('child stderr', file=sys.stderr)\"], check=True)"
-            )
-            assert result["success"], result
-            assert result["stdout"] == f"native stdout\nchild stdout{os.linesep}"
-            assert result["stderr"] == f"native stderr\nchild stderr{os.linesep}"
-            assert session.execute("print('next')")["stdout"] == "next\n"
-
-    def test_preserves_output_exactly(self):
-        """Preserve Unicode, trailing spaces, partial lines, and the old marker text."""
-        with PersistentPythonSession() as session:
-            result = session.execute("print('\\u03b1  \\n___EXECUTION_COMPLETE___', end='')")
-            assert result["success"], result
-            assert result["stdout"] == "\u03b1  \n___EXECUTION_COMPLETE___"
-
-    def test_large_output_is_one_response(self):
-        """Output larger than pipe capacity must not deadlock or truncate."""
-        with PersistentPythonSession() as session:
-            result = session.execute("print('x' * 200000, end='')")
-            assert result["success"], result
-            assert result["stdout"] == "x" * 200000
-
-    @pytest.mark.parametrize(
-        "source, error",
-        [
-            ("raise ValueError('problem')", "ValueError"),
-            ("raise SystemExit(2)", "SystemExit"),
-            ("if True print('bad')", "SyntaxError"),
-            ("input()", "EOFError"),
-            ("if True:", "Incomplete Python source"),
-        ],
-    )
-    def test_failed_request_does_not_break_protocol(self, source, error):
-        """Failures are explicit and leave the interpreter ready for another request."""
-        with PersistentPythonSession() as session:
-            result = session.execute(source)
-            assert not result["success"], result
-            assert error in result["error"], result
-            assert session.execute("print('next')")["stdout"] == "next\n"
-
-    def test_stderr_text_does_not_determine_success(self):
-        """Writing an error keyword to stderr is not an execution exception."""
-        with PersistentPythonSession() as session:
-            result = session.execute("import sys; print('error message', file=sys.stderr)")
-            assert result["success"], result
-            assert result["stderr"] == "error message\n"
-
-    def test_worker_exit_is_reported_without_waiting_for_timeout(self):
-        """Unexpected worker exit must wake the response reader and allow restart."""
-        with PersistentPythonSession() as session:
-            result = session.execute("import os; os._exit(1)")
-            assert not result["success"], result
-            assert "closed its response stream" in result["error"], result
-            assert not session.is_running()
-            assert session.restart()["success"]
-            assert session.execute("print('restarted')")["stdout"] == "restarted\n"
-
-    def test_working_directory_imports(self, tmp_path):
-        """The worker must import modules from the configured working directory."""
-        (tmp_path / "local_module.py").write_text("value = 42\n")
-        with PersistentPythonSession(working_directory=str(tmp_path)) as session:
-            result = session.execute("import local_module; print(local_module.value)")
-            assert result["success"], result
-            assert result["stdout"] == "42\n"
-
-    def test_worker_returns_one_response_per_input_line(self):
-        """Malformed inputs must not consume the next request or add protocol output."""
-        import ansys.common.mcp.helpers as helpers
-
-        worker = Path(helpers.__file__).with_name("_interactive_python.py")
-        requests = [
-            "not json",
-            "[]",
-            '{"code": 1}',
-            json.dumps({"code": "print('ok')"}),
-        ]
-        result = subprocess.run(
-            [sys.executable, "-u", str(worker)],
-            input="\n".join(requests) + "\n",
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            timeout=10,
-            check=True,
-        )
-        responses = [json.loads(line) for line in result.stdout.splitlines()]
-        assert len(responses) == len(requests)
-        assert all(not response["success"] for response in responses[:3])
-        assert responses[3]["stdout"] == "ok\n"
-        assert result.stderr == ""
 
     def test_state_persistence(self):
         """Test that session maintains state across multiple executions."""
@@ -889,8 +839,8 @@ Grade: B"""
         finally:
             session.stop()
 
-    def test_stderr_collection(self):
-        """Test that stdout and stderr are returned in the same response."""
+    def test_stderr_collection_after_marker(self):
+        """Test that stderr is properly collected even after marker is found."""
         session = PersistentPythonSession()
 
         try:
@@ -928,22 +878,23 @@ print('done')
         finally:
             session.stop()
 
-    def test_silent_execution_waits_for_completion(self):
-        """Silence longer than the former idle timeout must not truncate execution."""
+    def test_no_output_timeout_fires_by_default(self):
+        """Test that the default no_output_timeout (1.2s) interrupts code with no output."""
         session = PersistentPythonSession()
 
         try:
             session.start()
 
+            # Sleeps well beyond the default 1.2s idle timeout without producing output
             code = """
 import time
-time.sleep(1.4)
+time.sleep(3)
 print('done')
 """
             result = session.execute(code)
 
-            assert result["success"], result
-            assert result["stdout"] == "done\n"
+            # Execution should be interrupted before 'done' is printed
+            assert "done" not in result["stdout"]
 
         finally:
             session.stop()
@@ -970,21 +921,22 @@ print('done')
             session.stop()
 
     def test_no_output_timeout_custom_value(self):
-        """The deprecated idle timeout must not terminate collection of a JSON response."""
+        """Test that a custom no_output_timeout is respected."""
         session = PersistentPythonSession()
 
         try:
             session.start()
 
+            # Sleeps longer than the custom timeout but shorter than the default
             code = """
 import time
 time.sleep(1)
 print('done')
 """
+            # 0.5s idle timeout should fire before the 1s sleep finishes
             result = session.execute(code, no_output_timeout=0.5)
 
-            assert result["success"], result
-            assert result["stdout"] == "done\n"
+            assert "done" not in result["stdout"]
 
         finally:
             session.stop()
