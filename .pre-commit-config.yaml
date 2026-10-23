@@ -44,6 +44,7 @@ repos:
         args: [--config-file=pyproject.toml]
         exclude: ^(tests/|\.venv/|venv/)
         additional_dependencies:
+          - pydantic>=2,<3
           - types-tabulate
 
   # Security checks with bandit
