@@ -16,6 +16,7 @@
 
 """Helper utilities for the MCP server."""
 
+import json
 from pathlib import Path
 import queue
 import re
@@ -25,7 +26,9 @@ import subprocess  # nosec B404
 import sys
 import threading
 import time
-from typing import Any, Optional
+from typing import Annotated, Any, Literal, Optional
+
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, validate_call
 
 from ansys.common.mcp.logging_config import get_logger
 
@@ -109,76 +112,12 @@ def _sanitize_output(text: str) -> str:
     return text
 
 
-def _prepare_repl_code(code: str) -> str:
-    """Prepare a snippet for running in the interactive REPL.
+class _CodeTerminationMarker(BaseModel):
+    """Boundary emitted by the worker on each output stream."""
 
-    The persistent session uses an interactive Python interpreter to execute
-    code, sending the text to the Python interpreter's `stdin`. The REPL
-    obeys these rules:
-
-    * a blank line inside an indented block terminates it early
-    * an indented block is only executed once a blank line is encountered
-
-    Therefore the text needs to be prepared to correctly drive the REPL:
-
-    * blank lines inside indented blocks are replaced by `#` so the block
-    does not terminate prematurely
-    * an extra blank line is inserted at the end of the last indented block
-    to trigger the execution of that block
-
-    Parameters
-    ----------
-    code : str
-        Python source to send to the interactive session.
-
-    Returns
-    -------
-    str
-        The prepared source code.
-    """
-    lines = code.splitlines()
-    if not lines:
-        return code
-
-    prepared_repl_code: list[str] = []
-
-    # Block of code always start without indentation
-    # (if not `IndentationError: unexpected indent`
-    # will be generated anyway)
-    is_current_line_indented = False
-
-    for line in lines:
-        is_comment_line = _COMMENT_PATTERN.match(line)
-        if is_comment_line:
-            # leave comment lines as is
-            # do not consider them to decide if enter is required
-            prepared_repl_code.append(line)
-            continue
-
-        if not line.strip():
-            # empty line, change to comment to prevent
-            # inadvertent execution
-            prepared_repl_code.append(line + "#")
-            continue
-
-        is_previous_line_indented = is_current_line_indented
-
-        is_current_line_indented = line.startswith((" ", "\t"))
-
-        is_continuation = _CONTINUATION_BLOCK_PATTERN.match(line)
-        if not is_continuation:
-            is_end_of_block = not is_current_line_indented and is_previous_line_indented
-            if is_end_of_block:
-                # end of the block, insert blank line to trigger the REPL evaluation
-                prepared_repl_code.append("")
-
-        prepared_repl_code.append(line)
-
-    if is_current_line_indented:
-        # trigger the REPL evaluation if ending on an indented block
-        prepared_repl_code.append("")
-
-    return "\n".join(prepared_repl_code)
+    marker: Literal["___EXECUTION_COMPLETE___"]
+    success: bool
+    is_complete: bool
 
 
 class PersistentPythonSession:
@@ -240,6 +179,9 @@ class PersistentPythonSession:
         self._error_queue: queue.Queue = queue.Queue()
         self._is_running = False
         self._execution_lock = threading.Lock()
+        self._pending = False
+        self._collected: dict[str, list[str]] = {"stdout": [], "stderr": []}
+        self._markers: dict[str, _CodeTerminationMarker] = {}
         self.metadata: dict[str, Any] = {}
 
     def start(self) -> dict[str, Any]:
@@ -269,17 +211,17 @@ class PersistentPythonSession:
         try:
             logger.info(f"Starting persistent Python session: {self.python_executable}")
 
-            # Prevent the interpreter from cluttering stderr with
-            # its primary (ps1: >>>) and secondary (ps2: ...) prompts
-            turn_off_repl_prompts = "import sys; sys.ps1 = ''; sys.ps2 = ''"
-
-            # Start Python in interactive mode with unbuffered I/O
+            self._output_queue = queue.Queue()
+            self._error_queue = queue.Queue()
+            self._pending = False
+            worker = Path(__file__).with_name("_interactive_python.py")
             self.process = subprocess.Popen(
-                [self.python_executable, "-u", "-i", "-c", turn_off_repl_prompts],
+                [self.python_executable, "-u", str(worker)],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
+                encoding="utf-8",
                 bufsize=1,  # Line buffered
                 cwd=self.working_directory,
             )  # nosec B603
@@ -301,8 +243,10 @@ class PersistentPythonSession:
             self._output_thread.start()
             self._error_thread.start()
 
-            # Clear initial Python prompt
-            self._drain_queues(timeout=0.5)
+            ready = self.execute("")
+            if not ready["success"]:
+                self.stop()
+                return ready
 
             # Execute startup code if provided
             if self.startup_code:
@@ -327,8 +271,12 @@ class PersistentPythonSession:
                 "error": error_msg,
             }
 
+    @validate_call(config=ConfigDict(strict=True, allow_inf_nan=False))
     def execute(
-        self, code: str, timeout: int = 30, no_output_timeout: Optional[float] = 1.2
+        self,
+        code: str,
+        timeout: Annotated[float, Field(gt=0)] = 30,
+        no_output_timeout: Optional[Annotated[float, Field(gt=0)]] = 1.2,
     ) -> dict[str, Any]:
         """Execute Python code in the persistent session.
 
@@ -337,11 +285,12 @@ class PersistentPythonSession:
         code : str
             Python code to execute.
         timeout : float, default: 30.0
-            Maximum execution time in seconds.
+            Maximum client wait in seconds. Execution continues after a timeout.
+            Collect its pending result with ``wait_for_result()`` before submitting more code.
         no_output_timeout : float or None, default: 1.2
             Maximum number of seconds to wait without receiving any output before
-            stopping collection. This prevents infinite loops if the completion
-            marker is never found. Set to ``None`` to disable this safety check.
+            returning a pending-execution error. Execution continues in the worker.
+            Set to ``None`` to wait solely for the overall client timeout.
 
         Returns
         -------
@@ -361,139 +310,102 @@ class PersistentPythonSession:
                 "error": "Session is not running. Call 'start()' first.",
             }
 
-        if no_output_timeout is not None and (
-            not isinstance(no_output_timeout, (int, float))
-            or no_output_timeout <= 0
-            or no_output_timeout != no_output_timeout  # NaN check
-        ):
-            raise ValueError(
-                f"no_output_timeout must be a positive number or None, got {no_output_timeout!r}."
-            )
-
         with self._execution_lock:
+            if self._pending:
+                return self._execution_error(
+                    "Execution result pending. Call wait_for_result() before submitting new code."
+                )
             try:
-                # Clear any pending output
-                self._drain_queues(timeout=0.1)
-
-                prepared_repl_code = _prepare_repl_code(code)
-
-                # Send code to Python process
-                # Use a unique marker to detect when execution is complete
-                marker = "___EXECUTION_COMPLETE___"
-                code_with_marker = f"{prepared_repl_code}\nprint('{marker}')\n"
-
                 logger.debug(f"Executing code: {code[:100]}...")
                 if self.process.stdin is None:
-                    return {
-                        "success": False,
-                        "stdout": "",
-                        "stderr": "",
-                        "error": "Process stdin is not available.",
-                    }
-                self.process.stdin.write(code_with_marker)
+                    return self._execution_error("Process stdin is not available.")
+                self.process.stdin.write(json.dumps({"code": code}) + "\n")
                 self.process.stdin.flush()
+            except (OSError, ValueError) as exc:
+                return self._execution_error(f"Error sending code: {exc}")
+            self._pending = True
+            self._collected = {"stdout": [], "stderr": []}
+            self._markers = {}
+            return self._collect_result(timeout, no_output_timeout)
 
-                # Collect output until reaching the marker or timeout
-                stdout_lines: list[str] = []
-                stderr_lines: list[str] = []
-                start_time = time.time()
-                marker_found = False
-                last_output_time = time.time()
+    def _execution_error(self, message: str) -> dict[str, Any]:
+        """Return an explicit failure while retaining any pending output."""
+        logger.error(message)
+        return {
+            "success": False,
+            "stdout": "".join(self._collected["stdout"]),
+            "stderr": "".join(self._collected["stderr"]),
+            "error": message,
+        }
 
-                while True:
-                    elapsed = time.time() - start_time
-                    if elapsed > timeout:
-                        error_msg = f"Code execution timed out after {timeout} seconds."
-                        logger.error(error_msg)
-                        return {
-                            "success": False,
-                            "stdout": "\n".join(stdout_lines),
-                            "stderr": "\n".join(stderr_lines),
-                            "error": error_msg,
-                        }
+    @validate_call(config=ConfigDict(strict=True, allow_inf_nan=False))
+    def wait_for_result(self, timeout: Annotated[float, Field(gt=0)] = 30) -> dict[str, Any]:
+        """Continue waiting for a timed-out execution without resubmitting code."""
+        with self._execution_lock:
+            if not self._pending:
+                return self._execution_error("No execution result is pending.")
+            return self._collect_result(timeout, None)
 
-                    # Read from stdout
-                    output_line = None
-                    try:
-                        output_line = self._output_queue.get(timeout=0.1)
-                    except queue.Empty:
-                        pass
-
-                    if output_line:
-                        if marker in output_line:
-                            # Remove the marker line
-                            output_line = output_line.replace(marker, "").strip()
-                            if output_line:
-                                stdout_lines.append(output_line)
-                            marker_found = True
-                        else:
-                            stdout_lines.append(output_line.rstrip())
-
-                    # Read from stderr
-                    error_line = None
-                    try:
-                        error_line = self._error_queue.get(timeout=0.1)
-                    except queue.Empty:
-                        pass
-
-                    if error_line:
-                        stderr_lines.append(error_line.rstrip())
-
-                    # If marker was found and no more data, we're done
-                    if marker_found and not (error_line or output_line):
-                        break
-
-                    # Safety: if no output has been received for no_output_timeout seconds,
-                    # stop collection to prevent infinite loops if the marker is never found.
-                    if error_line or output_line:
-                        last_output_time = time.time()
-                    elif (
-                        no_output_timeout is not None
-                        and time.time() - last_output_time > no_output_timeout
-                    ):
-                        if marker_found:
-                            break
-                        # Marker not found but no data: something went wrong
-                        logger.warning("No data received for extended period. Stopping collection.")
-                        break
-
-                # After marker found, do one final drain of stderr to catch any remaining output
-                final_drain_start = time.time()
-                while time.time() - final_drain_start < 0.5:
-                    try:
-                        line = self._error_queue.get(timeout=0.05)
-                        stderr_lines.append(line.rstrip())
-                    except queue.Empty:
-                        break
-
-                stdout_text = "\n".join(stdout_lines)
-                stderr_text = "\n".join(stderr_lines)
-
-                # Check if there were any errors
-                has_error = bool(stderr_text) and any(
-                    keyword in stderr_text.lower()
-                    for keyword in ["error", "exception", "traceback"]
+    def _collect_result(self, timeout: float, no_output_timeout: Optional[float]) -> dict[str, Any]:
+        """Collect each stream through its validated boundary, retaining state on timeout."""
+        deadline = time.monotonic() + timeout
+        last_output = time.monotonic()
+        while len(self._markers) < 2:
+            for name, output_queue in (
+                ("stdout", self._output_queue),
+                ("stderr", self._error_queue),
+            ):
+                if name in self._markers:
+                    continue
+                try:
+                    line = output_queue.get(timeout=min(0.01, max(0, deadline - time.monotonic())))
+                except queue.Empty:
+                    continue
+                if line is None:
+                    self._pending = False
+                    return self._execution_error(f"Python session closed {name} before its marker.")
+                last_output = time.monotonic()
+                try:
+                    marker = _CodeTerminationMarker.model_validate_json(line, strict=True)
+                except ValidationError:
+                    self._collected[name].append(line)
+                else:
+                    self._markers[name] = marker
+                    # The worker inserts exactly one newline before the marker.
+                    text = "".join(self._collected[name])
+                    self._collected[name] = [text.removesuffix("\n")]
+            if len(self._markers) == 2:
+                break
+            if time.monotonic() >= deadline:
+                return self._execution_error(
+                    f"Code execution timed out after {timeout} seconds. "
+                    "Execution continues; call wait_for_result()."
                 )
-
-                if has_error:
-                    logger.warning(f"Code execution had errors: {stderr_text[:200]}")
-
-                return {
-                    "success": not has_error,
-                    "stdout": stdout_text,
-                    "stderr": stderr_text,
-                    "error": stderr_text if has_error else "",
-                }
-
-            except Exception as e:
-                error_msg = f"Error during code execution: {str(e)}"
-                logger.error(error_msg)
-                return {
-                    "success": False,
-                    "stdout": "",
-                    "stderr": "",
-                    "error": error_msg,
-                }
+            if (
+                no_output_timeout is not None
+                and time.monotonic() - last_output >= no_output_timeout
+            ):
+                return self._execution_error(
+                    "No output received before no_output_timeout. "
+                    "Execution continues; call wait_for_result()."
+                )
+        self._pending = False
+        marker = self._markers["stdout"]
+        if marker != self._markers["stderr"]:
+            return self._execution_error("Python session returned inconsistent completion markers.")
+        error = ""
+        if not marker.is_complete:
+            error = "Incomplete Python source. Submit a complete snippet."
+        elif not marker.success:
+            error = "".join(self._collected["stderr"]) or "Python execution failed."
+        if error:
+            return self._execution_error(error)
+        return {
+            "success": True,
+            "stdout": "".join(self._collected["stdout"]),
+            "stderr": "".join(self._collected["stderr"]),
+            "error": "",
+        }
 
     def stop(self) -> dict[str, Any]:
         """Stop the persistent Python session.
@@ -513,11 +425,10 @@ class PersistentPythonSession:
         try:
             logger.info("Stopping persistent Python session.")
 
-            # Send exit command
+            # EOF stops the worker after any current execution finishes.
             if self.process and self.process.stdin:
                 try:
-                    self.process.stdin.write("exit()\n")
-                    self.process.stdin.flush()
+                    self.process.stdin.close()
                 except Exception as e:
                     logger.warning(f"Error sending exit command: {e}")
 
@@ -530,7 +441,15 @@ class PersistentPythonSession:
                     self.process.kill()
                     self.process.wait()
 
+            for thread in (self._output_thread, self._error_thread):
+                if thread is not None:
+                    thread.join(timeout=1)
+            if self.process:
+                for stream in (self.process.stdout, self.process.stderr):
+                    if stream is not None:
+                        stream.close()
             self._is_running = False
+            self._pending = False
             logger.info("Persistent Python session stopped.")
 
             return {
@@ -655,6 +574,8 @@ class PersistentPythonSession:
                     break
         except Exception as e:
             logger.error(f"Error reading stream: {e}")
+        finally:
+            output_queue.put(None)
 
     def _drain_queues(self, timeout: float = 0.1):
         """Drain both output and error queues to clear any pending output.
