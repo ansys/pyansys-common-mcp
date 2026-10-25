@@ -9,6 +9,7 @@
 * [Dipin](https://github.com/dipinknair)
 * [German Martinez Ayuso](https://github.com/germa89)
 * [Kathy Pippert](https://github.com/PipKat)
+* [Kerry McAdams](https://github.com/klmcadams)
 * [Maxime Rey](https://github.com/MaxJPRey)
 * [Muhammed Adedigba](https://github.com/moe-ad)
 * [Roberto Pastor Muela](https://github.com/RobPasMue)
