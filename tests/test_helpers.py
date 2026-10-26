@@ -19,6 +19,7 @@
 import queue
 import sys
 import tempfile
+import time
 
 import pytest
 
@@ -869,6 +870,37 @@ print('done')
             # Execution should be interrupted before 'done' is printed
             assert "done" not in result["stdout"]
 
+        finally:
+            session.stop()
+
+    def test_execute_after_no_output_timeout(self, tmp_path):
+        """A completed execution must not leave the session locked after an idle timeout."""
+        session = PersistentPythonSession()
+        completed = tmp_path / "completed"
+
+        try:
+            assert session.start()["success"]
+            session.execute(
+                "import time\n"
+                "from pathlib import Path\n"
+                "time.sleep(1)\n"
+                "value = 41\n"
+                "print('previous output')\n"
+                f"Path({str(completed)!r}).touch()\n",
+                timeout=10,
+                no_output_timeout=0.5,
+            )
+
+            deadline = time.monotonic() + 5
+            while not completed.exists() and time.monotonic() < deadline:
+                time.sleep(0.01)
+            assert completed.exists(), "The worker did not finish the first execution"
+
+            result = session.execute("print(value + 1)", timeout=5, no_output_timeout=None)
+
+            assert result["success"], result["error"]
+            assert result["stdout"] == "42\n"
+            assert result["stderr"] == ""
         finally:
             session.stop()
 
