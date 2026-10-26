@@ -14,10 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Execute JSON-lines requests, terminating both output streams with a JSON marker."""
+"""Execute JSON-lines requests with file-backed output and a separate control channel."""
 
+import argparse
 import code
 import json
+from multiprocessing.connection import Client
+import os
 import sys
 
 
@@ -44,6 +47,16 @@ class Interpreter(code.InteractiveInterpreter):
 
 def main():
     """Serve complete snippets in a persistent namespace without rewriting source."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("address")
+    parser.add_argument("family", choices=("AF_UNIX", "AF_PIPE"))
+    args = parser.parse_args()
+    with Client(args.address, family=args.family) as control:
+        serve(control)
+
+
+def serve(control):
+    """Report completion and byte boundaries after flushing file-backed output."""
     sys.path[0] = ""  # Preserve working-directory imports from the former ``python -c`` launch.
     interpreter = Interpreter()
     for line in sys.stdin:
@@ -65,16 +78,16 @@ def main():
 
         sys.stdout.flush()
         sys.stderr.flush()
-        # A leading newline separates the marker from output printed without a newline.
         marker = json.dumps(
             {
                 "marker": "___EXECUTION_COMPLETE___",
                 "success": interpreter.success and is_complete,
                 "is_complete": is_complete,
+                "stdout_end": os.lseek(sys.stdout.fileno(), 0, os.SEEK_CUR),
+                "stderr_end": os.lseek(sys.stderr.fileno(), 0, os.SEEK_CUR),
             }
         )
-        print("\n" + marker, file=sys.stdout, flush=True)
-        print("\n" + marker, file=sys.stderr, flush=True)
+        control.send_bytes(marker.encode("utf-8"))
 
 
 if __name__ == "__main__":
