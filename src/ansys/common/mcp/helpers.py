@@ -17,25 +17,23 @@
 """Helper utilities for the MCP server."""
 
 import json
+from multiprocessing.connection import Client, Connection
 from pathlib import Path
-import queue
-import re
 
 # Subprocess is needed for managing the persistent Python session
 import subprocess  # nosec B404
 import sys
+import tempfile
 import threading
 import time
-from typing import Annotated, Any, Literal, Optional
+from typing import Annotated, Any, Optional
+from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, validate_call
+from pydantic import BaseModel, ConfigDict, Field, validate_call
 
 from ansys.common.mcp.logging_config import get_logger
 
 logger = get_logger(__name__)
-
-_COMMENT_PATTERN = re.compile(r"^\s*#")
-_CONTINUATION_BLOCK_PATTERN = re.compile(r"^\s*(?:else|elif|except|finally)\b")
 
 
 def _sanitize_output(text: str) -> str:
@@ -112,12 +110,14 @@ def _sanitize_output(text: str) -> str:
     return text
 
 
-class _CodeTerminationMarker(BaseModel):
-    """Boundary emitted by the worker on each output stream."""
+class _ExecutionResult(BaseModel):
+    """Captured Python output and status returned over the control connection."""
 
-    marker: Literal["___EXECUTION_COMPLETE___"]
+    id: str
     success: bool
     is_complete: bool
+    stdout: str
+    stderr: str
 
 
 class PersistentPythonSession:
@@ -127,6 +127,9 @@ class PersistentPythonSession:
     Python session, preserving variables, imports, and state between
     executions. This is essential for LLM workflows where code is generated
     and executed in multiple steps.
+
+    Native output logs are owned by a temporary directory created during
+    initialization and removed on shutdown. Starting again creates a fresh directory.
 
     Parameters
     ----------
@@ -173,15 +176,12 @@ class PersistentPythonSession:
         self.startup_code = startup_code
         self.working_directory = working_directory
         self.process: Optional[subprocess.Popen] = None
-        self._output_thread: Optional[threading.Thread] = None
-        self._error_thread: Optional[threading.Thread] = None
-        self._output_queue: queue.Queue = queue.Queue()
-        self._error_queue: queue.Queue = queue.Queue()
+        self._logs = tempfile.TemporaryDirectory(prefix="python-session-")
+        self._control: Optional[Connection] = None
+        self._log_directory = Path(self._logs.name)
         self._is_running = False
         self._execution_lock = threading.Lock()
-        self._pending = False
-        self._collected: dict[str, list[str]] = {"stdout": [], "stderr": []}
-        self._markers: dict[str, _CodeTerminationMarker] = {}
+        self._pending: Optional[str] = None
         self.metadata: dict[str, Any] = {}
 
     def start(self) -> dict[str, Any]:
@@ -211,37 +211,44 @@ class PersistentPythonSession:
         try:
             logger.info(f"Starting persistent Python session: {self.python_executable}")
 
-            self._output_queue = queue.Queue()
-            self._error_queue = queue.Queue()
-            self._pending = False
+            if not self._log_directory.exists():
+                self._logs = tempfile.TemporaryDirectory(prefix="python-session-")
+                self._log_directory = Path(self._logs.name)
+            self._pending = None
+            family = "AF_PIPE" if sys.platform == "win32" else "AF_UNIX"
+            address = (
+                rf"\\.\pipe\python-session-{uuid4().hex}"
+                if family == "AF_PIPE"
+                else str(self._log_directory / "control")
+            )
             worker = Path(__file__).with_name("_interactive_python.py")
-            self.process = subprocess.Popen(
-                [self.python_executable, "-u", str(worker)],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                encoding="utf-8",
-                bufsize=1,  # Line buffered
-                cwd=self.working_directory,
-            )  # nosec B603
+            with (
+                (self._log_directory / "stdout.log").open("wb") as stdout,
+                (self._log_directory / "stderr.log").open("wb") as stderr,
+            ):
+                self.process = subprocess.Popen(
+                    [self.python_executable, "-u", "-X", "utf8", str(worker), address, family],
+                    stdin=subprocess.PIPE,
+                    stdout=stdout,
+                    stderr=stderr,
+                    text=True,
+                    encoding="utf-8",
+                    bufsize=1,  # Line buffered
+                    cwd=self.working_directory,
+                )  # nosec B603
 
             self._is_running = True
 
-            # Start threads to read output
-            self._output_thread = threading.Thread(
-                target=self._read_stream,
-                args=(self.process.stdout, self._output_queue),
-                daemon=True,
-            )
-            self._error_thread = threading.Thread(
-                target=self._read_stream,
-                args=(self.process.stderr, self._error_queue),
-                daemon=True,
-            )
-
-            self._output_thread.start()
-            self._error_thread.start()
+            deadline = time.monotonic() + 5
+            while True:
+                try:
+                    self._control = Client(address, family=family)
+                    break
+                except OSError:
+                    if self.process.poll() is not None or time.monotonic() >= deadline:
+                        raise
+                    time.sleep(0.01)
+            logger.debug("Native Python output logs: %s", self._log_directory)
 
             ready = self.execute("")
             if not ready["success"]:
@@ -265,6 +272,10 @@ class PersistentPythonSession:
         except Exception as e:
             error_msg = f"Failed to start Python session: {str(e)}"
             logger.error(error_msg)
+            if self._is_running:
+                self.stop()
+            else:
+                self._logs.cleanup()
             self._is_running = False
             return {
                 "success": False,
@@ -276,7 +287,6 @@ class PersistentPythonSession:
         self,
         code: str,
         timeout: Annotated[float, Field(gt=0)] = 30,
-        no_output_timeout: Optional[Annotated[float, Field(gt=0)]] = 1.2,
     ) -> dict[str, Any]:
         """Execute Python code in the persistent session.
 
@@ -286,11 +296,8 @@ class PersistentPythonSession:
             Python code to execute.
         timeout : float, default: 30.0
             Maximum client wait in seconds. Execution continues after a timeout.
-            Collect its pending result with ``wait_for_result()`` before submitting more code.
-        no_output_timeout : float or None, default: 1.2
-            Maximum number of seconds to wait without receiving any output before
-            returning a pending-execution error. Execution continues in the worker.
-            Set to ``None`` to wait solely for the overall client timeout.
+            Use ``wait_for_result()`` to collect its pending result. A new execution
+            discards the previous result if it has finished, or is rejected if still running.
 
         Returns
         -------
@@ -312,29 +319,29 @@ class PersistentPythonSession:
 
         with self._execution_lock:
             if self._pending:
-                return self._execution_error(
-                    "Execution result pending. Call wait_for_result() before submitting new code."
-                )
+                previous = self._collect_result(0)
+                if self._pending:
+                    return previous
+                logger.debug("Discarding completed pending execution result.")
+            request_id = uuid4().hex
             try:
                 logger.debug(f"Executing code: {code[:100]}...")
                 if self.process.stdin is None:
                     return self._execution_error("Process stdin is not available.")
-                self.process.stdin.write(json.dumps({"code": code}) + "\n")
+                self.process.stdin.write(json.dumps({"id": request_id, "code": code}) + "\n")
                 self.process.stdin.flush()
             except (OSError, ValueError) as exc:
                 return self._execution_error(f"Error sending code: {exc}")
-            self._pending = True
-            self._collected = {"stdout": [], "stderr": []}
-            self._markers = {}
-            return self._collect_result(timeout, no_output_timeout)
+            self._pending = request_id
+            return self._collect_result(timeout)
 
     def _execution_error(self, message: str) -> dict[str, Any]:
-        """Return an explicit failure while retaining any pending output."""
+        """Return an explicit failure without discarding the pending request."""
         logger.error(message)
         return {
             "success": False,
-            "stdout": "".join(self._collected["stdout"]),
-            "stderr": "".join(self._collected["stderr"]),
+            "stdout": "",
+            "stderr": "",
             "error": message,
         }
 
@@ -344,67 +351,44 @@ class PersistentPythonSession:
         with self._execution_lock:
             if not self._pending:
                 return self._execution_error("No execution result is pending.")
-            return self._collect_result(timeout, None)
+            return self._collect_result(timeout)
 
-    def _collect_result(self, timeout: float, no_output_timeout: Optional[float]) -> dict[str, Any]:
-        """Collect each stream through its validated boundary, retaining state on timeout."""
-        deadline = time.monotonic() + timeout
-        last_output = time.monotonic()
-        while len(self._markers) < 2:
-            for name, output_queue in (
-                ("stdout", self._output_queue),
-                ("stderr", self._error_queue),
-            ):
-                if name in self._markers:
-                    continue
-                try:
-                    line = output_queue.get(timeout=min(0.01, max(0, deadline - time.monotonic())))
-                except queue.Empty:
-                    continue
-                if line is None:
-                    self._pending = False
-                    return self._execution_error(f"Python session closed {name} before its marker.")
-                last_output = time.monotonic()
-                try:
-                    marker = _CodeTerminationMarker.model_validate_json(line, strict=True)
-                except ValidationError:
-                    self._collected[name].append(line)
-                else:
-                    self._markers[name] = marker
-                    # The worker inserts exactly one newline before the marker.
-                    text = "".join(self._collected[name])
-                    self._collected[name] = [text.removesuffix("\n")]
-            if len(self._markers) == 2:
-                break
-            if time.monotonic() >= deadline:
+    def _collect_result(self, timeout: float) -> dict[str, Any]:
+        """Wait for one validated response belonging to the pending request."""
+        if self._control is None:
+            return self._execution_error("Python control connection is not available.")
+        try:
+            if not self._control.poll(timeout):
+                if timeout == 0:
+                    return self._execution_error(
+                        "Execution result pending. "
+                        "Call wait_for_result() before submitting new code."
+                    )
                 return self._execution_error(
                     f"Code execution timed out after {timeout} seconds. "
                     "Execution continues; call wait_for_result()."
                 )
-            if (
-                no_output_timeout is not None
-                and time.monotonic() - last_output >= no_output_timeout
-            ):
-                return self._execution_error(
-                    "No output received before no_output_timeout. "
-                    "Execution continues; call wait_for_result()."
-                )
-        self._pending = False
-        marker = self._markers["stdout"]
-        if marker != self._markers["stderr"]:
-            return self._execution_error("Python session returned inconsistent completion markers.")
+            result = _ExecutionResult.model_validate_json(self._control.recv_bytes(), strict=True)
+        except (EOFError, OSError, ValueError) as exc:
+            return self._execution_error(f"Python control response failed: {exc}")
+        if result.id != self._pending:
+            return self._execution_error(
+                f"Python response ID {result.id!r} "
+                f"does not match pending request {self._pending!r}."
+            )
+        self._pending = None
         error = ""
-        if not marker.is_complete:
+        if not result.is_complete:
             error = "Incomplete Python source. Submit a complete snippet."
-        elif not marker.success:
-            error = "".join(self._collected["stderr"]) or "Python execution failed."
+        elif not result.success:
+            error = result.stderr or "Python execution failed."
         if error:
-            return self._execution_error(error)
+            logger.error(error)
         return {
-            "success": True,
-            "stdout": "".join(self._collected["stdout"]),
-            "stderr": "".join(self._collected["stderr"]),
-            "error": "",
+            "success": not error,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "error": error,
         }
 
     def stop(self) -> dict[str, Any]:
@@ -441,15 +425,12 @@ class PersistentPythonSession:
                     self.process.kill()
                     self.process.wait()
 
-            for thread in (self._output_thread, self._error_thread):
-                if thread is not None:
-                    thread.join(timeout=1)
-            if self.process:
-                for stream in (self.process.stdout, self.process.stderr):
-                    if stream is not None:
-                        stream.close()
+            if self._control is not None:
+                self._control.close()
+                self._control = None
+            self._logs.cleanup()
             self._is_running = False
-            self._pending = False
+            self._pending = None
             logger.info("Persistent Python session stopped.")
 
             return {
@@ -554,51 +535,6 @@ class PersistentPythonSession:
 
         """
         return self._is_running and self.process is not None and self.process.poll() is None
-
-    def _read_stream(self, stream, output_queue: queue.Queue):
-        """Read from a stream and put lines into a queue.
-
-        Parameters
-        ----------
-        stream
-            Stream to read from (stdout or stderr).
-        output_queue : queue.Queue
-            Queue to put the read lines into.
-
-        """
-        try:
-            for line in iter(stream.readline, ""):
-                if line:
-                    output_queue.put(line)
-                if not self._is_running:
-                    break
-        except Exception as e:
-            logger.error(f"Error reading stream: {e}")
-        finally:
-            output_queue.put(None)
-
-    def _drain_queues(self, timeout: float = 0.1):
-        """Drain both output and error queues to clear any pending output.
-
-        Parameters
-        ----------
-        timeout : float, default: 0.1
-            Maximum time to spend draining queues in seconds.
-
-        """
-        start = time.time()
-        while time.time() - start < timeout:
-            try:
-                self._output_queue.get_nowait()
-            except queue.Empty:
-                break
-
-        start = time.time()
-        while time.time() - start < timeout:
-            try:
-                self._error_queue.get_nowait()
-            except queue.Empty:
-                break
 
     def __enter__(self):
         """Context manager entry."""
