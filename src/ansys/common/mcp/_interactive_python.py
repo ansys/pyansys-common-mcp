@@ -14,10 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Execute JSON-lines requests, terminating both output streams with a JSON marker."""
+"""Execute JSON-lines requests and return captured Python output over a control connection."""
 
+import argparse
 import code
+from contextlib import redirect_stderr, redirect_stdout
+import io
 import json
+from multiprocessing.connection import Connection, Listener
 import sys
 
 
@@ -44,37 +48,50 @@ class Interpreter(code.InteractiveInterpreter):
 
 def main():
     """Serve complete snippets in a persistent namespace without rewriting source."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("address")
+    parser.add_argument("family", choices=("AF_UNIX", "AF_PIPE"))
+    args = parser.parse_args()
+    with Listener(args.address, family=args.family) as listener:
+        with listener.accept() as control:
+            serve(control)
+
+
+def serve(control: Connection) -> None:
+    """Capture each request's Python output and send one complete JSON response."""
     sys.path[0] = ""  # Preserve working-directory imports from the former ``python -c`` launch.
     interpreter = Interpreter()
     for line in sys.stdin:
-        is_complete = True
-        try:
-            request = json.loads(line)
-            if not isinstance(request, dict) or not isinstance(request.get("code"), str):
-                raise ValueError("Expected a JSON object with a string 'code' field")
-        except ValueError as exc:
-            interpreter.success = False
-            print(f"Invalid request: {exc}", file=sys.stderr)
-        else:
+        stdout, stderr = io.StringIO(), io.StringIO()
+        request_id = None
+        with redirect_stdout(stdout), redirect_stderr(stderr):
+            is_complete = True
             try:
-                is_complete = not interpreter.runsource(
-                    request["code"], filename="<script>", symbol="exec"
-                )
-            except SystemExit:
-                interpreter.showtraceback()
-
-        sys.stdout.flush()
-        sys.stderr.flush()
-        # A leading newline separates the marker from output printed without a newline.
-        marker = json.dumps(
+                request = json.loads(line)
+                if isinstance(request, dict) and isinstance(request.get("id"), str):
+                    request_id = request["id"]
+                if request_id is None or not isinstance(request.get("code"), str):
+                    raise ValueError("Expected a JSON object with string 'id' and 'code' fields")
+            except ValueError as exc:
+                interpreter.success = False
+                print(f"Invalid request: {exc}", file=sys.stderr)
+            else:
+                try:
+                    is_complete = not interpreter.runsource(
+                        request["code"], filename="<script>", symbol="exec"
+                    )
+                except SystemExit:
+                    interpreter.showtraceback()
+        response = json.dumps(
             {
-                "marker": "___EXECUTION_COMPLETE___",
+                "id": request_id,
                 "success": interpreter.success and is_complete,
                 "is_complete": is_complete,
+                "stdout": stdout.getvalue(),
+                "stderr": stderr.getvalue(),
             }
         )
-        print("\n" + marker, file=sys.stdout, flush=True)
-        print("\n" + marker, file=sys.stderr, flush=True)
+        control.send_bytes(response.encode("utf-8"))
 
 
 if __name__ == "__main__":

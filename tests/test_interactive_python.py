@@ -14,19 +14,75 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for the standalone interpreter's raw-output and termination-marker protocol."""
+"""Tests for the standalone interpreter's captured-output control protocol."""
 
 import io
 import json
+from multiprocessing.connection import Client
 from pathlib import Path
 import subprocess
 import sys
+import time
+from uuid import uuid4
 
 import pytest
 
 from ansys.common.mcp import _interactive_python as worker, helpers
 from ansys.common.mcp._interactive_python import Interpreter
-from ansys.common.mcp.helpers import _CodeTerminationMarker
+
+
+@pytest.fixture
+def run_worker(tmp_path):
+    """Run requests through the real worker and its platform-local control connection."""
+
+    def run(requests):
+        script = Path(helpers.__file__).with_name("_interactive_python.py")
+        family = "AF_PIPE" if sys.platform == "win32" else "AF_UNIX"
+        address = (
+            rf"\\.\pipe\worker-test-{uuid4().hex}"
+            if family == "AF_PIPE"
+            else str(tmp_path / "control")
+        )
+        with (
+            (tmp_path / "stdout").open("wb") as stdout,
+            (tmp_path / "stderr").open("wb") as stderr,
+        ):
+            process = subprocess.Popen(
+                [sys.executable, "-u", str(script), address, family],
+                stdin=subprocess.PIPE,
+                stdout=stdout,
+                stderr=stderr,
+                text=True,
+                encoding="utf-8",
+            )
+            try:
+                deadline = time.monotonic() + 5
+                while True:
+                    try:
+                        control = Client(address, family=family)
+                        break
+                    except OSError:
+                        if process.poll() is not None or time.monotonic() >= deadline:
+                            raise
+                        time.sleep(0.01)
+                responses = []
+                with control:
+                    for request in requests:
+                        process.stdin.write(request + "\n")
+                        process.stdin.flush()
+                        assert control.poll(5), "Worker did not return a completion response"
+                        responses.append(json.loads(control.recv_bytes()))
+                    process.stdin.close()
+                    assert process.wait(timeout=5) == 0
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                process.wait(timeout=5)
+                if process.stdin is not None:
+                    process.stdin.close()
+        return responses, (tmp_path / "stdout").read_bytes(), (tmp_path / "stderr").read_bytes()
+
+    return run
 
 
 @pytest.mark.parametrize(
@@ -45,13 +101,16 @@ def test_worker_returns_captured_response(
     monkeypatch, mocker, capfd, source, success, is_complete, stdout, diagnostic
 ):
     """Return one complete response per request, without printing protocol data."""
-    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"code": source}) + "\n"))
+    monkeypatch.setattr(
+        sys, "stdin", io.StringIO(json.dumps({"id": "request-1", "code": source}) + "\n")
+    )
     control = mocker.Mock()
 
     worker.serve(control)
 
     control.send_bytes.assert_called_once()
     response = json.loads(control.send_bytes.call_args.args[0])
+    assert response["id"] == "request-1"
     assert response["success"] is success
     assert response["is_complete"] is is_complete
     assert response["stdout"] == stdout
@@ -68,14 +127,15 @@ def test_worker_separates_native_output_and_preserves_state(monkeypatch, mocker,
     """Native writes bypass Python capture; each response contains only its own output."""
     requests = [
         {
+            "id": "first",
             "code": "import os, sys\n"
             "value = 41\n"
             "print('python stdout', end='')\n"
             "print('python stderr', end='', file=sys.stderr)\n"
             "os.write(1, b'native stdout')\n"
-            "os.write(2, b'native stderr')"
+            "os.write(2, b'native stderr')",
         },
-        {"code": "print(value + 1)"},
+        {"id": "second", "code": "print(value + 1)"},
     ]
     monkeypatch.setattr(
         sys, "stdin", io.StringIO("".join(json.dumps(request) + "\n" for request in requests))
@@ -86,6 +146,7 @@ def test_worker_separates_native_output_and_preserves_state(monkeypatch, mocker,
 
     responses = [json.loads(call.args[0]) for call in control.send_bytes.call_args_list]
     assert len(responses) == 2
+    assert [response["id"] for response in responses] == ["first", "second"]
     assert all(response["success"] for response in responses)
     assert responses[0]["stdout"] == "python stdout"
     assert responses[0]["stderr"] == "python stderr"
@@ -94,6 +155,34 @@ def test_worker_separates_native_output_and_preserves_state(monkeypatch, mocker,
     captured = capfd.readouterr()
     assert captured.out == "native stdout"
     assert captured.err == "native stderr"
+
+
+def test_native_output_goes_to_subprocess_logs(run_worker):
+    """Descriptor writes reach log files, not the captured control response."""
+    responses, stdout, stderr = run_worker(
+        [
+            json.dumps(
+                {
+                    "id": "native",
+                    "code": "import os\n"
+                    "print('captured')\n"
+                    "os.write(1, b'native stdout')\n"
+                    "os.write(2, b'native stderr')",
+                }
+            )
+        ]
+    )
+    assert responses == [
+        {
+            "id": "native",
+            "success": True,
+            "is_complete": True,
+            "stdout": "captured\n",
+            "stderr": "",
+        }
+    ]
+    assert stdout == b"native stdout"
+    assert stderr == b"native stderr"
 
 
 @pytest.mark.parametrize("source", ["raise ValueError('problem')", "if True print('bad')"])
@@ -124,59 +213,54 @@ def test_runsource_resets_success_after_failure(source):
         ("import sys; print('partial', end='', file=sys.stderr)", True, True, "partial"),
     ],
 )
-def test_worker_emits_valid_marker_and_recovers(source, success, is_complete, diagnostic):
-    """Each request terminates both streams with matching markers and remains usable."""
-    worker = Path(helpers.__file__).with_name("_interactive_python.py")
-    requests = [{"code": source}, {"code": "x = 42"}, {"code": "print(x)"}]
-    result = subprocess.run(
-        [sys.executable, "-u", str(worker)],
-        input="".join(json.dumps(request) + "\n" for request in requests),
-        text=True,
-        capture_output=True,
-        timeout=10,
-        check=True,
-    )
-    markers = [
-        _CodeTerminationMarker.model_validate_json(line)
-        for line in result.stdout.splitlines()
-        if line.startswith('{"marker":')
+def test_worker_returns_response_and_recovers(run_worker, source, success, is_complete, diagnostic):
+    """Real control messages carry matching IDs and isolated output across requests."""
+    requests = [
+        {"id": "first", "code": source},
+        {"id": "second", "code": "x = 42"},
+        {"id": "third", "code": "print(x)"},
     ]
-    assert len(markers) == 3
-    stderr_markers = [
-        _CodeTerminationMarker.model_validate_json(line)
-        for line in result.stderr.splitlines()
-        if line.startswith('{"marker":')
-    ]
-    assert stderr_markers == markers
-    assert markers[0].success is success
-    assert markers[0].is_complete is is_complete
-    assert all(marker.success and marker.is_complete for marker in markers[1:])
-    assert "\n42\n" in result.stdout
+    responses, stdout, stderr = run_worker([json.dumps(request) for request in requests])
+    assert [response["id"] for response in responses] == ["first", "second", "third"]
+    assert responses[0]["success"] is success
+    assert responses[0]["is_complete"] is is_complete
+    assert all(response["success"] and response["is_complete"] for response in responses[1:])
+    assert responses[1]["stdout"] == responses[1]["stderr"] == ""
+    assert responses[2]["stdout"] == "42\n"
+    assert responses[2]["stderr"] == ""
+    assert stdout == stderr == b""
     if diagnostic:
-        assert diagnostic in result.stderr
+        assert diagnostic in responses[0]["stderr"]
     if source.startswith("for value"):
-        assert result.stdout.startswith("1\n2\n")
+        assert responses[0]["stdout"] == "1\n2\n"
     if source.startswith("print('partial'"):
-        assert result.stdout.startswith('partial\n{"marker":')
+        assert responses[0]["stdout"] == "partial"
     if "end='', file=sys.stderr" in source:
-        assert result.stderr.startswith('partial\n{"marker":')
+        assert responses[0]["stderr"] == "partial"
 
 
-@pytest.mark.parametrize("request_line", ["not json", "[]", '{"code": 42}', "{}"])
-def test_invalid_request_emits_failure_marker(request_line):
-    """Malformed requests report a diagnostic and a marker on each output stream."""
-    worker = Path(helpers.__file__).with_name("_interactive_python.py")
-    result = subprocess.run(
-        [sys.executable, "-u", str(worker)],
-        input=request_line + "\n",
-        text=True,
-        capture_output=True,
-        timeout=10,
-        check=True,
+@pytest.mark.parametrize(
+    "request_line, request_id",
+    [
+        ("not json", None),
+        ("[]", None),
+        ('{"code": 42}', None),
+        ("{}", None),
+        ('{"id":"invalid","code":42}', "invalid"),
+        ('{"id":42,"code":"pass"}', None),
+    ],
+)
+def test_invalid_request_returns_failure(run_worker, request_line, request_id):
+    """Malformed requests return captured diagnostics and preserve valid request IDs."""
+    responses, stdout, stderr = run_worker(
+        [request_line, json.dumps({"id": "recovery", "code": "print('ok')"})]
     )
-    marker = _CodeTerminationMarker.model_validate_json(result.stdout.strip())
-    assert not marker.success
-    assert marker.is_complete
-    assert "Invalid request" in result.stderr
-    stderr_marker = _CodeTerminationMarker.model_validate_json(result.stderr.splitlines()[-1])
-    assert stderr_marker == marker
+    assert responses[0]["id"] == request_id
+    assert not responses[0]["success"]
+    assert responses[0]["is_complete"]
+    assert responses[0]["stdout"] == ""
+    assert "Invalid request" in responses[0]["stderr"]
+    assert responses[1]["id"] == "recovery"
+    assert responses[1]["success"]
+    assert responses[1]["stdout"] == "ok\n"
+    assert stdout == stderr == b""
