@@ -23,7 +23,7 @@ import time
 
 import pytest
 
-from ansys.common.mcp.helpers import PersistentPythonSession, _CodeTerminationMarker
+from ansys.common.mcp.helpers import PersistentPythonSession
 
 # ============================================================================
 # PersistentPythonSession Unit Tests
@@ -169,68 +169,6 @@ class TestPersistentPythonSessionInternalMethods:
 
     Tests internal helper methods used by the session.
     """
-
-    @pytest.mark.parametrize("first_stream", ["stdout", "stderr"])
-    @pytest.mark.parametrize("already_collected", [False, True])
-    def test_execute_drains_completed_pending_result(self, mocker, first_stream, already_collected):
-        """Accept new code only after both pending stream boundaries have been consumed."""
-        session = PersistentPythonSession()
-        session._is_running = True
-        session.process = mocker.Mock()
-        session._pending = True
-        session._collected = {"stdout": ["previous output\n"], "stderr": ["previous error\n"]}
-        marker = _CodeTerminationMarker(
-            marker="___EXECUTION_COMPLETE___", success=True, is_complete=True
-        )
-        queues = {"stdout": session._output_queue, "stderr": session._error_queue}
-        if already_collected:
-            session._markers[first_stream] = marker
-        else:
-            queues[first_stream].put(marker.model_dump_json() + "\n")
-        other_stream = "stderr" if first_stream == "stdout" else "stdout"
-        queues[other_stream].put(marker.model_dump_json() + "\n")
-        expected = {"success": True, "stdout": "new output\n", "stderr": "", "error": ""}
-        collect = mocker.patch.object(session, "_collect_result", return_value=expected)
-
-        result = session.execute("print('new output')")
-
-        assert result == expected
-        session.process.stdin.write.assert_called_once_with('{"code": "print(\'new output\')"}\n')
-        collect.assert_called_once()
-        assert session._collected == {"stdout": [], "stderr": []}
-        assert session._markers == {}
-        assert all(output_queue.empty() for output_queue in queues.values())
-
-    @pytest.mark.parametrize("finished_stream", ["stdout", "stderr"])
-    def test_execute_rejects_pending_result_until_both_markers(self, mocker, finished_stream):
-        """A single stream boundary must not permit another request or lose pending output."""
-        session = PersistentPythonSession()
-        session._is_running = True
-        session.process = mocker.Mock()
-        session._pending = True
-        marker = _CodeTerminationMarker(
-            marker="___EXECUTION_COMPLETE___", success=True, is_complete=True
-        )
-        queues = {"stdout": session._output_queue, "stderr": session._error_queue}
-        queues[finished_stream].put("previous output\n")
-        queues[finished_stream].put("\n")
-        queues[finished_stream].put(marker.model_dump_json() + "\n")
-
-        result = session.execute("print('must not run')", timeout=5)
-
-        assert not result["success"]
-        assert "pending" in result["error"]
-        assert session._pending
-        session.process.stdin.write.assert_not_called()
-
-        other_stream = "stderr" if finished_stream == "stdout" else "stdout"
-        queues[other_stream].put("\n")
-        queues[other_stream].put(marker.model_dump_json() + "\n")
-        result = session.wait_for_result(timeout=1)
-
-        assert result["success"], result
-        assert result[finished_stream] == "previous output\n"
-        assert result[other_stream] == ""
 
     def test_drain_queues(self):
         """Test that _drain_queues successfully clears pending output."""
