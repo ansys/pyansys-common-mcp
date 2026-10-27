@@ -363,6 +363,35 @@ class TestPersistentPythonSessionIntegration:
             assert result["stderr"] == ""
             assert session.execute("print(x)")["stdout"] == "42\n"
 
+    def test_execute_discards_completed_result_after_client_timeout(self, tmp_path):
+        """A completed timed-out request must not lock or contaminate the next request."""
+        completed = tmp_path / "completed"
+        with PersistentPythonSession() as session:
+            result = session.execute(
+                "import time, sys\n"
+                "from pathlib import Path\n"
+                "time.sleep(0.2)\n"
+                "value = 41\n"
+                "print('old stdout')\n"
+                "print('old stderr', file=sys.stderr)\n"
+                f"Path({str(completed)!r}).touch()\n",
+                timeout=0.01,
+            )
+            assert not result["success"]
+            assert "timed out" in result["error"]
+            deadline = time.monotonic() + 5
+            while not completed.exists() and time.monotonic() < deadline:
+                time.sleep(0.01)
+            assert completed.exists(), "The worker did not finish the first request"
+            # The file precedes the completion send; allow delivery without collecting the result.
+            time.sleep(0.1)
+
+            result = session.execute("print(value + 1)", timeout=5)
+
+            assert result["success"], result
+            assert result["stdout"] == "42\n"
+            assert result["stderr"] == ""
+
     def test_collects_both_streams_without_markers(self):
         """Preserve partial output and exclude both marker lines and separator newlines."""
         with PersistentPythonSession() as session:

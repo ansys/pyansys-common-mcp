@@ -16,6 +16,7 @@
 
 """Tests for the standalone interpreter's raw-output and termination-marker protocol."""
 
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -23,9 +24,76 @@ import sys
 
 import pytest
 
-from ansys.common.mcp import helpers
+from ansys.common.mcp import _interactive_python as worker, helpers
 from ansys.common.mcp._interactive_python import Interpreter
 from ansys.common.mcp.helpers import _CodeTerminationMarker
+
+
+@pytest.mark.parametrize(
+    "source, success, is_complete, stdout, diagnostic",
+    [
+        ("print('partial', end='')", True, True, "partial", ""),
+        ("print('\\u03b1')", True, True, "\u03b1\n", ""),
+        ("for value in [1, 2]: print(value)", True, True, "1\n2\n", ""),
+        ("raise ValueError('problem')", False, True, "", "ValueError"),
+        ("if True print('bad')", False, True, "", "SyntaxError"),
+        ("raise SystemExit(2)", False, True, "", "SystemExit"),
+        ("if True:", False, False, "", ""),
+    ],
+)
+def test_worker_returns_captured_response(
+    monkeypatch, mocker, capfd, source, success, is_complete, stdout, diagnostic
+):
+    """Return one complete response per request, without printing protocol data."""
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"code": source}) + "\n"))
+    control = mocker.Mock()
+
+    worker.serve(control)
+
+    control.send_bytes.assert_called_once()
+    response = json.loads(control.send_bytes.call_args.args[0])
+    assert response["success"] is success
+    assert response["is_complete"] is is_complete
+    assert response["stdout"] == stdout
+    if diagnostic:
+        assert diagnostic in response["stderr"]
+    else:
+        assert response["stderr"] == ""
+    captured = capfd.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+
+def test_worker_separates_native_output_and_preserves_state(monkeypatch, mocker, capfd):
+    """Native writes bypass Python capture; each response contains only its own output."""
+    requests = [
+        {
+            "code": "import os, sys\n"
+            "value = 41\n"
+            "print('python stdout', end='')\n"
+            "print('python stderr', end='', file=sys.stderr)\n"
+            "os.write(1, b'native stdout')\n"
+            "os.write(2, b'native stderr')"
+        },
+        {"code": "print(value + 1)"},
+    ]
+    monkeypatch.setattr(
+        sys, "stdin", io.StringIO("".join(json.dumps(request) + "\n" for request in requests))
+    )
+    control = mocker.Mock()
+
+    worker.serve(control)
+
+    responses = [json.loads(call.args[0]) for call in control.send_bytes.call_args_list]
+    assert len(responses) == 2
+    assert all(response["success"] for response in responses)
+    assert responses[0]["stdout"] == "python stdout"
+    assert responses[0]["stderr"] == "python stderr"
+    assert responses[1]["stdout"] == "42\n"
+    assert responses[1]["stderr"] == ""
+    captured = capfd.readouterr()
+    assert captured.out == "native stdout"
+    assert captured.err == "native stderr"
 
 
 @pytest.mark.parametrize("source", ["raise ValueError('problem')", "if True print('bad')"])
