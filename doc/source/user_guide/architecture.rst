@@ -221,6 +221,35 @@ maintain state between executions. For example:
 - Maintaining Python objects or connections across multiple tool calls
 - Executing complex calculations or data processing pipelines
 
+**Execution and output capture:**
+
+``PersistentPythonSession`` launches the selected Python executable as a standalone worker.
+Complete code snippets are sent as JSON lines on stdin. The worker preserves its namespace
+between requests and captures Python-level stdout and stderr in memory. It sends one JSON
+completion response over a separate local ``multiprocessing.connection`` channel (a Unix-domain
+socket on Linux or a named pipe on Windows). The parent validates the response with Pydantic
+and checks its request ID before returning the captured output.
+
+The ``timeout`` parameter limits the client's wait, not execution. After a timeout, code
+continues running and its output is available only when execution finishes. Call
+``wait_for_result()`` to collect the pending result. Alternatively, a new ``execute()`` call
+discards a completed pending result before submitting new code; it rejects the new request
+if the previous execution is still running. Variables and imports are preserved in either case.
+``execute_python_code()`` still accepts ``no_output_timeout`` for compatibility, but ignores it.
+``PersistentPythonSession.execute()`` accepts only the overall client timeout.
+
+Native writes that bypass Python's streams, including inherited subprocess output, go to
+separate ``stdout.log`` and ``stderr.log`` files rather than the returned output fields.
+The temporary log directory is created during session initialization, removed on shutdown,
+and recreated when a stopped session starts again. Its path is logged at debug level.
+Native logs grow for the duration of a running session; Python-level output is buffered in
+memory until completion. Neither capture has a size limit.
+
+Submit complete snippets and use ``print()`` to return expression values: bare expressions
+are not echoed. Python stream redirection is process-wide, so background-thread output can
+be omitted or captured by a later request. Code that expects ``sys.stdout.fileno()`` may
+also need adaptation because the captured Python streams are in-memory buffers.
+
 **When to disable Python sessions:**
 
 If your MCP server primarily exposes product functionality through direct API calls and does not

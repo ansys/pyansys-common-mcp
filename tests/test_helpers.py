@@ -16,87 +16,14 @@
 
 """Unit tests for helpers module."""
 
-import queue
+from pathlib import Path
 import sys
 import tempfile
+import time
 
 import pytest
 
-from ansys.common.mcp.helpers import PersistentPythonSession, _prepare_repl_code
-
-# ============================================================================
-# _prepare_repl_code Unit Tests
-# ============================================================================
-
-
-class TestPrepareReplCode:
-    """Unit tests for the _prepare_repl_code pure function."""
-
-    def test_empty_code_returned_unchanged(self):
-        assert _prepare_repl_code("") == ""
-
-    def test_flat_code_returned_unchanged(self):
-        code = "x = 1\nprint(x)"
-        assert _prepare_repl_code(code) == code
-
-    def test_blank_line_inside_block_replaced_with_comment(self):
-        code = "for i in range(5):\n\n    print(i)"
-        result = _prepare_repl_code(code)
-        assert "\n\n" not in result
-        assert "#" in result
-
-    def test_blank_line_with_spaces_inside_block_replaced(self):
-        code = "for i in range(5):\n   \n    print(i)"
-        result = _prepare_repl_code(code)
-        lines = result.splitlines()
-        assert any(line.strip() == "#" for line in lines)
-
-    def test_blank_line_inserted_after_block(self):
-        code = "for i in range(5):\n    print(i)\nprint('done')"
-        result = _prepare_repl_code(code)
-        lines = result.splitlines()
-        # A blank line must appear between the end of the block and print('done')
-        idx = lines.index("print('done')")
-        assert lines[idx - 1] == ""
-
-    def test_trailing_blank_line_inserted_when_ending_on_indented_block(self):
-        code = "for i in range(5):\n    print(i)"
-        result = _prepare_repl_code(code)
-        assert result.endswith("\n")
-
-    def test_no_trailing_blank_line_when_ending_on_flat_code(self):
-        code = "for i in range(5):\n    print(i)\nprint('done')"
-        result = _prepare_repl_code(code)
-        assert not result.endswith("\n\n")
-
-    def test_continuation_keywords_do_not_trigger_extra_blank_line(self):
-        code = "if x:\n    pass\nelse:\n    pass"
-        result = _prepare_repl_code(code)
-        lines = result.splitlines()
-        # No blank line should appear before 'else'
-        idx = lines.index("else:")
-        assert lines[idx - 1] != ""
-
-    def test_nested_blocks_handled(self):
-        code = "for i in range(5):\n    if i > 2:\n        print(i)\nprint('done')"
-        result = _prepare_repl_code(code)
-        assert "print('done')" in result
-        # Blank line must appear before 'print('done')'
-        lines = result.splitlines()
-        idx = lines.index("print('done')")
-        assert lines[idx - 1] == ""
-
-    def test_comment_lines_preserved_as_is(self):
-        code = "# a comment\nx = 1"
-        result = _prepare_repl_code(code)
-        assert result.startswith("# a comment")
-
-    def test_only_single_blank_line_inserted_not_double(self):
-        """append('') joined with '\\n' must produce exactly one blank line, not two."""
-        code = "for i in range(5):\n    print(i)\nprint('done')"
-        result = _prepare_repl_code(code)
-        assert "\n\n\n" not in result
-
+from ansys.common.mcp.helpers import PersistentPythonSession
 
 # ============================================================================
 # PersistentPythonSession Unit Tests
@@ -150,17 +77,13 @@ class TestPersistentPythonSessionInitialization:
         assert hasattr(session, "startup_code")
         assert hasattr(session, "working_directory")
         assert hasattr(session, "process")
-        assert hasattr(session, "_output_thread")
-        assert hasattr(session, "_error_thread")
-        assert hasattr(session, "_output_queue")
-        assert hasattr(session, "_error_queue")
+        assert session._control is None
+        assert isinstance(session._log_directory, Path)
+        assert session._log_directory.is_dir()
+        assert session._pending is None
         assert hasattr(session, "_is_running")
         assert hasattr(session, "_execution_lock")
         assert hasattr(session, "metadata")
-
-        # Verify queue types
-        assert isinstance(session._output_queue, queue.Queue)
-        assert isinstance(session._error_queue, queue.Queue)
 
 
 class TestPersistentPythonSessionBasicOperations:
@@ -243,30 +166,107 @@ class TestPersistentPythonSessionInternalMethods:
     Tests internal helper methods used by the session.
     """
 
-    def test_drain_queues(self):
-        """Test that _drain_queues successfully clears pending output."""
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            b"not json",
+            b'{"id":"expected","success":"yes","is_complete":true,"stdout":"","stderr":""}',
+            b'{"id":"expected","success":true,"is_complete":true}',
+            b'{"id":"wrong","success":true,"is_complete":true,"stdout":"","stderr":""}',
+        ],
+    )
+    def test_invalid_response_does_not_unlock_session(self, mocker, payload):
+        """Invalid or unrelated responses must never allow new code to be submitted."""
         session = PersistentPythonSession()
+        session.process = mocker.Mock()
+        session._is_running = True
+        session._pending = "expected"
+        session._control = mocker.Mock()
+        session._control.poll.return_value = True
+        session._control.recv_bytes.return_value = payload
+        result = session.execute("print('must not run')")
+        assert not result["success"]
+        assert result["error"]
+        assert session._pending == "expected"
+        session.process.stdin.write.assert_not_called()
 
-        # Add items to output queue
-        session._output_queue.put("line1")
-        session._output_queue.put("line2")
+    def test_request_id_is_sent_and_validated(self, mocker):
+        """A response is accepted only when its ID matches the submitted request."""
+        import json
 
-        # Drain should remove items
-        session._drain_queues(timeout=0.5)
+        session = PersistentPythonSession()
+        session.process = mocker.Mock()
+        session._is_running = True
+        session._control = mocker.Mock()
+        session._control.poll.return_value = True
 
-        # Queue should be empty
+        def response():
+            request = json.loads(session.process.stdin.write.call_args.args[0])
+            assert request["id"]
+            return json.dumps(
+                {
+                    "id": request["id"],
+                    "success": True,
+                    "is_complete": True,
+                    "stdout": "ok\n",
+                    "stderr": "",
+                }
+            ).encode()
+
+        session._control.recv_bytes.side_effect = response
+        result = session.execute("print('ok')")
+        assert result == {"success": True, "stdout": "ok\n", "stderr": "", "error": ""}
+        assert session._pending is None
+
+    def test_closed_control_connection_rejects_new_code(self, mocker):
+        """A disconnected worker must not be mistaken for completed pending work."""
+        session = PersistentPythonSession()
+        session._is_running = True
+        session._pending = "pending"
+        session.process = mocker.Mock()
+        session._control = mocker.Mock()
+        session._control.poll.return_value = True
+        session._control.recv_bytes.side_effect = EOFError
+
+        result = session.execute("print('must not run')")
+
+        assert not result["success"]
+        assert "control response failed" in result["error"]
+        assert session._pending == "pending"
+        session.process.stdin.write.assert_not_called()
+
+    def test_failed_launch_removes_native_logs(self, mocker):
+        """Temporary logs must also be cleaned up when process creation fails."""
+        session = PersistentPythonSession()
+        directories = []
+
+        def fail_launch(*args, **kwargs):
+            directories.append(session._log_directory)
+            raise OSError("launch failed")
+
+        mocker.patch("ansys.common.mcp.helpers.subprocess.Popen", side_effect=fail_launch)
+        result = session.start()
+        assert not result["success"]
+        assert "launch failed" in result["error"]
+        assert directories[0] is not None
+        assert not directories[0].exists()
+        assert not session._log_directory.exists()
+
+    def test_log_directory_recreated_after_stop(self):
+        """A stopped session can start again with fresh, independently owned logs."""
+        session = PersistentPythonSession()
         try:
-            session._output_queue.get_nowait()
-            empty = False
-        except queue.Empty:
-            empty = True
-
-        assert empty
-
-    def test_read_stream_callable(self):
-        """Test that _read_stream method exists and is callable."""
-        session = PersistentPythonSession()
-        assert callable(session._read_stream)
+            original_directory = session._log_directory
+            assert original_directory.is_dir()
+            assert session.start()["success"]
+            assert session.stop()["success"]
+            assert not original_directory.exists()
+            assert session.start()["success"]
+            assert session._log_directory.is_dir()
+            assert session._log_directory != original_directory
+            assert session.execute("print('restarted')")["stdout"] == "restarted\n"
+        finally:
+            session.stop()
 
     def test_execution_lock_exists(self):
         """Test that execution lock is initialized for thread safety."""
@@ -401,6 +401,116 @@ class TestPersistentPythonSessionIntegration:
             assert "hello world" in result["stdout"]
         finally:
             session.stop()
+
+    def test_execute_single_line_for_loop(self):
+        """Reproduce issue #213: a single-line loop must execute without syntax errors."""
+        session = PersistentPythonSession(python_executable=sys.executable)
+
+        try:
+            started = session.start()
+            assert started["success"], started
+
+            baseline = session.execute("print('baseline')")
+            assert baseline["success"], baseline
+            assert baseline["stdout"].strip() == "baseline", baseline
+
+            result = session.execute("for value in [1, 2]: print(value)")
+            assert result["success"], result
+            assert result["stdout"].splitlines() == ["1", "2"], result
+        finally:
+            session.stop()
+
+    def test_timeout_preserves_pending_result(self):
+        """A client timeout must not reset state or misalign subsequent results."""
+        with PersistentPythonSession() as session:
+            result = session.execute(
+                "import time; time.sleep(0.2); x = 42; print('late')", timeout=0.01
+            )
+            assert not result["success"]
+            assert "timed out" in result["error"]
+            assert "pending" in session.execute("x = -1")["error"]
+
+            result = session.wait_for_result(timeout=5)
+            assert result["success"], result
+            assert result["stdout"] == "late\n"
+            assert result["stderr"] == ""
+            assert session.execute("print(x)")["stdout"] == "42\n"
+
+    def test_large_control_response(self):
+        """Output larger than a pipe buffer must be received without deadlocking the worker."""
+        with PersistentPythonSession() as session:
+            result = session.execute("print('x' * 200000, end='')", timeout=5)
+            assert result["success"], result
+            assert result["stdout"] == "x" * 200000
+            assert result["stderr"] == ""
+
+    def test_execute_discards_completed_result_after_client_timeout(self, tmp_path):
+        """A completed timed-out request must not lock or contaminate the next request."""
+        completed = tmp_path / "completed"
+        with PersistentPythonSession() as session:
+            result = session.execute(
+                "import time, sys\n"
+                "from pathlib import Path\n"
+                "time.sleep(0.2)\n"
+                "value = 41\n"
+                "print('old stdout')\n"
+                "print('old stderr', file=sys.stderr)\n"
+                f"Path({str(completed)!r}).touch()\n",
+                timeout=0.01,
+            )
+            assert not result["success"]
+            assert "timed out" in result["error"]
+            deadline = time.monotonic() + 5
+            while not completed.exists() and time.monotonic() < deadline:
+                time.sleep(0.01)
+            assert completed.exists(), "The worker did not finish the first request"
+            # The file precedes the completion send; allow delivery without collecting the result.
+            time.sleep(0.1)
+
+            result = session.execute("print(value + 1)", timeout=5)
+
+            assert result["success"], result
+            assert result["stdout"] == "42\n"
+            assert result["stderr"] == ""
+
+    def test_python_capture_and_native_log_lifecycle(self):
+        """Native logs stay separate from captured results and are removed on shutdown."""
+        with PersistentPythonSession() as session:
+            directory = session._log_directory
+            assert directory is not None
+            result = session.execute(
+                "import os, sys\n"
+                "print('python stdout', end='')\n"
+                "print('python stderr', end='', file=sys.stderr)\n"
+                "os.write(1, b'___EXECUTION_COMPLETE___  ')\n"
+                "os.write(2, b'error text without newline')"
+            )
+            assert result["success"], result
+            assert result["stdout"] == "python stdout"
+            assert result["stderr"] == "python stderr"
+            assert (directory / "stdout.log").read_bytes() == b"___EXECUTION_COMPLETE___  "
+            assert (directory / "stderr.log").read_bytes() == b"error text without newline"
+            assert session.execute("print('next')")["stdout"] == "next\n"
+        assert not directory.exists()
+
+    @pytest.mark.parametrize("source", ["if True:", "raise SystemExit(2)"])
+    def test_failed_request_preserves_session(self, source):
+        """Incomplete input and SystemExit return failures without ending the session."""
+        with PersistentPythonSession() as session:
+            result = session.execute(source)
+            assert not result["success"], result
+            assert result["error"]
+            assert session.execute("print('next')")["stdout"] == "next\n"
+
+    def test_working_directory_import(self, tmp_path):
+        """Launching the worker must preserve imports from the working directory."""
+        (tmp_path / "session_local_module.py").write_text("value = 42\n")
+        with PersistentPythonSession(working_directory=str(tmp_path)) as session:
+            result = session.execute(
+                "import session_local_module; print(session_local_module.value)"
+            )
+            assert result["success"], result
+            assert result["stdout"] == "42\n"
 
     def test_state_persistence(self):
         """Test that session maintains state across multiple executions."""
@@ -860,77 +970,34 @@ print('done')
         finally:
             session.stop()
 
-    def test_no_output_timeout_fires_by_default(self):
-        """Test that the default no_output_timeout (1.2s) interrupts code with no output."""
+    def test_silent_execution_waits_for_completion(self):
+        """Silent work longer than the old idle limit must finish within the client timeout."""
         session = PersistentPythonSession()
 
         try:
             session.start()
 
-            # Sleeps well beyond the default 1.2s idle timeout without producing output
-            code = """
-import time
-time.sleep(3)
-print('done')
-"""
-            result = session.execute(code)
-
-            # Execution should be interrupted before 'done' is printed
-            assert "done" not in result["stdout"]
-
-        finally:
-            session.stop()
-
-    def test_no_output_timeout_can_be_disabled(self):
-        """Test that setting no_output_timeout=None disables the idle check."""
-        session = PersistentPythonSession()
-
-        try:
-            session.start()
-
-            # Sleeps briefly, but longer than the default 1.2s idle timeout
             code = """
 import time
 time.sleep(1.4)
 print('done')
 """
-            # no_output_timeout=None disables the check; rely on the outer timeout instead
-            result = session.execute(code, no_output_timeout=None)
+            result = session.execute(code, timeout=5)
 
+            assert result["success"], result
             assert "done" in result["stdout"]
 
         finally:
             session.stop()
 
-    def test_no_output_timeout_custom_value(self):
-        """Test that a custom no_output_timeout is respected."""
-        session = PersistentPythonSession()
-
-        try:
-            session.start()
-
-            # Sleeps longer than the custom timeout but shorter than the default
-            code = """
-import time
-time.sleep(1)
-print('done')
-"""
-            # 0.5s idle timeout should fire before the 1s sleep finishes
-            result = session.execute(code, no_output_timeout=0.5)
-
-            assert "done" not in result["stdout"]
-
-        finally:
-            session.stop()
-
-    def test_no_output_timeout_invalid_values(self):
-        """Test that invalid no_output_timeout values raise ValueError."""
+    def test_timeout_invalid_values(self):
+        """Nonpositive or nonfinite client timeouts must be rejected."""
         session = PersistentPythonSession()
         session.start()
 
         try:
             for bad_value in (0, -1, float("nan"), float("-inf"), "5"):
-                with pytest.raises(ValueError, match="no_output_timeout"):
-                    session.execute("print('hi')", no_output_timeout=bad_value)
+                with pytest.raises(ValueError, match="timeout"):
+                    session.execute("print('hi')", timeout=bad_value)
         finally:
             session.stop()
