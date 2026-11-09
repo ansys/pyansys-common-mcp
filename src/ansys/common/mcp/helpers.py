@@ -16,6 +16,7 @@
 
 """Helper utilities for the MCP server."""
 
+import json
 from pathlib import Path
 import queue
 import re
@@ -28,6 +29,8 @@ import time
 from typing import Any, Final, Optional
 
 from ansys.common.mcp.logging_config import get_logger
+
+from . import _interactive_python
 
 logger = get_logger(__name__)
 
@@ -270,13 +273,10 @@ class PersistentPythonSession:
         try:
             logger.info(f"Starting persistent Python session: {self.python_executable}")
 
-            # Prevent the interpreter from cluttering stderr with
-            # its primary (ps1: >>>) and secondary (ps2: ...) prompts
-            turn_off_repl_prompts = "import sys; sys.ps1 = ''; sys.ps2 = ''"
-
             # Start Python in interactive mode with unbuffered I/O
+            worker = Path(_interactive_python.__file__).resolve()
             self.process = subprocess.Popen(
-                [self.python_executable, "-u", "-i", "-c", turn_off_repl_prompts],
+                [self.python_executable, "-u", "-X", "utf8", str(worker)],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -376,12 +376,8 @@ class PersistentPythonSession:
                 # Clear any pending output
                 self._drain_queues(timeout=0.1)
 
-                prepared_repl_code = _prepare_repl_code(code)
-
                 # Send code to Python process
                 # Use a unique marker to detect when execution is complete
-                code_with_marker = f"{prepared_repl_code}\nprint('{_MARKER}')\n"
-
                 logger.debug(f"Executing code: {code[:100]}...")
                 if self.process.stdin is None:
                     return {
@@ -390,7 +386,7 @@ class PersistentPythonSession:
                         "stderr": "",
                         "error": "Process stdin is not available.",
                     }
-                self.process.stdin.write(code_with_marker)
+                self.process.stdin.write(json.dumps({"code": code}) + "\n")
                 self.process.stdin.flush()
 
                 # Collect output until reaching the marker or timeout

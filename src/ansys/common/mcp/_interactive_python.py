@@ -25,6 +25,8 @@ _MARKER = "___EXECUTION_COMPLETE___"
 
 def main():
     """Serve complete snippets in a persistent namespace without rewriting source."""
+    sys.path[0] = ""  # Ensure correct working directory
+    # Backwards compatibility with previous python -c launch.
     interpreter = code.InteractiveInterpreter()
     for line in sys.stdin:
         try:
