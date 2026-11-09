@@ -25,14 +25,15 @@ import subprocess  # nosec B404
 import sys
 import threading
 import time
-from typing import Any, Optional
+from typing import Any, Final, Optional
 
 from ansys.common.mcp.logging_config import get_logger
 
 logger = get_logger(__name__)
 
-_COMMENT_PATTERN = re.compile(r"^\s*#")
-_CONTINUATION_BLOCK_PATTERN = re.compile(r"^\s*(?:else|elif|except|finally)\b")
+_COMMENT_PATTERN: Final[re.Pattern] = re.compile(r"^\s*#")
+_CONTINUATION_BLOCK_PATTERN: Final[re.Pattern] = re.compile(r"^\s*(?:else|elif|except|finally)\b")
+_MARKER: Final[str] = "___EXECUTION_COMPLETE___"
 
 
 def _sanitize_output(text: str) -> str:
@@ -379,8 +380,7 @@ class PersistentPythonSession:
 
                 # Send code to Python process
                 # Use a unique marker to detect when execution is complete
-                marker = "___EXECUTION_COMPLETE___"
-                code_with_marker = f"{prepared_repl_code}\nprint('{marker}')\n"
+                code_with_marker = f"{prepared_repl_code}\nprint('{_MARKER}')\n"
 
                 logger.debug(f"Executing code: {code[:100]}...")
                 if self.process.stdin is None:
@@ -420,9 +420,9 @@ class PersistentPythonSession:
                         pass
 
                     if output_line:
-                        if marker in output_line:
+                        if _MARKER in output_line:
                             # Remove the marker line
-                            output_line = output_line.replace(marker, "").strip()
+                            output_line = output_line.replace(_MARKER, "").strip()
                             if output_line:
                                 stdout_lines.append(output_line)
                             marker_found = True
