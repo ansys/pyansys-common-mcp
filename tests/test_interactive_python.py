@@ -78,6 +78,37 @@ def test_interpreter_reports_exceptions_and_continues(run_interpreter):
     assert "SystemExit: 2" in result.stderr
 
 
+@pytest.mark.parametrize(
+    "source, stdout, diagnostic",
+    [
+        ("for value in [1, 2]: print(value)", "1\n2\n", ""),
+        ("raise ValueError('problem')", "", "ValueError: problem"),
+        ("if True print('bad')", "", "SyntaxError"),
+        ("raise SystemExit(2)", "", "SystemExit: 2"),
+        ("if True:", "", ""),
+        ("import sys; print('error message', file=sys.stderr)", "", "error message\n"),
+        ("print('partial', end='')", "partial", ""),
+        ("import sys; print('partial', end='', file=sys.stderr)", "", "partial"),
+    ],
+)
+def test_worker_returns_response_and_recovers(run_interpreter, source, stdout, diagnostic):
+    """Every snippet receives a marker and leaves the interpreter usable."""
+    result = run_interpreter(
+        [
+            json.dumps({"code": source}),
+            json.dumps({"code": "x = 42"}),
+            json.dumps({"code": "print(x)"}),
+        ]
+    )
+
+    assert result.returncode == 0
+    assert result.stdout.split(f"\n{_MARKER}\n") == [stdout, "", "42\n", ""]
+    if diagnostic:
+        assert diagnostic in result.stderr
+    else:
+        assert result.stderr == ""
+
+
 @pytest.mark.parametrize("request_line", ["not JSON", "[]", "{}", '{"code": 42}'])
 def test_interpreter_reports_invalid_requests_and_continues(run_interpreter, request_line):
     """Invalid input is reported on stderr and still receives a completion marker."""
