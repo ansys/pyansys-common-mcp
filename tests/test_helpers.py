@@ -17,8 +17,11 @@
 """Unit tests for helpers module."""
 
 import queue
+import subprocess
 import sys
 import tempfile
+import time
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -248,6 +251,188 @@ class TestPersistentPythonSessionErrorHandling:
         assert not result["success"]
         assert "not found" in result.get("error", "").lower()
 
+    def test_process_launch_failure(self, monkeypatch):
+        """A launch error is returned without claiming the session started."""
+        process_factory = MagicMock(side_effect=OSError("cannot launch worker"))
+        monkeypatch.setattr("ansys.common.mcp.helpers.subprocess.Popen", process_factory)
+        session = PersistentPythonSession()
+
+        result = session.start()
+
+        assert not result["success"]
+        assert "cannot launch worker" in result["error"]
+        assert not session.is_running()
+
+    def test_start_rejects_already_running_session(self):
+        session = PersistentPythonSession()
+        session._is_running = True
+
+        result = session.start()
+
+        assert not result["success"]
+        assert result["error"] == "Session is already running"
+
+    @pytest.mark.parametrize("missing_stdin", [True, False])
+    def test_execution_transport_failure(self, missing_stdin):
+        """Unavailable or broken stdin produces an explicit failure and stops the worker."""
+        session = PersistentPythonSession()
+        process = MagicMock()
+        process.poll.return_value = None
+        process.wait.return_value = 1
+        if missing_stdin:
+            process.stdin = None
+        else:
+            process.stdin.write.side_effect = BrokenPipeError("broken transport")
+        session.process = process
+        session._is_running = True
+
+        result = session.execute("print('hello')")
+
+        assert not result["success"]
+        expected_error = "stdin" if missing_stdin else "broken transport"
+        assert expected_error in result["error"]
+        process.terminate.assert_called_once()
+        assert not session.is_running()
+
+    def test_inconsistent_completion_status_is_rejected(self, monkeypatch):
+        """A malformed protocol response cannot be reported as a successful execution."""
+        session = PersistentPythonSession()
+        process = MagicMock()
+        process.poll.return_value = None
+        process.wait.return_value = 1
+        session.process = process
+        session._is_running = True
+        monkeypatch.setattr("ansys.common.mcp.helpers.uuid.uuid4", lambda: MagicMock(hex="request"))
+
+        def respond(_request):
+            session._output_queue.put("___EXECUTION_COMPLETE___:request:true\n")
+            session._error_queue.put("___EXECUTION_COMPLETE___:request:false\n")
+
+        process.stdin.write.side_effect = respond
+
+        result = session.execute("pass")
+
+        assert not result["success"]
+        assert "inconsistent execution status" in result["error"]
+        process.terminate.assert_called_once()
+
+    def test_termination_escalates_to_kill(self):
+        session = PersistentPythonSession()
+        process = MagicMock()
+        process.poll.return_value = None
+        process.wait.side_effect = [subprocess.TimeoutExpired("worker", 1), -9]
+        session.process = process
+        session._is_running = True
+
+        assert session._terminate_process() == -9
+        process.terminate.assert_called_once()
+        process.kill.assert_called_once()
+        assert not session.is_running()
+
+    @pytest.mark.parametrize("return_code", [None, 3])
+    def test_termination_handles_process_exit_race(self, return_code):
+        """An exit racing with terminate is tolerated only if the child has actually exited."""
+        session = PersistentPythonSession()
+        process = MagicMock()
+        process.poll.side_effect = [None, return_code]
+        process.returncode = return_code
+        process.terminate.side_effect = OSError("process exited")
+        session.process = process
+        session._is_running = True
+
+        if return_code is None:
+            with pytest.raises(OSError, match="process exited"):
+                session._terminate_process()
+        else:
+            assert session._terminate_process() == return_code
+        assert not session.is_running()
+
+    def test_stop_reports_already_crashed_worker(self):
+        session = PersistentPythonSession()
+        process = MagicMock()
+        process.poll.return_value = 3
+        session.process = process
+        session._is_running = True
+
+        result = session.stop()
+
+        assert not result["success"]
+        assert "status 3" in result["error"]
+        assert not session.is_running()
+
+    def test_stop_with_missing_stdin_forces_termination(self):
+        session = PersistentPythonSession()
+        process = MagicMock()
+        process.poll.return_value = None
+        process.wait.return_value = 1
+        process.stdin = None
+        session.process = process
+        session._is_running = True
+
+        result = session.stop()
+
+        assert not result["success"]
+        assert "forced termination" in result["error"]
+        process.terminate.assert_called_once()
+
+    def test_stream_read_failure_signals_eof(self):
+        session = PersistentPythonSession()
+        stream = MagicMock()
+        stream.readline.side_effect = OSError("stream closed")
+        output = queue.Queue()
+
+        session._read_stream(stream, output)
+
+        assert output.get_nowait() is None
+        assert output.empty()
+
+    def test_execute_detects_worker_exit_before_submission(self):
+        session = PersistentPythonSession()
+        session.process = MagicMock()
+        session.process.poll.return_value = 3
+        session._is_running = True
+
+        result = session.execute("pass")
+
+        assert not result["success"]
+        assert "worker is not running" in result["error"]
+        session.process.stdin.write.assert_not_called()
+
+    def test_startup_error_keeps_session_available(self):
+        session = PersistentPythonSession(startup_code="raise ValueError('startup failed')")
+        try:
+            assert session.start()["success"]
+            result = session.execute("print('recovered')")
+            assert result["success"], result
+            assert result["stdout"] == "recovered\n"
+        finally:
+            session.stop()
+
+    def test_restart_continues_after_stop_failure(self, monkeypatch):
+        session = PersistentPythonSession()
+        session._is_running = True
+        stop = MagicMock(return_value={"success": False, "error": "forced termination"})
+        start = MagicMock(return_value={"success": True})
+        monkeypatch.setattr(session, "stop", stop)
+        monkeypatch.setattr(session, "start", start)
+
+        result = session.restart()
+
+        assert result["success"]
+        stop.assert_called_once()
+        start.assert_called_once()
+
+    def test_restart_reports_start_failure(self, monkeypatch):
+        session = PersistentPythonSession()
+        monkeypatch.setattr(
+            session, "start", MagicMock(return_value={"success": False, "error": "launch failed"})
+        )
+
+        result = session.restart()
+
+        assert not result["success"]
+        assert "launch failed" in result["error"]
+
     def test_restart_when_not_running(self):
         """Test that restart() works even when session is not running."""
         session = PersistentPythonSession()
@@ -281,10 +466,130 @@ class TestPersistentPythonSessionIntegration:
         assert result["success"], f"Failed to start: {result.get('error')}"
         assert session.is_running()
 
-        # Stop session
+        # Stop session gracefully using the worker protocol.
+        started_at = time.monotonic()
         result = session.stop()
+        stop_duration = time.monotonic() - started_at
         assert result["success"], f"Failed to stop: {result.get('error')}"
+        assert stop_duration < 2
         assert not session.is_running()
+        assert session.process.returncode == 0
+
+    def test_stop_reports_forced_termination(self):
+        """A worker that does not exit promptly is terminated and reported."""
+        session = PersistentPythonSession()
+
+        assert session.start()["success"]
+        result = session.execute("import atexit, time; atexit.register(time.sleep, 10)")
+        assert result["success"], result
+
+        stopped = session.stop()
+
+        assert not stopped["success"]
+        assert "forced termination" in stopped["error"].lower()
+        assert not session.is_running()
+        assert session.process.poll() is not None
+
+    def test_utf8_and_final_expression_output(self):
+        """UTF-8 output and a final expression are preserved for session callers."""
+        session = PersistentPythonSession()
+
+        try:
+            assert session.start()["success"]
+            result = session.execute("print('café'); 'résultat'")
+
+            assert result["success"], result
+            assert "café" in result["stdout"]
+            assert "'résultat'" in result["stdout"]
+        finally:
+            session.stop()
+
+    @pytest.mark.parametrize(
+        "source, expected",
+        [
+            (
+                "import __main__\nx = 42\nprint(__main__.x)",
+                "42\n",
+            ),
+            (
+                "import pickle\nclass Example: pass\n"
+                "print(type(pickle.loads(pickle.dumps(Example()))).__name__)",
+                "Example\n",
+            ),
+            ("print('partial  ', end='')", "partial  "),
+            ("for i in range(1000): print(i)", "".join(f"{i}\n" for i in range(1000))),
+            (
+                "print('___EXECUTION_COMPLETE___:not-a-request-token')",
+                "___EXECUTION_COMPLETE___:not-a-request-token\n",
+            ),
+            (
+                "print('___EXECUTION_COMPLETE___:' + '0' * 32 + ':true')",
+                "___EXECUTION_COMPLETE___:" + "0" * 32 + ":true\n",
+            ),
+        ],
+    )
+    def test_namespace_and_output_regressions(self, source, expected):
+        """Real requests preserve namespace semantics and complete output without slow draining."""
+        with PersistentPythonSession() as session:
+            result = session.execute(source, timeout=2)
+            assert result["success"], result
+            assert result["stdout"] == expected
+
+    @pytest.mark.parametrize(
+        "source, diagnostic",
+        [
+            ("if True:", "SyntaxError"),
+            (
+                "class Broken:\n    def __repr__(self): raise ValueError('bad repr')\nBroken()",
+                "ValueError: bad repr",
+            ),
+            ("raise KeyboardInterrupt()", "KeyboardInterrupt"),
+            ("raise SystemExit(2)", "SystemExit: 2"),
+        ],
+    )
+    def test_user_errors_do_not_destroy_session(self, source, diagnostic):
+        """Compilation, execution and display errors return failure without losing state."""
+        with PersistentPythonSession() as session:
+            assert session.execute("value = 42")["success"]
+            result = session.execute(source, timeout=2)
+            assert not result["success"], result
+            assert diagnostic in result["stderr"]
+            assert session.is_running()
+            recovered = session.execute("value")
+            assert recovered["success"], recovered
+            assert recovered["stdout"] == "42\n"
+
+    def test_stderr_is_not_execution_status(self):
+        """Diagnostic text and unterminated stderr are returned without implying failure."""
+        with PersistentPythonSession() as session:
+            result = session.execute(
+                "import sys; _ = sys.stderr.write('error exception traceback  ')",
+                timeout=2,
+            )
+            assert result["success"], result
+            assert result["stderr"] == "error exception traceback  "
+            assert result["error"] == ""
+
+    def test_large_stderr_completes_without_losing_lines(self):
+        """Stderr completion is explicit, rather than a timed final drain."""
+        with PersistentPythonSession() as session:
+            result = session.execute(
+                "import sys\nfor i in range(1000): print(i, file=sys.stderr)",
+                timeout=2,
+            )
+            assert result["success"], result
+            assert result["stdout"] == ""
+            assert result["stderr"] == "".join(f"{i}\n" for i in range(1000))
+
+    def test_worker_crash_is_reported_without_waiting_for_timeout(self):
+        """EOF on the worker pipes reports a crash promptly, not an execution timeout."""
+        with PersistentPythonSession() as session:
+            started_at = time.monotonic()
+            result = session.execute("import os; os._exit(3)", timeout=10)
+            assert time.monotonic() - started_at < 2
+            assert not result["success"]
+            assert "closed its output" in result["error"]
+            assert not session.is_running()
 
     def test_execute_empty_code(self):
         """Test executing an empty Python code snippet in session."""
@@ -787,13 +1092,12 @@ print('done')
             session.stop()
 
     def test_no_output_timeout_fires_by_default(self):
-        """Test that the default no_output_timeout (1.2s) interrupts code with no output."""
+        """The default idle timeout stops collection without terminating the worker."""
         session = PersistentPythonSession()
 
         try:
             session.start()
 
-            # Sleeps well beyond the default 1.2s idle timeout without producing output
             code = """
 import time
 time.sleep(3)
@@ -801,9 +1105,27 @@ print('done')
 """
             result = session.execute(code)
 
-            # Execution should be interrupted before 'done' is printed
             assert "done" not in result["stdout"]
+            assert session.is_running()
 
+        finally:
+            session.stop()
+
+    def test_execution_timeout_preserves_worker(self):
+        """The hard timeout returns an error without terminating the running code."""
+        session = PersistentPythonSession()
+
+        try:
+            assert session.start()["success"]
+            result = session.execute(
+                "import time; time.sleep(3); print('stale')",
+                timeout=0.2,
+                no_output_timeout=None,
+            )
+
+            assert not result["success"]
+            assert "timed out" in result["error"]
+            assert session.is_running()
         finally:
             session.stop()
 
@@ -845,6 +1167,7 @@ print('done')
             result = session.execute(code, no_output_timeout=0.5)
 
             assert "done" not in result["stdout"]
+            assert session.is_running()
 
         finally:
             session.stop()
