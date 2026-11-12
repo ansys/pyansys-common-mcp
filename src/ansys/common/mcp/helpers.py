@@ -16,23 +16,25 @@
 
 """Helper utilities for the MCP server."""
 
+import json
 from pathlib import Path
 import queue
-import re
 
 # Subprocess is needed for managing the persistent Python session
 import subprocess  # nosec B404
 import sys
 import threading
 import time
-from typing import Any, Optional
+from typing import Any, Final, Optional
+import uuid
 
 from ansys.common.mcp.logging_config import get_logger
 
+from . import _interactive_python
+
 logger = get_logger(__name__)
 
-_COMMENT_PATTERN = re.compile(r"^\s*#")
-_CONTINUATION_BLOCK_PATTERN = re.compile(r"^\s*(?:else|elif|except|finally)\b")
+_MARKER_PREFIX: Final[str] = "___EXECUTION_COMPLETE___:"
 
 
 def _sanitize_output(text: str) -> str:
@@ -109,78 +111,6 @@ def _sanitize_output(text: str) -> str:
     return text
 
 
-def _prepare_repl_code(code: str) -> str:
-    """Prepare a snippet for running in the interactive REPL.
-
-    The persistent session uses an interactive Python interpreter to execute
-    code, sending the text to the Python interpreter's `stdin`. The REPL
-    obeys these rules:
-
-    * a blank line inside an indented block terminates it early
-    * an indented block is only executed once a blank line is encountered
-
-    Therefore the text needs to be prepared to correctly drive the REPL:
-
-    * blank lines inside indented blocks are replaced by `#` so the block
-    does not terminate prematurely
-    * an extra blank line is inserted at the end of the last indented block
-    to trigger the execution of that block
-
-    Parameters
-    ----------
-    code : str
-        Python source to send to the interactive session.
-
-    Returns
-    -------
-    str
-        The prepared source code.
-    """
-    lines = code.splitlines()
-    if not lines:
-        return code
-
-    prepared_repl_code: list[str] = []
-
-    # Block of code always start without indentation
-    # (if not `IndentationError: unexpected indent`
-    # will be generated anyway)
-    is_current_line_indented = False
-
-    for line in lines:
-        is_comment_line = _COMMENT_PATTERN.match(line)
-        if is_comment_line:
-            # leave comment lines as is
-            # do not consider them to decide if enter is required
-            prepared_repl_code.append(line)
-            continue
-
-        if not line.strip():
-            # empty line, change to comment to prevent
-            # inadvertent execution
-            prepared_repl_code.append(line + "#")
-            continue
-
-        is_previous_line_indented = is_current_line_indented
-
-        is_current_line_indented = line.startswith((" ", "\t"))
-
-        is_continuation = _CONTINUATION_BLOCK_PATTERN.match(line)
-        if not is_continuation:
-            is_end_of_block = not is_current_line_indented and is_previous_line_indented
-            if is_end_of_block:
-                # end of the block, insert blank line to trigger the REPL evaluation
-                prepared_repl_code.append("")
-
-        prepared_repl_code.append(line)
-
-    if is_current_line_indented:
-        # trigger the REPL evaluation if ending on an indented block
-        prepared_repl_code.append("")
-
-    return "\n".join(prepared_repl_code)
-
-
 class PersistentPythonSession:
     r"""Maintains a persistent Python subprocess for stateful code execution.
 
@@ -220,6 +150,11 @@ class PersistentPythonSession:
     ...     python_executable="/path/to/venv/bin/python",
     ...     startup_code="import numpy as np\\nimport pandas as pd",
     ... )
+
+    Notes
+    -----
+    Code is executed with the permissions of the current user; this session is
+    not a security sandbox.
 
     """
 
@@ -269,21 +204,26 @@ class PersistentPythonSession:
         try:
             logger.info(f"Starting persistent Python session: {self.python_executable}")
 
-            # Prevent the interpreter from cluttering stderr with
-            # its primary (ps1: >>>) and secondary (ps2: ...) prompts
-            turn_off_repl_prompts = "import sys; sys.ps1 = ''; sys.ps2 = ''"
-
             # Start Python in interactive mode with unbuffered I/O
+            worker = Path(_interactive_python.__file__).resolve()
+            # `python_executable` was validated above to point to an existing file, the
+            # worker path is resolved from this package (not user input), and no
+            # `shell=True`/string command is involved, so there is no shell-injection
+            # vector here despite the generic "subprocess call" warning.
             self.process = subprocess.Popen(
-                [self.python_executable, "-u", "-i", "-c", turn_off_repl_prompts],
+                [self.python_executable, "-u", "-X", "utf8", str(worker)],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 bufsize=1,  # Line buffered
                 cwd=self.working_directory,
             )  # nosec B603
 
+            self._output_queue = queue.Queue()
+            self._error_queue = queue.Queue()
             self._is_running = True
 
             # Start threads to read output
@@ -300,9 +240,6 @@ class PersistentPythonSession:
 
             self._output_thread.start()
             self._error_thread.start()
-
-            # Clear initial Python prompt
-            self._drain_queues(timeout=0.5)
 
             # Execute startup code if provided
             if self.startup_code:
@@ -348,9 +285,15 @@ class PersistentPythonSession:
         dict[str, Any]
             Dictionary containing:
             - 'success': Boolean indicating if execution succeeded
-            - 'stdout': string with standard output
+            - 'stdout': string with standard output, including a final expression
+              displayed as it would be in a Python interactive session
             - 'stderr': string with standard error
             - 'error': string with error message (if execution failed)
+
+        Notes
+        -----
+        Timeouts stop output collection, not the running code. The worker and
+        session state are retained.
 
         """
         if not self._is_running or self.process is None:
@@ -371,121 +314,122 @@ class PersistentPythonSession:
             )
 
         with self._execution_lock:
+            request_sent = False
             try:
-                # Clear any pending output
+                if not self.is_running():
+                    raise RuntimeError("Python worker is not running. Restart the session.")
+
                 self._drain_queues(timeout=0.1)
-
-                prepared_repl_code = _prepare_repl_code(code)
-
                 # Send code to Python process
-                # Use a unique marker to detect when execution is complete
-                marker = "___EXECUTION_COMPLETE___"
-                code_with_marker = f"{prepared_repl_code}\nprint('{marker}')\n"
-
                 logger.debug(f"Executing code: {code[:100]}...")
                 if self.process.stdin is None:
+                    self._terminate_process()
                     return {
                         "success": False,
                         "stdout": "",
                         "stderr": "",
                         "error": "Process stdin is not available.",
                     }
-                self.process.stdin.write(code_with_marker)
+                request_id = uuid.uuid4().hex
+                request = {"action": "execute", "code": code, "request_id": request_id}
+                request_sent = True
+                self.process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
                 self.process.stdin.flush()
 
-                # Collect output until reaching the marker or timeout
                 stdout_lines: list[str] = []
                 stderr_lines: list[str] = []
-                start_time = time.time()
-                marker_found = False
-                last_output_time = time.time()
-
-                while True:
-                    elapsed = time.time() - start_time
-                    if elapsed > timeout:
-                        error_msg = f"Code execution timed out after {timeout} seconds."
-                        logger.error(error_msg)
-                        return {
-                            "success": False,
-                            "stdout": "\n".join(stdout_lines),
-                            "stderr": "\n".join(stderr_lines),
-                            "error": error_msg,
-                        }
-
-                    # Read from stdout
-                    output_line = None
-                    try:
-                        output_line = self._output_queue.get(timeout=0.1)
-                    except queue.Empty:
-                        pass
-
-                    if output_line:
-                        if marker in output_line:
-                            # Remove the marker line
-                            output_line = output_line.replace(marker, "").strip()
-                            if output_line:
-                                stdout_lines.append(output_line)
-                            marker_found = True
-                        else:
-                            stdout_lines.append(output_line.rstrip())
-
-                    # Read from stderr
-                    error_line = None
-                    try:
-                        error_line = self._error_queue.get(timeout=0.1)
-                    except queue.Empty:
-                        pass
-
-                    if error_line:
-                        stderr_lines.append(error_line.rstrip())
-
-                    # If marker was found and no more data, we're done
-                    if marker_found and not (error_line or output_line):
-                        break
-
-                    # Safety: if no output has been received for no_output_timeout seconds,
-                    # stop collection to prevent infinite loops if the marker is never found.
-                    if error_line or output_line:
-                        last_output_time = time.time()
-                    elif (
-                        no_output_timeout is not None
-                        and time.time() - last_output_time > no_output_timeout
-                    ):
-                        if marker_found:
-                            break
-                        # Marker not found but no data: something went wrong
-                        logger.warning("No data received for extended period. Stopping collection.")
-                        break
-
-                # After marker found, do one final drain of stderr to catch any remaining output
-                final_drain_start = time.time()
-                while time.time() - final_drain_start < 0.5:
-                    try:
-                        line = self._error_queue.get(timeout=0.05)
-                        stderr_lines.append(line.rstrip())
-                    except queue.Empty:
-                        break
-
-                stdout_text = "\n".join(stdout_lines)
-                stderr_text = "\n".join(stderr_lines)
-
-                # Check if there were any errors
-                has_error = bool(stderr_text) and any(
-                    keyword in stderr_text.lower()
-                    for keyword in ["error", "exception", "traceback"]
+                start_time = time.monotonic()
+                last_output_time = start_time
+                completed: dict[str, bool] = {}
+                closed: set[str] = set()
+                marker = f"{_MARKER_PREFIX}{request_id}:"
+                failure = ""
+                idle_expired = False
+                streams = (
+                    ("stdout", self._output_queue, stdout_lines),
+                    ("stderr", self._error_queue, stderr_lines),
                 )
 
-                if has_error:
-                    logger.warning(f"Code execution had errors: {stderr_text[:200]}")
+                while len(completed) < 2:
+                    received_output = False
+                    for name, output_queue, lines in streams:
+                        if name in completed or name in closed:
+                            continue
+                        for _ in range(256):
+                            try:
+                                line = output_queue.get_nowait()
+                            except queue.Empty:
+                                break
+                            received_output = True
+                            if line is None:
+                                closed.add(name)
+                                break
+                            if line.rstrip("\r\n") in (marker + "true", marker + "false"):
+                                completed[name] = line.rstrip("\r\n") == marker + "true"
+                                # The worker inserts one newline to frame unterminated output.
+                                if lines:
+                                    lines[-1] = lines[-1].removesuffix("\n")
+                                break
+                            lines.append(line)
+
+                    if len(completed) == 2:
+                        break
+                    if closed - completed.keys():
+                        failure = (
+                            "Python worker closed its output before completing execution. "
+                            "Restart the session."
+                        )
+                        break
+                    now = time.monotonic()
+                    if now - start_time > timeout:
+                        failure = f"Code execution timed out after {timeout} seconds."
+                        break
+                    if received_output:
+                        last_output_time = time.monotonic()
+                    elif (
+                        no_output_timeout is not None and now - last_output_time > no_output_timeout
+                    ):
+                        logger.warning("No data received for extended period. Stopping collection.")
+                        idle_expired = True
+                        break
+                    if not received_output:
+                        time.sleep(0.005)
+
+                stdout_text = "".join(stdout_lines)
+                stderr_text = "".join(stderr_lines)
+                if failure:
+                    logger.error(failure)
+                    if closed:
+                        self._terminate_process()
+                    return {
+                        "success": False,
+                        "stdout": stdout_text,
+                        "stderr": stderr_text,
+                        "error": failure,
+                    }
+                if idle_expired:
+                    # Preserve the existing idle-timeout result until timeout policy is revised.
+                    success = not any(
+                        keyword in stderr_text.lower()
+                        for keyword in ("error", "exception", "traceback")
+                    )
+                elif completed["stdout"] != completed["stderr"]:
+                    raise RuntimeError("Worker returned inconsistent execution status.")
+                else:
+                    success = completed["stdout"]
+                if not success:
+                    logger.warning(f"Code execution failed: {stderr_text[:200]}")
 
                 return {
-                    "success": not has_error,
+                    "success": success,
                     "stdout": stdout_text,
                     "stderr": stderr_text,
-                    "error": stderr_text if has_error else "",
+                    "error": stderr_text if not success else "",
                 }
 
             except Exception as e:
+                if request_sent:
+                    self._terminate_process()
                 error_msg = f"Error during code execution: {str(e)}"
                 logger.error(error_msg)
                 return {
@@ -494,6 +438,24 @@ class PersistentPythonSession:
                     "stderr": "",
                     "error": error_msg,
                 }
+
+    def _terminate_process(self) -> Optional[int]:
+        """Terminate the child process after a failed execution."""
+        self._is_running = False
+        if self.process is None or self.process.poll() is not None:
+            return None if self.process is None else self.process.returncode
+
+        try:
+            self.process.terminate()
+        except OSError:
+            if self.process.poll() is None:
+                raise
+            return self.process.returncode
+        try:
+            return self.process.wait(timeout=1)
+        except subprocess.TimeoutExpired:
+            self.process.kill()
+            return self.process.wait()
 
     def stop(self) -> dict[str, Any]:
         """Stop the persistent Python session.
@@ -504,46 +466,44 @@ class PersistentPythonSession:
             Dictionary with success status and cleanup messages.
 
         """
-        if not self._is_running:
-            return {
-                "success": False,
-                "error": "Session is not running.",
-            }
+        with self._execution_lock:
+            if not self._is_running or self.process is None:
+                return {
+                    "success": False,
+                    "error": "Session is not running.",
+                }
 
-        try:
             logger.info("Stopping persistent Python session.")
+            process = self.process
+            try:
+                return_code = process.poll()
+                if return_code is None:
+                    if process.stdin is None:
+                        raise OSError("Worker stdin is not available.")
+                    shutdown_request = {"action": "shutdown", "request_id": uuid.uuid4().hex}
+                    process.stdin.write(json.dumps(shutdown_request) + "\n")
+                    process.stdin.flush()
+                    process.stdin.close()
+                    return_code = process.wait(timeout=2)
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                logger.warning(f"Python worker did not stop gracefully: {exc}")
+                self._terminate_process()
+                return {
+                    "success": False,
+                    "error": "Python worker required forced termination.",
+                }
+            finally:
+                self._is_running = False
 
-            # Send exit command
-            if self.process and self.process.stdin:
-                try:
-                    self.process.stdin.write("exit()\n")
-                    self.process.stdin.flush()
-                except Exception as e:
-                    logger.warning(f"Error sending exit command: {e}")
+            if return_code != 0:
+                error_msg = f"Python worker exited with status {return_code}."
+                logger.error(error_msg)
+                return {"success": False, "error": error_msg}
 
-            # Wait for process to terminate
-            if self.process:
-                try:
-                    self.process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    logger.warning("Process did not terminate gracefully. Forcing termination.")
-                    self.process.kill()
-                    self.process.wait()
-
-            self._is_running = False
             logger.info("Persistent Python session stopped.")
-
             return {
                 "success": True,
                 "message": "Session stopped successfully.",
-            }
-
-        except Exception as e:
-            error_msg = f"Error stopping session: {str(e)}"
-            logger.error(error_msg)
-            return {
-                "success": False,
-                "error": error_msg,
             }
 
     def restart(self) -> dict[str, Any]:
@@ -651,10 +611,10 @@ class PersistentPythonSession:
             for line in iter(stream.readline, ""):
                 if line:
                     output_queue.put(line)
-                if not self._is_running:
-                    break
         except Exception as e:
             logger.error(f"Error reading stream: {e}")
+        finally:
+            output_queue.put(None)
 
     def _drain_queues(self, timeout: float = 0.1):
         """Drain both output and error queues to clear any pending output.
