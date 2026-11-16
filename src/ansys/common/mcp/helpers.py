@@ -128,6 +128,11 @@ class PersistentPythonSession:
     working_directory : str, default: None
         Working directory for the Python process. If ``None``, the current directory is used.
 
+    Notes
+    -----
+    Code is executed with the permissions of the current user; this session is
+    not a security sandbox.
+
     Examples
     --------
     Create a persistent session and execute multiple steps:
@@ -150,11 +155,6 @@ class PersistentPythonSession:
     ...     python_executable="/path/to/venv/bin/python",
     ...     startup_code="import numpy as np\\nimport pandas as pd",
     ... )
-
-    Notes
-    -----
-    Code is executed with the permissions of the current user; this session is
-    not a security sandbox.
 
     """
 
@@ -284,6 +284,7 @@ class PersistentPythonSession:
         -------
         dict[str, Any]
             Dictionary containing:
+
             - 'success': Boolean indicating if execution succeeded
             - 'stdout': string with standard output, including a final expression
               displayed as it would be in a Python interactive session
@@ -523,6 +524,13 @@ class PersistentPythonSession:
         dict[str, Any]
             Dictionary with success status and restart messages.
 
+        Notes
+        -----
+        - This is a manual operation. Automatic restart on crashes is NOT implemented.
+        - Session state is lost (including variables and non-startup imports).
+        - The ``startup_code`` is re-executed on restart.
+        - Consider managing command_history at the context level for replay capability
+
         Examples
         --------
         Basic restart:
@@ -547,13 +555,6 @@ class PersistentPythonSession:
         >>> if restart_result["success"] and app_context.command_history:
         ...     for cmd in app_context.command_history:
         ...         app_context.python_session.execute(cmd)
-
-        Notes
-        -----
-        - This is a manual operation. Automatic restart on crashes is NOT implemented.
-        - Session state is lost (including variables and non-startup imports).
-        - The ``startup_code`` is re-executed on restart.
-        - Consider managing command_history at the context level for replay capability
 
         """
         logger.info("Restarting persistent Python session...")
