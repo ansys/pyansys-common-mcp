@@ -1,0 +1,302 @@
+
+
+
+
+
+
+The ``tools.py`` module
+=======================
+
+.. py:module:: ansys.common.mcp.tools
+
+
+Summary
+-------
+
+
+
+
+
+
+
+
+.. py:currentmodule:: tools
+.. tab-set::
+
+
+
+
+
+
+
+    .. tab-item:: Functions
+
+        .. list-table::
+          :header-rows: 0
+          :widths: auto
+
+
+          * - :py:obj:`~execute_python_code`
+            - Execute Python code in the persistent Python session with automatic rule generation.
+
+
+          * - :py:obj:`~create_custom_plot`
+            - Create a custom plot using Matplotlib or PyVista in the persistent Python session.
+
+
+          * - :py:obj:`~restart_python_session`
+            - Restart the persistent Python session.
+
+
+          * - :py:obj:`~export_history`
+            - Export the command history as JSON or text.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Description
+-----------
+
+Common tool implementations for PyAnsys MCP servers.
+
+This module provides reusable tool functions that product-specific MCP
+servers can use or extend. These are not registered tools themselves,
+but functions that can be called from product-specific tool implementations.
+
+..
+    !! processed by numpydoc !!
+
+
+
+
+
+
+Module detail
+-------------
+
+.. py:function:: execute_python_code(ctx: fastmcp.Context, code: str, timeout: int = 60, skip_history: bool = False) -> str
+
+   
+   Execute Python code in the persistent Python session with automatic rule generation.
+
+   This function should be used for custom Python code execution. When code execution
+   fails, it automatically generates a rule using LLM analysis to prevent similar
+   errors in the future.
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **code** : :class:`python:str`
+           Python code to execute.
+
+       **timeout** : :class:`python:int`, default: 60
+           Maximum time in seconds to allow for code execution.
+
+       **skip_history** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:False`
+           Whether to skip adding this code snippet to the history. This can be useful to prevent
+           certain code snippets from being re-run during session restart or for keeping the history
+           clean.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Execution result or error message. Returns JSON for structured output
+           compatible with both stdio and http transports.
+
+
+
+
+
+
+
+
+
+
+   .. rubric:: Examples
+
+   Execute simple Python code:
+
+   .. code:: python
+
+       code = '''
+       result = sum([i**2 for i in range(10)])
+       print(f"Sum of squares: {result}")
+       '''
+       execute_python_code(ctx, code)
+
+   Execute code with automatic rule generation on failure:
+
+   .. code:: python
+
+       code = "result = 1/0"  # This will fail
+       execute_python_code(ctx, code)
+
+   Automatically adds rule like: ``{"Division Operations": ["Do not divide by zero"]}``
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: create_custom_plot(ctx: fastmcp.Context, plot_code: str, plot_type: str = 'matplotlib', timeout: int = 60, skip_history: bool = False) -> list[mcp.types.TextContent | mcp.types.ImageContent] | str
+
+   
+   Create a custom plot using Matplotlib or PyVista in the persistent Python session.
+
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **plot_code** : :class:`python:str`
+           Python code for creating the plot. You should use ``matplotlib.pyplot`` or PyVista.
+           For Matplotlib, the code should create the figure/plot but NOT call ``plt.show()``.
+           Use the ``save_matplotlib_plot() or ``save_plot()`` helper functions to return the plot.
+
+       **plot_type** : :class:`python:str`, default: "matplotlib"
+           Type of plot. Options are ``"matplotlib"`` or ``"pyvista"``.
+
+       **timeout** : :class:`python:int`, default: 60
+           Maximum time in seconds for plot generation.
+
+       **skip_history** : :ref:`bool <python:bltin-boolean-values>`, default: :data:`python:False`
+           Whether to skip adding this plot code snippet to the history. This can be useful to prevent
+           certain code snippets from being re-run during session restart or for keeping the history
+           clean.
+
+
+
+   :Returns:
+
+       :class:`python:list`\[:obj:`TextContent` | :obj:`ImageContent`]
+           List containing:
+           - TextContent with the plot creation status message
+           - ImageContent with the base64-encoded image data if successful
+           or a JSON string with error details if failed.
+
+
+
+
+
+
+
+
+
+
+   .. rubric:: Examples
+
+   Create a custom Matplotlib line plot:
+
+   .. code:: python
+
+       plot_code = '''
+       import matplotlib.pyplot as plt
+       import numpy as np
+
+       # Extract data from MAPDL
+       displacements = mapdl.get_array("NODE", item1="U", it1num="Y")
+
+       # Create custom plot
+       plt.figure(figsize=(10, 6))
+       plt.plot(displacements)
+       plt.xlabel("Node Number")
+       plt.ylabel("Displacement (m)")
+       plt.title("Custom Displacement Plot")
+       plt.grid(True)
+       # Save and return
+       result = save_matplotlib_plot(dpi=150)
+       print(result)
+       '''
+
+       create_custom_plot(ctx, plot_code, plot_type="matplotlib")
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: restart_python_session(ctx: fastmcp.Context, run_successful_history_commands: bool = True, run_all_history: bool = False) -> str
+
+   
+   Restart the persistent Python session.
+
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context containing server session and application context.
+
+       **run_successful_history_commands** : :ref:`bool <python:bltin-boolean-values>`, :obj:`optional`
+           Whether to run the commands that executed successfully after restarting the Python
+           session, default is True.
+
+       **run_all_history** : :ref:`bool <python:bltin-boolean-values>`, :obj:`optional`
+           Whether to run the all command history after restarting the Python session, default is
+           False.
+
+
+
+   :Returns:
+
+       :class:`python:str`
+           Status message
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+.. py:function:: export_history(ctx: fastmcp.Context, format: str = 'json') -> str
+
+   
+   Export the command history as JSON or text.
+
+
+   :Parameters:
+
+       **ctx** : :obj:`Context`
+           MCP context (automatically injected).
+
+       **format** : :class:`python:str`, default: 'json'
+           Export format ('json' or 'text').
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ..
+       !! processed by numpydoc !!
+
+
+
