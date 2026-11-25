@@ -201,9 +201,10 @@ def create_custom_plot(
     -------
     list[TextContent | ImageContent]
         List containing:
+
         - TextContent with the plot creation status message
-        - ImageContent with the base64-encoded image data if successful
-        or a JSON string with error details if failed.
+        - ImageContent with the base64-encoded image data if successful,
+          or a JSON string with error details if failed.
 
     Examples
     --------
